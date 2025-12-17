@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/playwright:v1.57.0-jammy
+FROM node:20-bookworm
 
 # ========= Home Assistant / Node =========
 ENV NODE_ENV=production
@@ -10,6 +10,10 @@ ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 # Less logs
 ENV NPM_CONFIG_LOGLEVEL=warn
+
+# Playwright deps
+RUN npx playwright install-deps chromium \
+    && npx playwright install chromium
 
 WORKDIR /app
 
