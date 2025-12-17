@@ -1,0 +1,18 @@
+name: "Download Manager"
+slug: "download_manager"
+version: "1.0.0"
+description: "Home Assistant Download Manager"
+arch:
+  - amd64
+  - aarch64
+ingress: true
+ingress_port: 3000
+startup: services
+boot: auto
+options:
+  max_speed: 500000
+  max_concurrent: 3
+schema:
+  max_speed: int
+  max_concurrent: int
+panel_icon: mdi:download
