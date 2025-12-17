@@ -93,6 +93,9 @@ function showParseResult(data, url) {
     const titleOriginal = data.titleOriginal || '';
     const originalTitleHtml = titleOriginal && titleOriginal !== title ? `<p class="text-muted small">${escapeHtml(titleOriginal)}</p>` : '';
     const img = data.imgSrc ? `<div class="text-center mb-3"><img class="img-fluid" style="max-height: 250px;" src="${data.imgSrc}" alt="${title}"></div>` : '';
+
+    const streamUrls = [];
+
     const streams = Array.isArray(data.streams) && data.streams.length ? `
         <h6>Streams</h6>
         <ul class="list-unstyled">
@@ -101,15 +104,42 @@ function showParseResult(data, url) {
                 // prefer an explicit .mp4 URL if present, otherwise convert .m3u8 -> .mp4 as a best-effort fallback
                 let mp4url = '';
                 const mp4match = String(s).match(/https?:\/\/[^'"\s]+?\.mp4(\?[^'"\s]*)?/i);
-                if (mp4match) mp4url = mp4match[0];
-                else if (/\.m3u8/i.test(String(s))) mp4url = String(s).replace(/\.m3u8/i, '.mp4');
-                else mp4url = String(s);
+                if (mp4match) 
+                    mp4url = mp4match[0];
+                else if (/\.m3u8/i.test(String(s))) 
+                    mp4url = String(s).replace(/\.m3u8/i, '.mp4');
+                else 
+                    mp4url = String(s);
                 const encoded = encodeURIComponent(mp4url);
-                return `<li class="mb-2"><button type="button" class="btn btn-sm btn-primary me-2" onclick="openStream(decodeURIComponent('${encoded}'))">${label}</button><button type="button" class="btn btn-sm btn-outline-secondary" onclick="copyStreamUrl(decodeURIComponent('${encoded}'))">Copy</button></li>`;
+
+                streamUrls.push({
+                    label: label,
+                    url: mp4url
+                });
+
+                return `
+                    <li class="mb-2">
+                        <button type="button" class="btn btn-sm btn-primary me-2" onclick="openStream(decodeURIComponent('${encoded}'))">
+                        ${label}
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="copyStreamUrl(decodeURIComponent('${encoded}'))">
+                        Copy
+                        </button>
+                    </li>`;
             }).join('')}
         </ul>
     ` : '';
-     
+
+    const videoEmbed = streamUrls.length >= 1 && /(\.mp4|\.m3u8)$/i.test(streamUrls[0].url) ? `
+        <div class="mb-3">
+            <h6>Video</h6>
+            <div class="embed-responsive embed-responsive-16by9">
+                <iframe class="embed-responsive-item" src="${streamUrls[0].url}" allowfullscreen></iframe>
+            </div>
+        </div>
+    ` : ''; 
+    
+
     const translations = Array.isArray(data.translations) && data.translations.length ? `
         <h6>Translations</h6>
         <div class="d-flex flex-wrap">
@@ -129,6 +159,7 @@ function showParseResult(data, url) {
             ${originalTitleHtml}
             ${img}
             <div>
+                ${videoEmbed}
                 ${translations}
                 ${streams}
             </div>
