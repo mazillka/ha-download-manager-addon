@@ -26,6 +26,7 @@ EXPOSE 3000
 # Graceful shutdown
 STOPSIGNAL SIGTERM
 
+COPY run.sh /run.sh
 RUN chmod +x /run.sh
 
 CMD ["/run.sh"]
