@@ -1,6 +1,6 @@
-name: "Download Manager"
-slug: "download_manager"
-version: "1.0.0"
+name: "HA Download Manager"
+slug: "ha_download_manager"
+version: "1.0.1"
 description: "Home Assistant Download Manager"
 arch:
   - amd64
