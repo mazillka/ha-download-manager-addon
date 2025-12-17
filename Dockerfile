@@ -1,16 +1,29 @@
-FROM mcr.microsoft.com/playwright:v1.42.0-jammy
+FROM mcr.microsoft.com/playwright:v1.57.0-jammy
 
+# ========= Home Assistant / Node =========
 ENV NODE_ENV=production
+ENV TZ=UTC
+
+# Playwright / Chromium оптимізація
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
-EXPOSE 3000
+# Less logs
+ENV NPM_CONFIG_LOGLEVEL=warn
 
 WORKDIR /app
-COPY app/package.json .
 
-RUN npm install --production
+# ======= Install deps (cached layer) =======
+COPY app/package.json app/package-lock.json ./
+RUN npm ci --omit=dev && npm cache clean --force
 
-COPY rootfs/run.sh /run.sh
-RUN chmod +x /run.sh
+# ======= App source =======
+COPY app/ .
 
-CMD ["/run.sh"]
+# Home Assistant ingress
+EXPOSE 3000
+
+# Graceful shutdown
+STOPSIGNAL SIGTERM
+
+CMD ["node", "backend/server.js"]

@@ -45,7 +45,8 @@ export async function getBrowser() {
                 "--disable-sync",
                 "--disable-features=site-per-process",
                 "--disable-breakpad",
-                "--disable-component-update"
+                "--disable-component-update",
+                "--disable-gpu"
             ]
         });
         // Graceful shutdown

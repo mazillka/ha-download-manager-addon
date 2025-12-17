@@ -16,3 +16,4 @@ schema:
   max_speed: int
   max_concurrent: int
 panel_icon: mdi:download
+host_network: false
