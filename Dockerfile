@@ -26,4 +26,6 @@ EXPOSE 3000
 # Graceful shutdown
 STOPSIGNAL SIGTERM
 
-CMD ["node", "backend/server.js"]
+RUN chmod +x /run.sh
+
+CMD ["/run.sh"]
