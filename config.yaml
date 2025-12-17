@@ -17,4 +17,3 @@ schema:
   max_concurrent: int
 panel_icon: mdi:download
 host_network: false
-memory: 2048M
