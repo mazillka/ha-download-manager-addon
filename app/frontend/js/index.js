@@ -50,6 +50,34 @@ async function OnClear() {
     document.querySelector("#cards-row").innerHTML = "";
 }
 
+async function OnDownload(url, filename) {
+    try {
+        const response = await fetch(url);
+        if (!response.ok)
+        {
+            throw new Error('Download failed');
+        }
+
+       showSpinner();
+
+        const blob = await response.blob();
+
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+
+        URL.revokeObjectURL(a.href);
+        a.remove();
+    } catch (e) {
+        alert('Error downloading file');
+        console.error(e);
+    } finally {
+        hideSpinner();
+    }
+}
+
 async function OnParse(url, data_translator_id) {
     const request = await fetch("api/parse", {
         method: "POST",
@@ -67,31 +95,35 @@ async function OnParse(url, data_translator_id) {
 
 function hideModal() {
     const m = document.querySelector('#global-modal');
-    if (!m) return;
-    if (m._bsModal) return m._bsModal.hide();
+    if (!m)
+        return;
+    if (m._bsModal)
+        return m._bsModal.hide();
     m.classList.remove('show');
     m.style.display = 'none';
 }
 
 function showModal(html, title) {
     const m = document.querySelector('#global-modal');
-    if (!m) return;
+    if (!m)
+        return;
     const body = m.querySelector('.modal-body');
     const titleEl = m.querySelector('.modal-title');
     body.innerHTML = html;
-    if (titleEl) titleEl.innerHTML = title || '';
-    if (m._bsModal) return m._bsModal.show();
+    if (titleEl)
+        titleEl.innerHTML = title || '';
+    if (m._bsModal)
+        return m._bsModal.show();
     m.style.display = 'block';
     setTimeout(() => m.classList.add('show'), 10);
 }
 
 function showParseResult(data, url) {
-    if (!data) 
+    if (!data)
         return showModal('<pre>No data</pre>');
-    
+
     const title = data.title || data.titleOriginal || 'No title';
     const titleOriginal = data.titleOriginal || '';
-    const originalTitleHtml = titleOriginal && titleOriginal !== title ? `<p class="text-muted small">${escapeHtml(titleOriginal)}</p>` : '';
     const img = data.imgSrc ? `<div class="text-center mb-3"><img class="img-fluid" style="max-height: 250px;" src="${data.imgSrc}" alt="${title}"></div>` : '';
 
     const streamUrls = [];
@@ -99,47 +131,56 @@ function showParseResult(data, url) {
     const streams = Array.isArray(data.streams) && data.streams.length ? `
         <h6>Streams</h6>
         <ul class="list-unstyled">
-            ${data.streams.map(s => {
-                const label = escapeHtml(getStreamLabel(s));
-                // prefer an explicit .mp4 URL if present, otherwise convert .m3u8 -> .mp4 as a best-effort fallback
-                let mp4url = '';
-                const mp4match = String(s).match(/https?:\/\/[^'"\s]+?\.mp4(\?[^'"\s]*)?/i);
-                if (mp4match) 
-                    mp4url = mp4match[0];
-                else if (/\.m3u8/i.test(String(s))) 
-                    mp4url = String(s).replace(/\.m3u8/i, '.mp4');
-                else 
-                    mp4url = String(s);
-                const encoded = encodeURIComponent(mp4url);
+        ${data.streams.map(s => {
+            const label = escapeHtml(getStreamLabel(s));
+            // prefer an explicit .mp4 URL if present, otherwise convert .m3u8 -> .mp4 as a best-effort fallback
+            let mp4url = '';
+            const mp4match = String(s).match(/https?:\/\/[^'"\s]+?\.mp4(\?[^'"\s]*)?/i);
+            if (mp4match)
+                mp4url = mp4match[0];
+            else if (/\.m3u8/i.test(String(s)))
+                mp4url = String(s).replace(/\.m3u8/i, '.mp4');
+            else
+                mp4url = String(s);
+            const encoded = encodeURIComponent(mp4url);
+            const intentUrl = `intent:${mp4url}#Intent;action=android.intent.action.VIEW;type=video/mp4;end`;
+            const encodedIntent = encodeURIComponent(intentUrl);
+            const filename = `${data.titleOriginal || data.title} [${label}].mp4`;
 
-                streamUrls.push({
-                    label: label,
-                    url: mp4url
-                });
+            streamUrls.push({
+                label: label,
+                url: mp4url
+            });
 
-                return `
+            return `
                     <li class="mb-2">
-                        <button type="button" class="btn btn-sm btn-primary me-2" onclick="openStream(decodeURIComponent('${encoded}'))">
-                        ${label}
+                        [${label}] > 
+
+                        ${isAndroid() ? `<button type="button" class="btn btn-sm btn-outline-secondary" onclick="openStream(decodeURIComponent('${encodedIntent}'))">
+                            Watch External
+                        </button>` : ''}
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="showPlayer(decodeURIComponent('${encoded}'))">
+                            Watch
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="openStream(decodeURIComponent('${encoded}'))">
+                            Open in Tab
                         </button>
                         <button type="button" class="btn btn-sm btn-outline-secondary" onclick="copyStreamUrl(decodeURIComponent('${encoded}'))">
-                        Copy
+                            Copy Url
+                        </button>
+
+
+
+
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="OnDownload('${mp4url}', '${escapeHtml(filename)}')">
+                            Download
                         </button>
                     </li>`;
-            }).join('')}
+    }).join('')}
         </ul>
     ` : '';
 
-    const videoEmbed = streamUrls.length >= 1 && /(\.mp4|\.m3u8)$/i.test(streamUrls[0].url) ? `
-        <div class="mb-3">
-            <h6>Video</h6>
-            <div class="embed-responsive embed-responsive-16by9">
-                <iframe class="embed-responsive-item" src="${streamUrls[0].url}" allowfullscreen></iframe>
-            </div>
-        </div>
-    ` : ''; 
-    
-
+    const videoEmbedContainer = `<div id="video-player-container" class="mb-3"></div>`;
     const translations = Array.isArray(data.translations) && data.translations.length ? `
         <h6>Translations</h6>
         <div class="d-flex flex-wrap">
@@ -153,18 +194,33 @@ function showParseResult(data, url) {
 
     const html = `
         <div>
-            <h4>
-                <a href="${url}" target="_blank">${escapeHtml(title)}</a>
-            </h4>
-            ${originalTitleHtml}
             ${img}
             <div>
-                ${videoEmbed}
+                ${videoEmbedContainer}
                 ${translations}
                 ${streams}
             </div>
         </div>`;
-    showModal(html);
+    showModal(html, `<h4><a href="${url}" target="_blank">${escapeHtml(titleOriginal)}</a></h4>`);
+}
+
+function showPlayer(url) {
+    const container = document.querySelector('#video-player-container');
+    if (!container) {
+        return;
+    }
+
+    if (/(\.mp4|\.m3u8)$/i.test(url)) {
+        container.innerHTML = `
+            <h6>Video</h6>
+            <div class="embed-responsive embed-responsive-16by9">
+                <iframe class="embed-responsive-item" src="${url}" allowfullscreen></iframe>
+            </div>`;
+    }
+}
+
+function isAndroid() {
+    return /android/i.test(navigator.userAgent);
 }
 
 function escapeHtml(s) {
@@ -172,13 +228,16 @@ function escapeHtml(s) {
 }
 
 function getStreamLabel(s) {
-    if (!s) return 'link';
+    if (!s)
+        return 'link';
     // try to find usual quality token like 360p, 720p, 1080p
     const m = String(s).match(/(\d{3,4}p)/i);
-    if (m) return m[1].toLowerCase();
+    if (m)
+        return m[1].toLowerCase();
     // fallback: look for resolution numbers
     const m2 = String(s).match(/(360|480|720|1080|1440|2160)/);
-    if (m2) return m2[1] + 'p';
+    if (m2)
+        return m2[1] + 'p';
     // fallback: last path segment
     try {
         const u = new URL(s);
@@ -191,7 +250,11 @@ function getStreamLabel(s) {
 }
 
 function openStream(url) {
-    try { window.open(url, '_blank'); } catch (e) { console.error(e); }
+    try {
+        window.open(url, '_blank');
+    } catch (e) {
+        console.error(e);
+    }
 }
 
 function copyStreamUrl(url) {
@@ -204,76 +267,13 @@ function copyStreamUrl(url) {
     } else {
         // fallback
         const ta = document.createElement('textarea');
-        ta.value = url; document.body.appendChild(ta); ta.select();
-        try { document.execCommand('copy'); } catch (e) {}
+        ta.value = url; document.body.appendChild(ta);
+        ta.select();
+        try {
+            document.execCommand('copy');
+        } catch (e) {
+
+        }
         ta.remove();
     }
 }
-
-// const tasks = {};
-// async function start() {
-//     const r = await fetch("api/downloads", {
-//         method: "POST",
-//         headers: {
-//             "Content-Type": "application/json"
-//         },
-//         body: JSON.stringify({
-//             url: url.value,
-//             filename: name.value
-//         })
-//     });
-//     const { id } = await r.json();
-//     render(id);
-//     poll(id);
-// }
-
-// function render(id) {
-//     const d = document.createElement("div");
-//     d.innerHTML = `<div class="mt-2">
-//         <div class="progress mb-1"><div class="progress-bar" style="width:0%">0%</div></div>
-//         <button class="btn btn-sm btn-warning" onclick="pause('${id}')">Pause</button>
-//         <button class="btn btn-sm btn-success" onclick="resume('${id}')">Resume</button>
-//         <button class="btn btn-sm btn-danger" onclick="cancel('${id}')">Cancel</button>
-//         <pre class="status"></pre></div>`;
-//     document.getElementById("tasks").appendChild(d);
-//     tasks[id] = {
-//         bar: d.querySelector(".progress-bar"),
-//         status: d.querySelector(".status")
-//     };
-// }
-
-// async function poll(id) {
-//     const r = await fetch(`api/downloads/${id}`);
-//     const t = await r.json();
-//     if (t.total) {
-//         const p = Math.floor((t.downloaded / t.total) * 100);
-//         tasks[id].bar.style.width = p + "%"; tasks[id].bar.textContent = p + "%";
-//     }
-//     tasks[id].status.textContent = t.status;
-//     if (["queued", "downloading"].includes(t.status))
-//         setTimeout(() => poll(id), 1000);
-// }
-
-// function pause(id) {
-//     fetch(`api/downloads/${id}/pause`, { method: "POST" })
-// }
-
-// function resume(id) {
-//     fetch(`api/downloads/${id}/resume`, { method: "POST" })
-// }
-
-// function cancel(id) {
-//     fetch(`api/downloads/${id}`, { method: "DELETE" })
-// }
-
-// function setSpeed() {
-//     fetch("api/options", {
-//         method: "POST",
-//         headers: {
-//             "Content-Type": "application/json"
-//         },
-//         body: JSON.stringify({
-//             max_speed: parseInt(speed.value)
-//         })
-//     });
-// }
