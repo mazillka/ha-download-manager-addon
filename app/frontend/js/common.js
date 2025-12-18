@@ -3,19 +3,10 @@
     const originalFetch = window.fetch.bind(window);
     let activeFetches = 0;
 
-    const loaderEl = document.querySelector("#global-loader");;
-
-    function showLoader() {
-        loaderEl.style.display = "flex";
-    }
-    function hideLoader() {
-        loaderEl.style.display = "none";
-    }
-
     window.fetch = async (...args) => {
         activeFetches++;
         if (activeFetches === 1) {
-            showLoader();
+            showSpinner();
         }
         try {
             const res = await originalFetch(...args);
@@ -25,7 +16,7 @@
         } finally {
             activeFetches--;
             if (activeFetches <= 0) {
-                hideLoader();
+                hideSpinner();
             }
         }
     };

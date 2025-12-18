@@ -1,7 +1,6 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
-// import { createDownload, getTask, pause, resume, cancel, setOptions } from "./downloadManager.js";
 import { parse } from './browser.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -18,7 +17,7 @@ app.post("/api/search", async (req, res) => {
                 const titleElement = item.querySelector('.b-content__inline_item-link');
                 const title = titleElement ? titleElement.textContent.trim() : 'No title';
 
-                
+
                 const element = item.querySelector('.b-content__inline_item-cover');
                 var url = element.querySelector('a') ? element.querySelector('a').href : '#';
                 var imgSrc = element.querySelector('img') ? element.querySelector('img').src : '';
@@ -89,12 +88,12 @@ app.post("/api/parse", async (req, res) => {
                 return final_string;
             }
 
-            if(evalArg.data_translator_id != null && evalArg.data_translator_id != undefined){
+            if (evalArg.data_translator_id != null && evalArg.data_translator_id != undefined) {
                 const translation = document.querySelector(`[data-translator_id="${evalArg.data_translator_id}"]`);
 
                 translation.click();
 
-                setTimeout(() => {}, 2000);
+                setTimeout(() => { }, 5000);
             }
 
             const streams = clearTrash(CDNPlayerInfo.streams).split(",");
@@ -128,45 +127,8 @@ app.post("/api/parse", async (req, res) => {
     }
 });
 
-// app.post("/api/parse_old", async (req, res) => {
-//     const { url } = req.body;
-
-//     try {
-//         var results = await parse(url, () => {
-//             const title = document.querySelector('.b-post__title').textContent.trim();
-//             const titleOriginal = document.querySelector('.b-post__origtitle').textContent.trim();
-//             const imgSrc = document.querySelector('.b-sidecover img').src;
-
-//             return { title, titleOriginal, imgSrc };
-//         }, { timeout: 120000, strategies: ['domcontentloaded', 'networkidle'], waitForSelector: '.b-post__title', selectorTimeout: 15000 });
-
-//         res.send(results);
-//     } catch (e) {
-//         console.info(`Parse failed for URL: ${url}`);
-//         console.error(e);
-
-//         res.status(500).send("parse failed");
-//     }
-// });
-
-// app.post("/api/downloads", (req, res) => {
-//     return res.json({ id: createDownload(req.body) });
-// });
-// app.get("/api/downloads/:id", (req, res) => {
-//     return res.json(getTask(req.params.id));
-// });
-// app.post("/api/downloads/:id/pause", (req, res) => {
-//     pause(req.params.id); res.json({ ok: true })
-// });
-// app.post("/api/downloads/:id/resume", (req, res) => {
-//     resume(req.params.id); res.json({ ok: true })
-// });
-// app.delete("/api/downloads/:id", (req, res) => {
-//     cancel(req.params.id); res.json({ ok: true })
-// });
-// app.post("/api/options", (req, res) => {
-//     setOptions(req.body); res.json({ ok: true })
-// });
-
 app.use("/", express.static(path.join(__dirname, "../frontend")));
-app.listen(3000);
+
+app.listen(3000, () => {
+    console.log("Server running on http://localhost:3000");
+});
