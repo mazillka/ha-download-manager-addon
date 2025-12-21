@@ -2,6 +2,7 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import { parse } from './browser.js';
+import { parseMp4Streams } from "./streamParser.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -17,12 +18,15 @@ app.post("/api/search", async (req, res) => {
                 const titleElement = item.querySelector('.b-content__inline_item-link');
                 const title = titleElement ? titleElement.textContent.trim() : 'No title';
 
-
                 const element = item.querySelector('.b-content__inline_item-cover');
-                var url = element.querySelector('a') ? element.querySelector('a').href : '#';
-                var imgSrc = element.querySelector('img') ? element.querySelector('img').src : '';
+                var pageUrl = element.querySelector('a') ? element.querySelector('a').href : '#';
+                var posterUrl = element.querySelector('img') ? element.querySelector('img').src : '';
 
-                return { title, url, imgSrc };
+                return {
+                    title,
+                    pageUrl,
+                    posterUrl
+                };
             });
         }, { timeout: 120000, strategies: ['domcontentloaded', 'networkidle'], waitForSelector: '.b-content__htitle', selectorTimeout: 15000, evalArg: {} });
 
@@ -40,66 +44,86 @@ app.post("/api/parse", async (req, res) => {
     const { url, data_translator_id } = req.body;
 
     try {
-        var results = await parse(url, (evalArg) => {
-            function clearTrash(data) {
-                function product(iterables, repeat) {
-                    var argv = Array.prototype.slice.call(arguments), argc = argv.length;
-                    if (argc === 2 && !isNaN(argv[argc - 1])) {
-                        var copies = [];
-                        for (var i = 0; i < argv[argc - 1]; i++) {
-                            copies.push(argv[0].slice()); // Clone
-                        }
-                        argv = copies;
-                    }
-                    return argv.reduce(function tl(accumulator, value) {
-                        var tmp = [];
-                        accumulator.forEach(function (a0) {
-                            value.forEach(function (a1) {
-                                tmp.push(a0.concat(a1));
-                            });
-                        });
-                        return tmp;
-                    }, [[]]);
+        await parse(url, async (evalArg) => {
+            function triggerAll(el) {
+                if (!el) {
+                    return;
                 }
-                function unite(arr) {
-                    var final = [];
-                    arr.forEach(function (e) {
-                        final.push(e.join(""))
-                    })
-                    return final;
-                }
-                var trashList = ["@", "#", "!", "^", "$"];
-                var two = unite(product(trashList, 2));
-                var tree = unite(product(trashList, 3));
-                var trashCodesSet = two.concat(tree);
 
-                var arr = data.replace("#h", "").split("//_//");
-                var trashString = arr.join('');
+                el.focus();
 
-                trashCodesSet.forEach(function (i) {
-                    var temp = btoa(i)
-                    trashString = trashString.replaceAll(temp, '')
-                })
-                try {
-                    var final_string = atob(trashString);
-                } catch {
-                    console.error(trashString)
-                }
-                return final_string;
+                const events = [
+                    'pointerdown', 'mousedown',
+                    'pointerup', 'mouseup',
+                    'click'
+                ];
+
+                events.forEach(type => {
+                    el.dispatchEvent(new Event(type, {
+                        bubbles: true,
+                        cancelable: true
+                    }));
+                });
             }
+
+            const parseStreamsFunc = new Function("return " + evalArg.parseStreamsFuncString)();
+
+            let getSreams = async () => {
+                let res = [];
+
+                for (let i = 0; i < 20; i++) {
+                    if (typeof CDNPlayerInfo !== 'undefined' && CDNPlayerInfo.streams) {
+                        res = parseStreamsFunc(CDNPlayerInfo.streams);
+                        if (res.length > 0)
+                            break;
+                    }
+                    await new Promise(r => setTimeout(r, 250));
+                }
+
+                return res;
+            }
+
+
+            let streams = await getSreams();
+
+            let videoElement = () => { return document.querySelector('#player').querySelector("video") }
+
+            let temp_video_src = videoElement().src
+
+            let translationChangeAttempt = false;
+            let translationChanged = false;
+            let translationFound = false;
 
             if (evalArg.data_translator_id != null && evalArg.data_translator_id != undefined) {
                 const translation = document.querySelector(`[data-translator_id="${evalArg.data_translator_id}"]`);
 
-                translation.click();
+                if (translation) {
+                    translationFound = true;
 
-                setTimeout(() => { }, 5000);
+                    triggerAll(translation);
+
+                    translationChangeAttempt = true;
+
+                    for (let i = 0; i < 40; i++) {
+                        const t = document.querySelector(`[data-translator_id="${evalArg.data_translator_id}"]`);
+                        if (t && t.classList.contains('active')) {
+                            translationChanged = true;
+                            break;
+                        }
+                        await new Promise(r => setTimeout(r, 250));
+                    }
+                }
             }
 
-            const streams = clearTrash(CDNPlayerInfo.streams).split(",");
+            let current_video_src = videoElement().src
+
+            if (temp_video_src != current_video_src) {
+                streams = await getSreams();
+            }
+
             const title = document.querySelector('.b-post__title').textContent.trim();
             const titleOriginal = document.querySelector('.b-post__origtitle').textContent.trim();
-            const imgSrc = document.querySelector('.b-sidecover img').src;
+            const posterUrl = document.querySelector('.b-sidecover img').src;
 
             const translations = [...document.querySelectorAll('.b-translator__item')].map(el => {
                 return {
@@ -112,13 +136,39 @@ app.post("/api/parse", async (req, res) => {
             return {
                 title: title,
                 titleOriginal: titleOriginal,
-                imgSrc: imgSrc,
+                posterUrl: posterUrl,
                 streams: streams,
                 translations: translations,
+                temp_video_src: temp_video_src,
+                current_video_src: current_video_src,
+                translationChangeAttempt: translationChangeAttempt,
+                translationChanged: translationChanged,
+                translationFound: translationFound
             };
-        }, { timeout: 120000, strategies: ['domcontentloaded', 'networkidle'], waitForSelector: '.b-post__title', selectorTimeout: 15000, evalArg: { data_translator_id: data_translator_id } });
+        }, { timeout: 120000, strategies: ['domcontentloaded', 'networkidle'], waitForSelector: '.b-post__title', selectorTimeout: 15000, evalArg: { data_translator_id: data_translator_id, parseStreamsFuncString: parseMp4Streams.toString() } }).then(data => {
 
-        res.send(results);
+            res.send({
+                title: data.title,
+                titleOriginal: data.titleOriginal,
+                posterUrl: data.posterUrl,
+                streams: data.streams.map(originalStream => {
+                    return {
+                        quality: originalStream.quality,
+                        mp4FileName: `${data.titleOriginal || data.title} [${originalStream.quality}].mp4`,
+                        mp4: originalStream.mp4,
+                        mp4Android: `intent:${originalStream.mp4}#Intent;action=android.intent.action.VIEW;type=video/mp4;end`,
+                    }
+                }),
+                translations: data.translations,
+                debug: {
+                    temp_video_src: data.temp_video_src,
+                    current_video_src: data.current_video_src,
+                    translationChangeAttempt: data.translationChangeAttempt,
+                    translationChanged: data.translationChanged,
+                    translationFound: data.translationFound
+                }
+            });
+        });
     } catch (e) {
         console.info(`Parse failed for URL: ${url}`);
         console.error(e);
