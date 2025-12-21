@@ -133,17 +133,55 @@ app.post("/api/parse", async (req, res) => {
                 }
             });
 
+
+            var seasons = [];
+
+            var episodes = [];
+
+            const seasonsElement = document.querySelector("#simple-seasons-tabs")
+            if (seasonsElement) {
+                seasons = [...seasonsElement.querySelectorAll(".b-simple_season__item")].map(el => {
+
+                    return {
+                        name: el.textContent.trim(),
+                        active: el.classList.contains('active'),
+                        url: el.href,
+                        data_tab_id: el.getAttribute('data-tab_id'),
+                    };
+                });
+
+                const episodesElement = document.querySelector(".b-simple_episode__item.active").parentElement;
+                if (episodesElement) {
+                    episodes = [...episodesElement.querySelectorAll(".b-simple_episode__item")].map(el => {
+
+                        return {
+                            name: el.textContent.trim(),
+                            active: el.classList.contains('active'),
+                            url: el.href,
+                            data_id: el.getAttribute('data-id'),
+                            data_season_id: el.getAttribute('data-season_id'),
+                            data_episode_id: el.getAttribute('data-episode_id')
+                        };
+                    });
+                }
+            }
+
             return {
                 title: title,
                 titleOriginal: titleOriginal,
                 posterUrl: posterUrl,
                 streams: streams,
                 translations: translations,
-                temp_video_src: temp_video_src,
-                current_video_src: current_video_src,
-                translationChangeAttempt: translationChangeAttempt,
-                translationChanged: translationChanged,
-                translationFound: translationFound
+                seasons: seasons,
+                episodes: episodes,
+
+                debug: {
+                    temp_video_src: temp_video_src,
+                    current_video_src: current_video_src,
+                    translationChangeAttempt: translationChangeAttempt,
+                    translationChanged: translationChanged,
+                    translationFound: translationFound
+                }
             };
         }, { timeout: 120000, strategies: ['domcontentloaded', 'networkidle'], waitForSelector: '.b-post__title', selectorTimeout: 15000, evalArg: { data_translator_id: data_translator_id, parseStreamsFuncString: parseMp4Streams.toString() } }).then(data => {
 
@@ -160,13 +198,9 @@ app.post("/api/parse", async (req, res) => {
                     }
                 }),
                 translations: data.translations,
-                debug: {
-                    temp_video_src: data.temp_video_src,
-                    current_video_src: data.current_video_src,
-                    translationChangeAttempt: data.translationChangeAttempt,
-                    translationChanged: data.translationChanged,
-                    translationFound: data.translationFound
-                }
+                seasons: data.seasons,
+                episodes: data.episodes,
+                debug: data.debug
             });
         });
     } catch (e) {

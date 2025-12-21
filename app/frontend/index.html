@@ -1,51 +1,167 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-    <meta charset="utf-8">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="css/index.css" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HA Download Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .card {
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+        .card:hover {
+            transform: scale(1.02);
+        }
 
-    <script src="js/modal.js" defer></script>
-    <script src="js/spinner.js" defer></script>
-    <script src="js/common.js" defer></script>
-    <script src="js/index.js" defer></script>
-    <title>Download Manager</title>
+        .spinner-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        [v-cloak] {
+            display: none;
+        }
+    </style>
 </head>
 
-<body class="p-3">
-    <div class="container-fluid mb-3">
-        <div class="row justify-content-center">
-            <div class="col-12 col-md-8 col-lg-6">
-                <div class="input-group">
-                    <input id="searchInput" type="text" class="form-control" placeholder="Search query..."
-                        aria-label="Search query...">
-                    <button id="searchButton" class="btn btn-success" type="button"
-                        onclick="OnSearch()">Search</button>
-                    <button id="clearButton" class="btn btn-outline-success" type="button"
-                        onclick="OnClear()">Clear</button>
+<body>
+    <div id="app" v-cloak>
+        <!-- Spinner -->
+        <div v-if="loading" class="spinner-overlay">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+
+        <div class="container py-4">
+            <!-- Search -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="input-group">
+                        <input type="text" class="form-control" placeholder="Search..." v-model="query"
+                            @keyup.enter="search">
+                        <button class="btn btn-primary" @click="search" :disabled="loading">Search</button>
+                        <button class="btn btn-secondary" @click="clear" :disabled="loading">Clear</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results -->
+            <div class="row g-4" id="cards-row">
+                <div v-for="(item, index) in results" :key="index"
+                    class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 d-flex">
+                    <div class="card h-100 w-100 d-flex flex-column" @click="parse(item.pageUrl)">
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">{{ item.title }}</h5>
+                            <div class="mt-auto d-flex justify-content-center">
+                                <div style="max-height:150px; display:flex; align-items:flex-end;">
+                                    <img :src="item.posterUrl" :alt="item.title" class="img-fluid" style="max-width:100%; max-height:100%;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal -->
+        <div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true" ref="modalRef">
+            <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content" v-if="selectedItem">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <a :href="selectedUrl" target="_blank">{{ selectedItem.titleOriginal || selectedItem.title }}</a>
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="text-center mb-3" v-if="selectedItem.posterUrl">
+                            <img class="img-fluid" style="max-height: 250px;" :src="selectedItem.posterUrl" :alt="selectedItem.title">
+                        </div>
+
+                        <!-- Video Player -->
+                        <div v-if="videoUrl" class="mb-3">
+                            <h6>Video</h6>
+                            <div class="ratio ratio-16x9">
+                                <iframe :src="videoUrl" allowfullscreen></iframe>
+                            </div>
+                        </div>
+
+                        <!-- Translations -->
+                        <div v-if="selectedItem.translations && selectedItem.translations.length">
+                            <h6>Translations</h6>
+                            <div class="d-flex flex-wrap mb-3">
+                                <button v-for="t in selectedItem.translations" :key="t.data_translator_id"
+                                    class="btn btn-sm me-2 mb-2"
+                                    :class="t.active ? 'btn-success' : 'btn-outline-primary'" :disabled="t.active"
+                                    @click="parse(selectedUrl, t.data_translator_id)">
+                                    {{ t.name }}
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Seasons -->
+                        <div v-if="selectedItem.seasons && selectedItem.seasons.length">
+                            <h6>Seasons</h6>
+                            <div class="d-flex flex-wrap mb-3">
+                                <button v-for="t in selectedItem.seasons"
+                                    class="btn btn-sm me-2 mb-2"
+                                    :class="t.active ? 'btn-success' : 'btn-outline-primary'" :disabled="t.active">
+                                    {{ t.name }}
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Episodes -->
+                        <div v-if="selectedItem.episodes && selectedItem.episodes.length">
+                            <h6>Episodes</h6>
+                            <div class="d-flex flex-wrap mb-3">
+                                <button v-for="t in selectedItem.episodes"
+                                    class="btn btn-sm me-2 mb-2"
+                                    :class="t.active ? 'btn-success' : 'btn-outline-primary'" :disabled="t.active">
+                                    {{ t.name }}
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Streams -->
+                        <div v-if="selectedItem.streams && selectedItem.streams.length">
+                            <h6>Streams</h6>
+                            <ul class="list-unstyled">
+                                <li v-for="stream in selectedItem.streams" :key="stream.mp4" class="mb-2">
+                                    [{{ stream.quality }}] >
+                                    <button v-if="isAndroid" class="btn btn-sm btn-outline-secondary"
+                                        @click="openStream(stream.mp4Android)">Watch External</button>
+                                    <button class="btn btn-sm btn-outline-secondary"
+                                        @click="showPlayer(stream.mp4)">Watch</button>
+                                    <button class="btn btn-sm btn-outline-secondary"
+                                        @click="openStream(stream.mp4)">Open in Tab</button>
+                                    <button class="btn btn-sm btn-outline-secondary"
+                                        @click="copyStreamUrl(stream.mp4)">Copy Url</button>
+                                    <button class="btn btn-sm btn-outline-secondary"
+                                        @click="download(stream.mp4, stream.mp4FileName)">Download</button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="container-fluid">
-        <div id="parse">
-
-        </div>
-    </div>
-
-    <div class="container-fluid">
-        <div id="cards-row" class="row g-3">
-
-        </div>
-    </div>
-
-    <div id="global-loader">
-        <div class="spinner" aria-hidden="true"></div>
-    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module" src="js/index.js"></script>
 </body>
 
 </html>
