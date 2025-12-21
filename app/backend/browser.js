@@ -10,7 +10,8 @@ const availablePages = [];
 const pendingAcquires = [];
 
 function shouldBlockRequest(url, resourceType) {
-    if (!url) return false;
+    if (!url)
+        return false;
     const blockedHosts = [
         "googlesyndication",
         "google-analytics",
@@ -24,11 +25,15 @@ function shouldBlockRequest(url, resourceType) {
     try {
         const u = new URL(url);
         const host = u.hostname;
-        if (blockedHosts.some(h => host.includes(h))) return true;
+        if (blockedHosts.some(h => host.includes(h))) {
+            return true;
+        }
     } catch (e) {
         // ignore
     }
-    if (["image", "font", "media", "stylesheet", "other"].includes(resourceType)) return true;
+    if (["image", "font", "media", "stylesheet", "other"].includes(resourceType)) {
+        return true;
+    }
     return false;
 }
 
@@ -52,8 +57,10 @@ export async function getBrowser() {
         // Graceful shutdown
         const shutdown = async () => {
             try {
-                if (browser) await browser.close();
-            } catch (e) {}
+                if (browser) {
+                    await browser.close();
+                }
+            } catch (e) { }
             process.exit(0);
         };
         process.once("SIGINT", shutdown);
@@ -97,15 +104,21 @@ async function createPage() {
 }
 
 function acquireFromPool() {
-    if (availablePages.length) return availablePages.pop();
-    if (totalPages < BROWSER_POOL_SIZE) return null; // signal to create
+    if (availablePages.length) {
+        return availablePages.pop();
+    }
+    if (totalPages < BROWSER_POOL_SIZE) {
+        return null; // signal to create
+    }
     return null; // nothing available
 }
 
 export async function acquirePage() {
     // fast path
     const p = acquireFromPool();
-    if (p) return p;
+    if (p) {
+        return p;
+    }
 
     // create new if under limit
     if (totalPages < BROWSER_POOL_SIZE) {
@@ -152,7 +165,9 @@ export async function parse(url, func, options = {}) {
 
         // set headers if provided
         if (options.headers) {
-            try { await tmpContext.setExtraHTTPHeaders(options.headers); } catch (e) {}
+            try {
+                await tmpContext.setExtraHTTPHeaders(options.headers);
+            } catch (e) { }
         }
 
         // add cookies if provided
@@ -170,8 +185,10 @@ export async function parse(url, func, options = {}) {
                         cookies.push({ name: k, value: String(v), domain, path: '/' });
                     }
                 }
-                if (cookies.length) await tmpContext.addCookies(cookies);
-            } catch (e) {}
+                if (cookies.length) {
+                    await tmpContext.addCookies(cookies);
+                }
+            } catch (e) { }
         }
 
         const page = await tmpContext.newPage();
@@ -179,7 +196,9 @@ export async function parse(url, func, options = {}) {
         page.setDefaultNavigationTimeout(options.timeout || NAV_TIMEOUT);
 
         try {
-            try { await page.goto('about:blank', { waitUntil: 'domcontentloaded', timeout: 5000 }); } catch (e) {}
+            try {
+                await page.goto('about:blank', { waitUntil: 'domcontentloaded', timeout: 5000 });
+            } catch (e) { }
 
             const strategies = options.strategies || [options.waitUntil || 'networkidle', 'domcontentloaded'];
             let lastErr = null;
@@ -196,7 +215,9 @@ export async function parse(url, func, options = {}) {
                         const base = options.preEvaluateDelay || 0;
                         const human = options.humanizeDelay ? Math.floor(Math.random() * (options.humanizeDelayMax || 800)) : 0;
                         const delay = base + human;
-                        if (delay > 0) await page.waitForTimeout(delay);
+                        if (delay > 0) {
+                            await page.waitForTimeout(delay);
+                        }
                     }
 
                     return await page.evaluate(func);
@@ -206,7 +227,9 @@ export async function parse(url, func, options = {}) {
             }
             throw lastErr;
         } finally {
-            try { await tmpContext.close(); } catch (e) {}
+            try {
+                await tmpContext.close();
+            } catch (e) { }
         }
     }
 
@@ -214,7 +237,9 @@ export async function parse(url, func, options = {}) {
     const page = await acquirePage();
     try {
         // best-effort reset page to reduce leftover state
-        try { await page.goto('about:blank', { waitUntil: 'domcontentloaded', timeout: 5000 }); } catch (e) {}
+        try {
+            await page.goto('about:blank', { waitUntil: 'domcontentloaded', timeout: 5000 });
+        } catch (e) { }
 
         const strategies = options.strategies || [options.waitUntil || 'networkidle', 'domcontentloaded'];
         let lastErr = null;
@@ -231,7 +256,9 @@ export async function parse(url, func, options = {}) {
                     const base = options.preEvaluateDelay || 0;
                     const human = options.humanizeDelay ? Math.floor(Math.random() * (options.humanizeDelayMax || 800)) : 0;
                     const delay = base + human;
-                    if (delay > 0) await page.waitForTimeout(delay);
+                    if (delay > 0) {
+                        await page.waitForTimeout(delay);
+                    }
                 }
 
                 return await page.evaluate(func, options.evalArg);

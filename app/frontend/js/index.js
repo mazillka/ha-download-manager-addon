@@ -1,7 +1,7 @@
 async function OnSearch() {
     var query = document.querySelector("#searchInput").value;
 
-    const request = await fetch("api/search", {
+    await fetch("api/search", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -9,40 +9,47 @@ async function OnSearch() {
         body: JSON.stringify({
             query: query
         })
-    });
-    const response = await request.json();
+    }).then(response => {
+        if (!response.ok) {
+            throw new Error('HTTP error ' + response.status);
+        }
 
-    const container = document.querySelector("#cards-row");
+        return response.json();
+    }).then(data => {
+        const container = document.querySelector("#cards-row");
 
-    container.innerHTML = "";
+        container.innerHTML = "";
 
-    response.forEach((element, index) => {
-        const col = document.createElement("div");
-        col.className = "col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 d-flex";
+        data.forEach((element, index) => {
+            const col = document.createElement("div");
+            col.className = "col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 d-flex";
 
-        col.innerHTML = `
-            <div class="card h-100 w-100 d-flex flex-column" onclick="OnParse('${element.url}', null)">
-                <div class="card-body d-flex flex-column">
-                <h5 class="card-title">
-                    ${element.title}
-                </h5>
+            col.innerHTML = `
+                <div class="card h-100 w-100 d-flex flex-column" onclick="OnParse('${element.pageUrl}', null)">
+                    <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">
+                        ${element.title}
+                    </h5>
 
-                <div class="mt-auto d-flex justify-content-center">
-                    <div style="max-height:150px; display:flex; align-items:flex-end;">
-                    <img src="${element.imgSrc}" alt="${element.title}" class="img-fluid" style="max-width:100%; max-height:100%;">
+                    <div class="mt-auto d-flex justify-content-center">
+                        <div style="max-height:150px; display:flex; align-items:flex-end;">
+                        <img src="${element.posterUrl}" alt="${element.title}" class="img-fluid" style="max-width:100%; max-height:100%;">
+                        </div>
+                    </div>
                     </div>
                 </div>
-                </div>
-            </div>
-        `;
+            `;
 
-        container.appendChild(col);
+            container.appendChild(col);
 
-        // Додаємо клас для анімації з невеликою затримкою
-        setTimeout(() => {
-            col.querySelector(".card").classList.add("visible");
-        }, index * 100); // по 100мс між картками
-    });
+            // add animation
+            setTimeout(() => {
+                col.querySelector(".card").classList.add("visible");
+            }, index * 100);
+        });
+    }).catch(error => {
+        console.error('Error:', error);
+    })
 }
 
 async function OnClear() {
@@ -52,24 +59,27 @@ async function OnClear() {
 
 async function OnDownload(url, filename) {
     try {
-        const response = await fetch(url);
-        if (!response.ok)
-        {
-            throw new Error('Download failed');
-        }
+        await fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('HTTP error ' + response.status);
+                }
 
-       showSpinner();
+                showSpinner();
 
-        const blob = await response.blob();
+                return response.blob();
+            }).then(data => {
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(data);
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
 
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-
-        URL.revokeObjectURL(a.href);
-        a.remove();
+                URL.revokeObjectURL(a.href);
+                a.remove();
+            }).catch(error => {
+                console.error('Error:', error);
+            })
     } catch (e) {
         alert('Error downloading file');
         console.error(e);
@@ -79,7 +89,7 @@ async function OnDownload(url, filename) {
 }
 
 async function OnParse(url, data_translator_id) {
-    const request = await fetch("api/parse", {
+    await fetch("api/parse", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -88,91 +98,54 @@ async function OnParse(url, data_translator_id) {
             url: url,
             data_translator_id: data_translator_id
         })
-    });
-    const response = await request.json();
-    showParseResult(response, url);
-}
+    }).then(response => {
+        if (!response.ok) {
+            throw new Error('HTTP error ' + response.status);
+        }
 
-function hideModal() {
-    const m = document.querySelector('#global-modal');
-    if (!m)
-        return;
-    if (m._bsModal)
-        return m._bsModal.hide();
-    m.classList.remove('show');
-    m.style.display = 'none';
-}
-
-function showModal(html, title) {
-    const m = document.querySelector('#global-modal');
-    if (!m)
-        return;
-    const body = m.querySelector('.modal-body');
-    const titleEl = m.querySelector('.modal-title');
-    body.innerHTML = html;
-    if (titleEl)
-        titleEl.innerHTML = title || '';
-    if (m._bsModal)
-        return m._bsModal.show();
-    m.style.display = 'block';
-    setTimeout(() => m.classList.add('show'), 10);
+        return response.json();
+    }).then(data => {
+        showParseResult(data, url);
+    }).catch(error => {
+        console.error('Error:', error);
+    })
 }
 
 function showParseResult(data, url) {
-    if (!data)
+    if (!data) {
         return showModal('<pre>No data</pre>');
+    }
 
     const title = data.title || data.titleOriginal || 'No title';
     const titleOriginal = data.titleOriginal || '';
-    const img = data.imgSrc ? `<div class="text-center mb-3"><img class="img-fluid" style="max-height: 250px;" src="${data.imgSrc}" alt="${title}"></div>` : '';
-
-    const streamUrls = [];
+    const posterDiv = data.posterUrl ? `<div class="text-center mb-3"><img class="img-fluid" style="max-height: 250px;" src="${data.posterUrl}" alt="${title}"></div>` : '';
 
     const streams = Array.isArray(data.streams) && data.streams.length ? `
         <h6>Streams</h6>
         <ul class="list-unstyled">
         ${data.streams.map(s => {
-            const label = escapeHtml(getStreamLabel(s));
-            // prefer an explicit .mp4 URL if present, otherwise convert .m3u8 -> .mp4 as a best-effort fallback
-            let mp4url = '';
-            const mp4match = String(s).match(/https?:\/\/[^'"\s]+?\.mp4(\?[^'"\s]*)?/i);
-            if (mp4match)
-                mp4url = mp4match[0];
-            else if (/\.m3u8/i.test(String(s)))
-                mp4url = String(s).replace(/\.m3u8/i, '.mp4');
-            else
-                mp4url = String(s);
-            const encoded = encodeURIComponent(mp4url);
-            const intentUrl = `intent:${mp4url}#Intent;action=android.intent.action.VIEW;type=video/mp4;end`;
-            const encodedIntent = encodeURIComponent(intentUrl);
-            const filename = `${data.titleOriginal || data.title} [${label}].mp4`;
+        const quality = escapeHtml(s.quality);
+        const mp4 = encodeURIComponent(s.mp4);
+        const mp4FileName = escapeHtml(s.mp4FileName);
+        const mp4Android = encodeURIComponent(s.mp4Android);
 
-            streamUrls.push({
-                label: label,
-                url: mp4url
-            });
-
-            return `
+        return `
                     <li class="mb-2">
-                        [${label}] > 
+                        [${quality}] > 
 
-                        ${isAndroid() ? `<button type="button" class="btn btn-sm btn-outline-secondary" onclick="openStream(decodeURIComponent('${encodedIntent}'))">
+                        ${isAndroid() ? `<button type="button" class="btn btn-sm btn-outline-secondary" onclick="openStream(decodeURIComponent('${mp4Android}'))">
                             Watch External
                         </button>` : ''}
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="showPlayer(decodeURIComponent('${encoded}'))">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="showPlayer(decodeURIComponent('${mp4}'))">
                             Watch
                         </button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="openStream(decodeURIComponent('${encoded}'))">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="openStream(decodeURIComponent('${mp4}'))">
                             Open in Tab
                         </button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="copyStreamUrl(decodeURIComponent('${encoded}'))">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="copyStreamUrl(decodeURIComponent('${mp4}'))">
                             Copy Url
                         </button>
-
-
-
-
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="OnDownload('${mp4url}', '${escapeHtml(filename)}')">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="OnDownload(decodeURIComponent('${mp4}'), '${mp4FileName}')">
                             Download
                         </button>
                     </li>`;
@@ -192,16 +165,18 @@ function showParseResult(data, url) {
         </div>
     ` : '';
 
-    const html = `
+    const modalTitle = `<h4><a href="${url}" target="_blank">${escapeHtml(titleOriginal)}</a></h4>`;
+    const modalHtml = `
         <div>
-            ${img}
+            ${posterDiv}
             <div>
                 ${videoEmbedContainer}
                 ${translations}
                 ${streams}
             </div>
         </div>`;
-    showModal(html, `<h4><a href="${url}" target="_blank">${escapeHtml(titleOriginal)}</a></h4>`);
+
+    showModal(modalHtml, modalTitle);
 }
 
 function showPlayer(url) {
@@ -225,28 +200,6 @@ function isAndroid() {
 
 function escapeHtml(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-function getStreamLabel(s) {
-    if (!s)
-        return 'link';
-    // try to find usual quality token like 360p, 720p, 1080p
-    const m = String(s).match(/(\d{3,4}p)/i);
-    if (m)
-        return m[1].toLowerCase();
-    // fallback: look for resolution numbers
-    const m2 = String(s).match(/(360|480|720|1080|1440|2160)/);
-    if (m2)
-        return m2[1] + 'p';
-    // fallback: last path segment
-    try {
-        const u = new URL(s);
-        const parts = u.pathname.split('/').filter(Boolean);
-        const last = parts.pop() || u.hostname;
-        return last.split('.')[0];
-    } catch (e) {
-        return 'link';
-    }
 }
 
 function openStream(url) {
