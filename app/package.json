@@ -1,6 +1,6 @@
 {
   "name": "ha-download-manager",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "type": "module",
   "description": "Home Assistant Download Manager Add-on",
   "main": "backend/server.js",
