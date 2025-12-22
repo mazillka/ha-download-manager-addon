@@ -1,8 +1,5 @@
 import { chromium } from "playwright";
 
-const BROWSER_POOL_SIZE = parseInt(process.env.BROWSER_POOL_SIZE || "4", 10);
-const NAV_TIMEOUT = parseInt(process.env.BROWSER_NAV_TIMEOUT || "60000", 10);
-
 let browser = null;
 let context = null;
 let totalPages = 0;
@@ -10,8 +7,9 @@ const availablePages = [];
 const pendingAcquires = [];
 
 function shouldBlockRequest(url, resourceType) {
-    if (!url)
+    if (!url) {
         return false;
+    }
     const blockedHosts = [
         "googlesyndication",
         "google-analytics",
@@ -39,7 +37,7 @@ function shouldBlockRequest(url, resourceType) {
 
 export async function getBrowser() {
     if (!browser) {
-        browser = await chromium.launch({
+        const launchOptions = {
             headless: true,
             args: [
                 "--no-sandbox",
@@ -53,7 +51,13 @@ export async function getBrowser() {
                 "--disable-component-update",
                 "--disable-gpu"
             ]
-        });
+        };
+
+        if (process.env.CHROME_BIN) {
+            launchOptions.executablePath = process.env.CHROME_BIN;
+        }
+
+        browser = await chromium.launch(launchOptions);
         // Graceful shutdown
         const shutdown = async () => {
             try {
@@ -97,8 +101,9 @@ export async function getContext() {
 async function createPage() {
     const ctx = await getContext();
     const p = await ctx.newPage();
-    p.setDefaultTimeout(NAV_TIMEOUT);
-    p.setDefaultNavigationTimeout(NAV_TIMEOUT);
+    const timeout = parseInt(process.env.BROWSER_NAV_TIMEOUT || "60000", 10);
+    p.setDefaultTimeout(timeout);
+    p.setDefaultNavigationTimeout(timeout);
     totalPages += 1;
     return p;
 }
@@ -107,7 +112,8 @@ function acquireFromPool() {
     if (availablePages.length) {
         return availablePages.pop();
     }
-    if (totalPages < BROWSER_POOL_SIZE) {
+    const poolSize = parseInt(process.env.BROWSER_POOL_SIZE || "4", 10);
+    if (totalPages < poolSize) {
         return null; // signal to create
     }
     return null; // nothing available
@@ -121,7 +127,8 @@ export async function acquirePage() {
     }
 
     // create new if under limit
-    if (totalPages < BROWSER_POOL_SIZE) {
+    const poolSize = parseInt(process.env.BROWSER_POOL_SIZE || "4", 10);
+    if (totalPages < poolSize) {
         return await createPage();
     }
 
@@ -192,8 +199,9 @@ export async function parse(url, func, options = {}) {
         }
 
         const page = await tmpContext.newPage();
-        page.setDefaultTimeout(options.timeout || NAV_TIMEOUT);
-        page.setDefaultNavigationTimeout(options.timeout || NAV_TIMEOUT);
+        const timeout = parseInt(process.env.BROWSER_NAV_TIMEOUT || "60000", 10);
+        page.setDefaultTimeout(options.timeout || timeout);
+        page.setDefaultNavigationTimeout(options.timeout || timeout);
 
         try {
             try {
@@ -204,7 +212,7 @@ export async function parse(url, func, options = {}) {
             let lastErr = null;
             for (const strat of strategies) {
                 try {
-                    const gotoOptions = { waitUntil: strat, timeout: options.timeout || NAV_TIMEOUT };
+                    const gotoOptions = { waitUntil: strat, timeout: options.timeout || timeout };
                     await page.goto(url, gotoOptions);
 
                     if (options.waitForSelector) {
@@ -235,6 +243,7 @@ export async function parse(url, func, options = {}) {
 
     // shared pooled page path
     const page = await acquirePage();
+    const timeout = parseInt(process.env.BROWSER_NAV_TIMEOUT || "60000", 10);
     try {
         // best-effort reset page to reduce leftover state
         try {
@@ -245,7 +254,7 @@ export async function parse(url, func, options = {}) {
         let lastErr = null;
         for (const strat of strategies) {
             try {
-                const gotoOptions = { waitUntil: strat, timeout: options.timeout || NAV_TIMEOUT };
+                const gotoOptions = { waitUntil: strat, timeout: options.timeout || timeout };
                 await page.goto(url, gotoOptions);
 
                 if (options.waitForSelector) {
