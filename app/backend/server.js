@@ -4,16 +4,17 @@ import { fileURLToPath } from "url";
 import { parse } from './browser.js';
 import { parseMp4Streams } from "./streamParser.js";
 
+const port = 3000;
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 app.use(express.json());
 
 app.post("/api/search", async (req, res) => {
-    const { query } = req.body;
-    const searchUrl = `https://hdrezka.me/search/?do=search&subaction=search&q=${encodeURIComponent(query)}`;
-
+    const { url } = req.body;
+    
     try {
-        var results = await parse(searchUrl, () => {
+        var results = await parse(url, () => {
             return [...document.querySelectorAll('.b-content__inline_item')].map(item => {
                 const titleElement = item.querySelector('.b-content__inline_item-link');
                 const title = titleElement ? titleElement.textContent.trim() : 'No title';
@@ -214,6 +215,6 @@ app.post("/api/parse", async (req, res) => {
 
 app.use("/", express.static(path.join(__dirname, "../frontend")));
 
-app.listen(3000, () => {
-    console.log("Server running on http://localhost:3000");
+app.listen(port, () => {
+    console.log(`Server running on http://localhost:${port}`);
 });
