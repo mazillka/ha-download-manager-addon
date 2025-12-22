@@ -3,12 +3,33 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { parse } from './browser.js';
 import { parseMp4Streams } from "./streamParser.js";
+import fs from "fs";
 
-const port = 3000;
+let port = process.env.PORT || 3000;
+
+const optionsPath = "/data/options.json";
+if (fs.existsSync(optionsPath)) {
+    try {
+        const options = JSON.parse(fs.readFileSync(optionsPath, "utf-8"));
+        if (options.port) {
+            port = options.port;
+        }
+        if (options.browser_pool_size) {
+            process.env.BROWSER_POOL_SIZE = options.browser_pool_size;
+        }
+        if (options.browser_nav_timeout) {
+            process.env.BROWSER_NAV_TIMEOUT = options.browser_nav_timeout;
+        }
+    } catch (e) {
+        console.error("Failed to read options.json", e);
+    }
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 app.use(express.json());
+
+app.get("/health", (req, res) => res.send("OK"));
 
 app.post("/api/search", async (req, res) => {
     const { url } = req.body;

@@ -1,6 +1,6 @@
 name: "HA Download Manager"
 slug: "ha_download_manager"
-version: "1.0.6"
+version: "1.0.7"
 description: "Home Assistant Download Manager"
 arch:
   - amd64
@@ -9,11 +9,13 @@ ingress: true
 ingress_port: 3000
 startup: services
 boot: auto
-options:
-  max_speed: 500000
-  max_concurrent: 3
-schema:
-  max_speed: int
-  max_concurrent: int
 panel_icon: mdi:download
 host_network: false
+options:
+  port: 3000
+  browser_pool_size: 4
+  browser_nav_timeout: 60000
+schema:
+  port: port
+  browser_pool_size: int
+  browser_nav_timeout: int
