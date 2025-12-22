@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 import { parse } from './browser.js';
 import { parseMp4Streams } from "./streamParser.js";
 import fs from "fs";
+import fetch from "node-fetch";
 
 let port = process.env.PORT || 3000;
 
@@ -20,10 +21,15 @@ if (fs.existsSync(optionsPath)) {
         if (options.browser_nav_timeout) {
             process.env.BROWSER_NAV_TIMEOUT = options.browser_nav_timeout;
         }
+        if (options.download_path) {
+            process.env.DOWNLOAD_PATH = options.download_path;
+        }
     } catch (e) {
         console.error("Failed to read options.json", e);
     }
 }
+
+const downloadPath = process.env.DOWNLOAD_PATH || (process.platform === 'win32' ? "./media/downloads" : "/media/downloads");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -235,6 +241,93 @@ app.post("/api/parse", async (req, res) => {
 
         res.status(500).send("parse failed");
     }
+});
+
+const downloads = {};
+
+app.get("/api/downloads", (req, res) => {
+    res.json(Object.values(downloads).sort((a, b) => b.startTime - a.startTime));
+});
+
+app.post("/api/download", async (req, res) => {
+    const { url, filename } = req.body;
+    if (!url || !filename) return res.status(400).send("Missing url or filename");
+
+    const id = Date.now().toString();
+    downloads[id] = {
+        id,
+        filename,
+        url,
+        status: 'pending',
+        progress: 0,
+        loaded: 0,
+        total: 0,
+        speed: 0,
+        startTime: Date.now(),
+        error: null
+    };
+
+    // Start download in background
+    (async () => {
+        const task = downloads[id];
+        try {
+            if (!fs.existsSync(downloadPath)) fs.mkdirSync(downloadPath, { recursive: true });
+            const dest = path.join(downloadPath, filename);
+            
+            task.status = 'downloading';
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const total = parseInt(response.headers.get('content-length') || '0', 10);
+            task.total = total;
+
+            const fileStream = fs.createWriteStream(dest);
+            let lastLoaded = 0;
+            let lastTime = Date.now();
+
+            response.body.on('data', (chunk) => {
+                task.loaded += chunk.length;
+                if (task.total) task.progress = Math.round((task.loaded / task.total) * 100);
+                
+                const now = Date.now();
+                if (now - lastTime >= 1000) {
+                    task.speed = (task.loaded - lastLoaded) / ((now - lastTime) / 1000);
+                    lastLoaded = task.loaded;
+                    lastTime = now;
+                }
+            });
+
+            response.body.on('error', (err) => {
+                task.status = 'error';
+                task.error = err.message;
+                task.speed = 0;
+            });
+
+            fileStream.on('finish', () => {
+                task.status = 'completed';
+                task.progress = 100;
+                task.speed = 0;
+            });
+
+            response.body.pipe(fileStream);
+            task.controller = { abort: () => response.body.destroy() }; // Mock controller for cancel
+
+        } catch (e) {
+            task.status = 'error';
+            task.error = e.message;
+        }
+    })();
+
+    res.json({ status: 'started', id });
+});
+
+app.post("/api/downloads/:id/cancel", (req, res) => {
+    const { id } = req.params;
+    if (downloads[id]) {
+        if (downloads[id].controller) downloads[id].controller.abort();
+        delete downloads[id];
+    }
+    res.send("ok");
 });
 
 app.use("/", express.static(path.join(__dirname, "../frontend")));
