@@ -23,6 +23,7 @@
                 <div class="mt-2 text-primary">
                     Downloading... {{ formatBytes(downloadLoaded) }} / {{ formatBytes(downloadTotal) }} ({{ formatBytes(downloadSpeed) }}/s)
                 </div>
+                <button class="btn btn-danger btn-sm mt-2" @click="cancelDownload">Cancel</button>
             </div>
             <div v-else class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Loading...</span>
@@ -30,14 +31,19 @@
         </div>
 
         <div class="container py-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
             <!-- Tabs -->
-            <ul class="nav nav-tabs mb-4">
+            <ul class="nav nav-tabs mb-0">
                 <li class="nav-item" v-for="tab in tabs" :key="tab.id">
                     <button class="nav-link" :class="{ active: activeTab === tab.id }" @click="selectTab(tab.id)">
                         {{ tab.name }}
+                        <span v-if="tab.id === 'downloads' && activeServerDownloads > 0" class="badge bg-danger ms-1 rounded-pill">
+                            {{ activeServerDownloads }}
+                        </span>
                     </button>
                 </li>
             </ul>
+            </div>
 
             <!-- Search -->
             <div class="row mb-4" v-if="activeTab === 'search'">
@@ -52,7 +58,7 @@
             </div>
 
             <!-- Results -->
-            <div class="row g-4" id="cards-row">
+            <div class="row g-4" id="cards-row" v-if="activeTab !== 'downloads'">
                 <div v-for="(item, index) in results" :key="index"
                     class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 d-flex">
                     <div class="card h-100 w-100 d-flex flex-column" @click="parse(item.pageUrl)">
@@ -65,6 +71,33 @@
                                         {{ item.category }}
                                     </span>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Server Downloads -->
+            <div v-if="activeTab === 'downloads'" class="mt-4">
+                <div v-if="serverDownloads.length === 0" class="text-center text-muted mt-5">No active downloads</div>
+                <div v-else class="card">
+                    <div class="card-body">
+                        <div v-for="item in serverDownloads" :key="item.id" class="mb-3 border-bottom pb-2">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <div class="text-truncate me-2" :title="item.filename"><strong>{{ item.filename }}</strong></div>
+                                <div>
+                                    <span class="badge" :class="{'bg-primary': item.status === 'downloading', 'bg-success': item.status === 'completed', 'bg-danger': item.status === 'error', 'bg-secondary': item.status === 'pending'}">{{ item.status }}</span>
+                                </div>
+                            </div>
+                            <div class="progress mb-1" style="height: 10px;">
+                                <div class="progress-bar" role="progressbar" :style="{ width: item.progress + '%' }"></div>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center small text-muted">
+                                <div>
+                                    {{ formatBytes(item.loaded) }} / {{ item.total ? formatBytes(item.total) : '?' }}
+                                    <span v-if="item.status === 'downloading'">({{ formatBytes(item.speed) }}/s)</span>
+                                </div>
+                                <button class="btn btn-sm btn-danger py-0" @click="cancelServerDownload(item.id)">Cancel</button>
                             </div>
                         </div>
                     </div>
@@ -150,6 +183,8 @@
                                         @click="copyStreamUrl(stream.mp4)">Copy Url</button>
                                     <button class="btn btn-sm btn-outline-secondary"
                                         @click="download(stream.mp4, stream.mp4FileName)">Download</button>
+                                    <button class="btn btn-sm btn-outline-secondary"
+                                        @click="downloadToServer(stream.mp4, stream.mp4FileName)">Download to Server</button>
                                 </li>
                             </ul>
                         </div>

@@ -6,6 +6,8 @@ const wathing = `${baseUrl}/?filter=watching`;
 const popular = `${baseUrl}/?filter=popular`;
 const latest = `${baseUrl}/?filter=last`;
 
+let modalInstance = null;
+
 createApp({
     data() {
         return {
@@ -16,33 +18,42 @@ createApp({
             downloadLoaded: 0,
             downloadTotal: 0,
             downloadSpeed: 0,
+            downloadController: null,
             selectedItem: null,
             selectedUrl: null,
             videoUrl: null,
-            modalInstance: null,
+            serverDownloads: [],
+            serverPollInterval: null,
             activeTab: 'search',
             tabs: [
                 { id: 'search', name: 'Search' },
                 { id: 'watching', name: 'Watching Now' },
                 { id: 'latest', name: 'Latest arrivals' },
-                { id: 'popular', name: 'Popular' }
+                { id: 'popular', name: 'Popular' },
+                { id: 'downloads', name: 'Downloads' }
             ]
         }
     },
     computed: {
         isAndroid() {
             return /android/i.test(navigator.userAgent);
+        },
+        activeServerDownloads() {
+            return this.serverDownloads.filter(d => d.status === 'downloading' || d.status === 'pending').length;
         }
     },
     mounted() {
         // Initialize Bootstrap modal
         const modalEl = this.$refs.modalRef;
         // eslint-disable-next-line no-undef
-        this.modalInstance = new bootstrap.Modal(modalEl);
+        modalInstance = new bootstrap.Modal(modalEl);
 
         modalEl.addEventListener('hidden.bs.modal', () => {
             this.videoUrl = null; // Stop video when modal closes
         });
+
+        this.fetchServerDownloads();
+        this.serverPollInterval = setInterval(() => this.fetchServerDownloads(), 1000);
     },
     methods: {
         async selectTab(tabId) {
@@ -116,7 +127,7 @@ createApp({
                 this.selectedItem = data;
                 this.selectedUrl = url;
                 this.videoUrl = null; // Reset video player
-                this.modalInstance.show();
+                modalInstance.show();
             }).catch(error => {
                 console.error('Error:', error);
             }).finally(() => {
@@ -151,13 +162,14 @@ createApp({
         },
         async download(url, filename) {
             this.loading = true;
+            this.downloadController = new AbortController();
             this.downloadProgress = 0;
             this.downloadLoaded = 0;
             this.downloadTotal = 0;
             this.downloadSpeed = 0;
 
             try {
-                const response = await fetch(url);
+                const response = await fetch(url, { signal: this.downloadController.signal });
                 if (!response.ok)
                     throw new Error('HTTP error ' + response.status);
 
@@ -198,14 +210,53 @@ createApp({
                 URL.revokeObjectURL(a.href);
                 a.remove();
             } catch (error) {
-                console.error('Error:', error);
+                if (error.name === 'AbortError') {
+                    console.log('Download cancelled');
+                } else {
+                    console.error('Error:', error);
+                }
             } finally {
                 this.loading = false;
+                this.downloadController = null;
                 this.downloadProgress = 0;
                 this.downloadLoaded = 0;
                 this.downloadTotal = 0;
                 this.downloadSpeed = 0;
             }
+        },
+        cancelDownload() {
+            if (this.downloadController) {
+                this.downloadController.abort();
+            }
+        },
+        async downloadToServer(url, filename) {
+            if (!confirm(`Download "${filename}" to server?`)) 
+                return;
+            try {
+                await fetch("api/download", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ url, filename })
+                });
+                this.fetchServerDownloads(); // Update count
+                alert("Download started on server");
+            } catch (e) {
+                console.error(e);
+                alert("Failed to start download");
+            }
+        },
+        async fetchServerDownloads() {
+            try {
+                const res = await fetch("api/downloads");
+                if (res.ok) this.serverDownloads = await res.json();
+            } catch (e) { console.error(e); }
+        },
+        async cancelServerDownload(id) {
+            if (!confirm("Cancel this download?")) return;
+            try {
+                await fetch(`api/downloads/${id}/cancel`, { method: "POST" });
+                this.fetchServerDownloads();
+            } catch (e) { console.error(e); }
         },
         handleParse(t) {
             if (t.url) {
