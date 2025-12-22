@@ -118,6 +118,13 @@ createApp({
             } finally {
                 this.loading = false;
             }
+        },
+        handleParse(t) {
+            if (t.url) {
+                this.parse(t.url, null);
+            } else {
+                this.parse(this.selectedUrl, t.data_translator_id);
+            }
         }
     }
 }).mount('#app');

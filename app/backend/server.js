@@ -121,15 +121,16 @@ app.post("/api/parse", async (req, res) => {
                 streams = await getSreams();
             }
 
-            const title = document.querySelector('.b-post__title').textContent.trim();
-            const titleOriginal = document.querySelector('.b-post__origtitle').textContent.trim();
-            const posterUrl = document.querySelector('.b-sidecover img').src;
+            const title = document.querySelector('.b-post__title')?.textContent.trim();
+            const titleOriginal = document.querySelector('.b-post__origtitle')?.textContent.trim();
+            const posterUrl = document.querySelector('.b-sidecover img')?.src;
 
             const translations = [...document.querySelectorAll('.b-translator__item')].map(el => {
                 return {
                     name: el.textContent.trim(),
                     active: el.classList.contains('active'),
-                    data_translator_id: el.getAttribute('data-translator_id')
+                    data_translator_id: el.getAttribute('data-translator_id'),
+                    url: el.href
                 }
             });
 
