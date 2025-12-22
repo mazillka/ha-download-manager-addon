@@ -12,7 +12,7 @@ app.use(express.json());
 
 app.post("/api/search", async (req, res) => {
     const { url } = req.body;
-    
+
     try {
         var results = await parse(url, () => {
             return [...document.querySelectorAll('.b-content__inline_item')].map(item => {
@@ -20,13 +20,16 @@ app.post("/api/search", async (req, res) => {
                 const title = titleElement ? titleElement.textContent.trim() : 'No title';
 
                 const element = item.querySelector('.b-content__inline_item-cover');
-                var pageUrl = element.querySelector('a') ? element.querySelector('a').href : '#';
-                var posterUrl = element.querySelector('img') ? element.querySelector('img').src : '';
+                const pageUrl = element.querySelector('a') ? element.querySelector('a').href : '#';
+                const posterUrl = element.querySelector('img') ? element.querySelector('img').src : '';
+
+                const category = element.querySelector(".cat") ? element.querySelector(".cat").textContent.trim() : '';
 
                 return {
                     title,
                     pageUrl,
-                    posterUrl
+                    posterUrl,
+                    category
                 };
             });
         }, { timeout: 120000, strategies: ['domcontentloaded', 'networkidle'], waitForSelector: '.b-content__htitle', selectorTimeout: 15000, evalArg: {} });
@@ -169,20 +172,20 @@ app.post("/api/parse", async (req, res) => {
             }
 
             return {
-                title: title,
-                titleOriginal: titleOriginal,
-                posterUrl: posterUrl,
-                streams: streams,
-                translations: translations,
-                seasons: seasons,
-                episodes: episodes,
+                title,
+                titleOriginal,
+                posterUrl,
+                streams,
+                translations,
+                seasons,
+                episodes,
 
                 debug: {
-                    temp_video_src: temp_video_src,
-                    current_video_src: current_video_src,
-                    translationChangeAttempt: translationChangeAttempt,
-                    translationChanged: translationChanged,
-                    translationFound: translationFound
+                    temp_video_src,
+                    current_video_src,
+                    translationChangeAttempt,
+                    translationChanged,
+                    translationFound
                 }
             };
         }, { timeout: 120000, strategies: ['domcontentloaded', 'networkidle'], waitForSelector: '.b-post__title', selectorTimeout: 15000, evalArg: { data_translator_id: data_translator_id, parseStreamsFuncString: parseMp4Streams.toString() } }).then(data => {

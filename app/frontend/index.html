@@ -14,7 +14,17 @@
     <div id="app" v-cloak>
         <!-- Spinner -->
         <div v-if="loading" class="spinner-overlay">
-            <div class="spinner-border text-primary" role="status">
+            <div v-if="downloadProgress > 0" class="text-center">
+                <div class="progress">
+                    <div class="progress-bar" role="progressbar" :style="{ width: downloadProgress + '%' }">
+                        {{ downloadProgress }}%
+                    </div>
+                </div>
+                <div class="mt-2 text-primary">
+                    Downloading... {{ formatBytes(downloadLoaded) }} / {{ formatBytes(downloadTotal) }} ({{ formatBytes(downloadSpeed) }}/s)
+                </div>
+            </div>
+            <div v-else class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Loading...</span>
             </div>
         </div>
@@ -49,8 +59,11 @@
                         <div class="card-body d-flex flex-column">
                             <h5 class="card-title">{{ item.title }}</h5>
                             <div class="mt-auto d-flex justify-content-center">
-                                <div style="max-height:150px; display:flex; align-items:flex-end;">
+                                <div style="max-height:150px; display:flex; align-items:flex-end; position: relative;">
                                     <img :src="item.posterUrl" :alt="item.title" class="img-fluid" style="max-width:100%; max-height:100%;">
+                                    <span v-if="item.category" class="badge bg-primary position-absolute top-0 end-0 rounded-0 opacity-75">
+                                        {{ item.category }}
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -126,7 +139,7 @@
                             <h6>Streams</h6>
                             <ul class="list-unstyled">
                                 <li v-for="stream in selectedItem.streams" :key="stream.mp4" class="mb-2">
-                                    [{{ stream.quality }}] >
+                                    [{{ stream.quality }}]
                                     <button v-if="isAndroid" class="btn btn-sm btn-outline-secondary"
                                         @click="openStream(stream.mp4Android)">Watch External</button>
                                     <button class="btn btn-sm btn-outline-secondary"
