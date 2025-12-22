@@ -29,7 +29,7 @@ if (fs.existsSync(optionsPath)) {
     }
 }
 
-const downloadPath = process.env.DOWNLOAD_PATH || (process.platform === 'win32' ? "./media/downloads" : "/media/downloads");
+const downloadPath = process.env.DOWNLOAD_PATH || (process.platform === 'win32' ? "./media/downloads" : "/media/DOWNLOADS");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
