@@ -1,6 +1,6 @@
 name: "HA Download Manager"
 slug: "ha_download_manager"
-version: "1.0.11"
+version: "1.0.12"
 description: "Home Assistant Download Manager"
 
 arch:
