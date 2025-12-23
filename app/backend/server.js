@@ -44,7 +44,7 @@ app.post("/api/search", async (req, res) => {
             res.send(data);
         }).catch(error => {
             console.info(`Search failed for URL: ${url}`);
-            console.error(error);
+            console.error('Error:', error);
 
             res.status(500).send("Search failed");
         });
@@ -186,12 +186,11 @@ app.post("/api/parse", async (req, res) => {
         .then(data => {
             const isShow = data.seasons.length > 0;
 
-
             const activeEpisode = data.episodes.find(x => x.active);
             const seasonAndEipisode = activeEpisode ? `S${activeEpisode.data_season_id}E${activeEpisode.data_episode_id} ` : "";
 
             let year = "";
-            if(!isShow){
+            if (!isShow) {
                 year = ` (${data.year}) `;
             }
 
@@ -216,7 +215,7 @@ app.post("/api/parse", async (req, res) => {
             });
         }).catch(error => {
             console.info(`Parse failed for URL: ${url}`);
-            console.error(error);
+            console.error('Error:', error);
 
             res.status(500).send("Parse failed");
         });
@@ -296,10 +295,10 @@ const startDownload = async (id) => {
             }
         });
 
-        response.body.on('error', (err) => {
-            if (err.name === 'AbortError') return;
+        response.body.on('error', (error) => {
+            if (error.name === 'AbortError') return;
             task.status = 'error';
-            task.error = err.message;
+            task.error = error.message;
             task.speed = 0;
         });
 
@@ -312,15 +311,15 @@ const startDownload = async (id) => {
         });
 
         response.body.pipe(fileStream);
-    } catch (e) {
-        if (e.name === 'AbortError') {
+    } catch (error) {
+        if (error.name === 'AbortError') {
             if (task.status !== 'paused') {
                 task.status = 'error';
                 task.error = 'Aborted';
             }
         } else {
             task.status = 'error';
-            task.error = e.message;
+            task.error = error.message;
         }
         task.speed = 0;
     }
@@ -332,8 +331,9 @@ app.get("/api/downloads", (req, res) => {
 
 app.post("/api/download", async (req, res) => {
     const { url, filename } = req.body;
-    if (!url || !filename)
+    if (!url || !filename) {
         return res.status(400).send("Missing url or filename");
+    }
 
     const id = Date.now().toString();
     downloads[id] = {
@@ -359,7 +359,9 @@ app.post("/api/downloads/:id/pause", (req, res) => {
     const task = downloads[id];
     if (task && task.status === 'downloading') {
         task.status = 'paused';
-        if (task.controller) task.controller.abort();
+        if (task.controller) {
+            task.controller.abort();
+        }
     }
     res.send("ok");
 });
@@ -378,11 +380,17 @@ app.delete("/api/downloads/:id", (req, res) => {
     const { removeFile } = req.query;
     const task = downloads[id];
     if (task) {
-        if (task.controller) task.controller.abort();
+        if (task.controller) {
+            task.controller.abort();
+        }
         if (removeFile === 'true') {
             const dest = path.join(downloadPath, task.filename);
             if (fs.existsSync(dest)) {
-                try { fs.unlinkSync(dest); } catch (e) { console.error(e); }
+                try {
+                    fs.unlinkSync(dest);
+                } catch (error) {
+                    console.error('Error:', error);
+                }
             }
         }
         delete downloads[id];
@@ -404,5 +412,13 @@ app.post("/api/downloads/:id/cancel", (req, res) => {
 app.use("/", express.static(path.join(__dirname, "../frontend")));
 
 app.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}`);
+    console.info("Starting server...");
+
+    console.info(`BASE_URL: ${process.env.BASE_URL}`);
+    console.info(`DOWNLOAD_PATH: ${process.env.DOWNLOAD_PATH}`);
+    console.info(`PORT: ${process.env.PORT}`);
+    console.info(`BROWSER_POOL_SIZE: ${process.env.BROWSER_POOL_SIZE}`);
+    console.info(`BROWSER_NAV_TIMEOUT: ${process.env.BROWSER_NAV_TIMEOUT}`);
+
+    console.info(`Server running on http://localhost:${port}`);
 });

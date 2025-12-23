@@ -316,7 +316,7 @@ createApp({
                     try {
                         await fetch(`api/downloads/${id}/cancel`, { method: "POST" });
                         this.fetchServerDownloads();
-                    } catch (e) {
+                    } catch (error) {
                         console.error('Error:', error);
                     }
                 }
@@ -326,7 +326,7 @@ createApp({
             try {
                 await fetch(`api/downloads/${id}/pause`, { method: "POST" });
                 this.fetchServerDownloads();
-            } catch (errora) {
+            } catch (error) {
                 console.error('Error:', error);
             }
         },
