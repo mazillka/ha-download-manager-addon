@@ -1,16 +1,11 @@
 import { createApp } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
 
-const baseUrl = "https://hdrezka.me";
-
-const wathing = `${baseUrl}/?filter=watching`;
-const popular = `${baseUrl}/?filter=popular`;
-const latest = `${baseUrl}/?filter=last`;
-
 let modalInstance = null;
 
 createApp({
     data() {
         return {
+            baseUrl: "https://hdrezka.me",
             query: '',
             results: [],
             loading: false,
@@ -52,10 +47,24 @@ createApp({
             this.videoUrl = null; // Stop video when modal closes
         });
 
+        this.fetchConfig();
         this.fetchServerDownloads();
         this.serverPollInterval = setInterval(() => this.fetchServerDownloads(), 1000);
     },
     methods: {
+        async fetchConfig() {
+            await fetch("api/config").then(response => {
+                if (!response.ok) {
+                    throw new Error('HTTP error ' + response.status);
+                }
+
+                return response.json();
+            }).then(data => {
+                this.baseUrl = data.baseUrl;
+            }).catch(error => {
+                console.error('Error:', error);
+            });
+        },
         async selectTab(tabId) {
             this.activeTab = tabId;
             if (tabId === 'search') {
@@ -65,13 +74,13 @@ createApp({
 
             let url;
             if (tabId === 'watching') {
-                url = wathing;
+                url = `${this.baseUrl}/?filter=watching`;
             }
             else if (tabId === 'popular') {
-                url = popular;
+                url = `${this.baseUrl}/?filter=popular`;
             }
             else if (tabId === 'latest') {
-                url = latest;
+                url = `${this.baseUrl}/?filter=last`;
             }
 
             if (url) {
@@ -104,7 +113,7 @@ createApp({
             if (!this.query) {
                 return;
             }
-            const searchUrl = `${baseUrl}/search/?do=search&subaction=search&q=${encodeURIComponent(this.query)}`;
+            const searchUrl = `${this.baseUrl}/search/?do=search&subaction=search&q=${encodeURIComponent(this.query)}`;
             await this.fetchList(searchUrl);
         },
         async clear() {
@@ -122,7 +131,6 @@ createApp({
                     throw new Error('HTTP error ' + response.status);
                 }
                 return response.json();
-
             }).then(data => {
                 this.selectedItem = data;
                 this.selectedUrl = url;
@@ -153,7 +161,9 @@ createApp({
             }
         },
         formatBytes(bytes, decimals = 2) {
-            if (!+bytes) return '0 Bytes';
+            if (!+bytes) {
+                return '0 Bytes';
+            }
             const k = 1024;
             const dm = decimals < 0 ? 0 : decimals;
             const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
@@ -170,8 +180,9 @@ createApp({
 
             try {
                 const response = await fetch(url, { signal: this.downloadController.signal });
-                if (!response.ok)
+                if (!response.ok) {
                     throw new Error('HTTP error ' + response.status);
+                }
 
                 const contentLength = response.headers.get('content-length');
                 const total = contentLength ? parseInt(contentLength, 10) : 0;
@@ -185,13 +196,16 @@ createApp({
 
                 while (true) {
                     const { done, value } = await reader.read();
-                    if (done)
+                    if (done) {
                         break;
+                    }
+
                     chunks.push(value);
                     loaded += value.length;
                     this.downloadLoaded = loaded;
-                    if (total)
+                    if (total) {
                         this.downloadProgress = Math.round((loaded / total) * 100);
+                    }
 
                     const now = Date.now();
                     if (now - lastTime >= 500) {
@@ -230,33 +244,135 @@ createApp({
             }
         },
         async downloadToServer(url, filename) {
-            if (!confirm(`Download "${filename}" to server?`)) 
-                return;
-            try {
-                await fetch("api/download", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ url, filename })
-                });
-                this.fetchServerDownloads(); // Update count
-                alert("Download started on server");
-            } catch (e) {
-                console.error(e);
-                alert("Failed to start download");
-            }
+            Swal.fire({
+                title: "Are you sure?",
+                text: `${filename} will be downloaded to server.`,
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonText: "Yes",
+                cancelButtonText: "No",
+                customClass: {
+                    confirmButton: "btn btn-success",
+                    cancelButton: "btn btn-danger"
+                }
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        await fetch("api/download", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ url, filename })
+                        });
+                        this.fetchServerDownloads(); // Update count
+
+                        Swal.fire({
+                            title: "Download started on server!",
+                            icon: "success",
+                            customClass: {
+                                confirmButton: "btn btn-success",
+                                cancelButton: "btn btn-danger"
+                            }
+                        });
+
+                    } catch (error) {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            title: "Failed to start download",
+                            customClass: {
+                                confirmButton: "btn btn-success",
+                            }
+                        });
+                    }
+                }
+            });
         },
         async fetchServerDownloads() {
-            try {
-                const res = await fetch("api/downloads");
-                if (res.ok) this.serverDownloads = await res.json();
-            } catch (e) { console.error(e); }
+            await fetch("api/downloads")
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('HTTP error ' + response.status);
+                    }
+                    return response.json();
+                }).then(data => {
+                    this.serverDownloads = data;
+                }).catch(error => {
+                    console.error('Error:', error);
+                });
         },
         async cancelServerDownload(id) {
-            if (!confirm("Cancel this download?")) return;
+            Swal.fire({
+                title: "Are you sure?",
+                text: "You won't be able to revert this!",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonText: "Yes",
+                cancelButtonText: "No",
+                customClass: {
+                    confirmButton: "btn btn-success",
+                    cancelButton: "btn btn-danger"
+                }
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        await fetch(`api/downloads/${id}/cancel`, { method: "POST" });
+                        this.fetchServerDownloads();
+                    } catch (e) {
+                        console.error('Error:', error);
+                    }
+                }
+            });
+        },
+        async pauseServerDownload(id) {
             try {
-                await fetch(`api/downloads/${id}/cancel`, { method: "POST" });
+                await fetch(`api/downloads/${id}/pause`, { method: "POST" });
                 this.fetchServerDownloads();
-            } catch (e) { console.error(e); }
+            } catch (errora) {
+                console.error('Error:', error);
+            }
+        },
+        async resumeServerDownload(id) {
+            try {
+                await fetch(`api/downloads/${id}/resume`, { method: "POST" });
+                this.fetchServerDownloads();
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        },
+        async deleteServerDownload(id) {
+            Swal.fire({
+                title: "Are you sure?",
+                text: "Are you sure you want to delete this download task?",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonText: "Yes",
+                cancelButtonText: "No",
+                customClass: {
+                    confirmButton: "btn btn-success",
+                    cancelButton: "btn btn-danger"
+                }
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: "Are you sure?",
+                        text: "Do you also want to delete the file from the disk?",
+                        icon: "warning",
+                        showCancelButton: true,
+                        confirmButtonText: "Yes",
+                        cancelButtonText: "No",
+                        customClass: {
+                            confirmButton: "btn btn-success",
+                            cancelButton: "btn btn-danger"
+                        }
+                    }).then(async (result) => {
+                        try {
+                            await fetch(`api/downloads/${id}?removeFile=${result.isConfirmed}`, { method: "DELETE" });
+                            this.fetchServerDownloads();
+                        } catch (error) {
+                            console.error('Error:', error);
+                        }
+                    });
+                }
+            });
         },
         handleParse(t) {
             if (t.url) {
