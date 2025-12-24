@@ -1,16 +1,34 @@
 import path from "path";
 import { fileURLToPath } from "url";
-import { createRequire } from "module";
-
-const require = createRequire(import.meta.url);
-const sqlite3 = require("sqlite3").verbose();
+import sqlite3 from "sqlite3";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dbPath = path.join(__dirname, "ha-download-manager.db");
 
-const db = new sqlite3.Database(dbPath);
+const verbose = sqlite3.verbose();
+const db = new verbose.Database(dbPath);
 
-export const initDB = () => {
+export interface Task {
+    id: string;
+    filename: string;
+    url: string;
+    status: 'pending' | 'downloading' | 'paused' | 'completed' | 'error';
+    progress: number;
+    loaded: number;
+    total: number;
+    startTime: number;
+    error: string | null;
+    speed: number;
+}
+
+export interface HistoryItem {
+    id: number;
+    filename: string;
+    size: number;
+    completed_at: string;
+}
+
+export const initDB = (): void => {
     db.serialize(() => {
         db.run("CREATE TABLE IF NOT EXISTS history (id INTEGER PRIMARY KEY AUTOINCREMENT, filename TEXT, size INTEGER, completed_at DATETIME DEFAULT CURRENT_TIMESTAMP)");
         db.run(`CREATE TABLE IF NOT EXISTS tasks (
@@ -27,7 +45,7 @@ export const initDB = () => {
     });
 };
 
-export const addHistory = (filename, size) => {
+export const addHistory = (filename: string, size: number): Promise<number> => {
     return new Promise((resolve, reject) => {
         db.run("INSERT INTO history (filename, size) VALUES (?, ?)", [filename, size], function (err) {
             if (err) {
@@ -40,7 +58,7 @@ export const addHistory = (filename, size) => {
     });
 };
 
-export const saveTask = (task) => {
+export const saveTask = (task: Task): Promise<void> => {
     return new Promise((resolve, reject) => {
         const { id, filename, url, status, progress, loaded, total, startTime, error } = task;
         db.run(`INSERT OR REPLACE INTO tasks (id, filename, url, status, progress, loaded, total, startTime, error)
@@ -58,7 +76,7 @@ export const saveTask = (task) => {
     });
 };
 
-export const deleteTask = (id) => {
+export const deleteTask = (id: string): Promise<void> => {
     return new Promise((resolve, reject) => {
         db.run("DELETE FROM tasks WHERE id = ?", [id], (err) => {
             if (err) {
@@ -71,9 +89,9 @@ export const deleteTask = (id) => {
     });
 };
 
-export const getAllTasks = () => {
+export const getAllTasks = (): Promise<Task[]> => {
     return new Promise((resolve, reject) => {
-        db.all("SELECT * FROM tasks", (err, rows) => {
+        db.all("SELECT * FROM tasks", (err, rows: Task[]) => {
             if (err) {
                 reject(err);
             }
@@ -84,9 +102,9 @@ export const getAllTasks = () => {
     });
 };
 
-export const getHistory = (limit = 50) => {
+export const getHistory = (limit = 50): Promise<HistoryItem[]> => {
     return new Promise((resolve, reject) => {
-        db.all("SELECT * FROM history ORDER BY id DESC LIMIT ?", [limit], (err, rows) => {
+        db.all("SELECT * FROM history ORDER BY id DESC LIMIT ?", [limit], (err, rows: HistoryItem[]) => {
             if (err) {
                 reject(err);
             }
@@ -97,9 +115,9 @@ export const getHistory = (limit = 50) => {
     });
 };
 
-export const getTask = (id) => {
+export const getTask = (id: string): Promise<Task | undefined> => {
     return new Promise((resolve, reject) => {
-        db.get("SELECT * FROM tasks WHERE id = ?", [id], (err, row) => {
+        db.get("SELECT * FROM tasks WHERE id = ?", [id], (err, row: Task) => {
             if (err) {
                 reject(err);
             }

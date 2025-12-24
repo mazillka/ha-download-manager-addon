@@ -1,12 +1,12 @@
-import { chromium } from "playwright";
+import { chromium, Browser, BrowserContext, Page } from "playwright";
 
-let browser = null;
-let context = null;
+let browser: Browser | null = null;
+let context: BrowserContext | null = null;
 let totalPages = 0;
-const availablePages = [];
-const pendingAcquires = [];
+const availablePages: Page[] = [];
+const pendingAcquires: ((page: Page) => void)[] = [];
 
-function shouldBlockRequest(url, resourceType) {
+function shouldBlockRequest(url: string, resourceType: string): boolean {
     if (!url) {
         return false;
     }
@@ -35,9 +35,9 @@ function shouldBlockRequest(url, resourceType) {
     return false;
 }
 
-export async function getBrowser() {
+export async function getBrowser(): Promise<Browser> {
     if (!browser) {
-        const launchOptions = {
+        const launchOptions: any = {
             headless: true,
             args: [
                 "--no-sandbox",
@@ -75,7 +75,7 @@ export async function getBrowser() {
     return browser;
 }
 
-export async function getContext() {
+export async function getContext(): Promise<BrowserContext> {
     if (!context) {
         const b = await getBrowser();
         context = await b.newContext({
@@ -98,7 +98,7 @@ export async function getContext() {
     return context;
 }
 
-async function createPage() {
+async function createPage(): Promise<Page> {
     const ctx = await getContext();
     const p = await ctx.newPage();
     const timeout = parseInt(process.env.BROWSER_NAV_TIMEOUT || "60000", 10);
@@ -108,9 +108,9 @@ async function createPage() {
     return p;
 }
 
-function acquireFromPool() {
+function acquireFromPool(): Page | null {
     if (availablePages.length) {
-        return availablePages.pop();
+        return availablePages.pop() || null;
     }
     const poolSize = parseInt(process.env.BROWSER_POOL_SIZE || "4", 10);
     if (totalPages < poolSize) {
@@ -119,7 +119,7 @@ function acquireFromPool() {
     return null; // nothing available
 }
 
-export async function acquirePage() {
+export async function acquirePage(): Promise<Page> {
     // fast path
     const p = acquireFromPool();
     if (p) {
@@ -133,22 +133,39 @@ export async function acquirePage() {
     }
 
     // otherwise wait
-    return await new Promise(resolve => pendingAcquires.push(resolve));
+    return await new Promise<Page>(resolve => pendingAcquires.push(resolve));
 }
 
-export function releasePage(p) {
+export function releasePage(p: Page): void {
     if (pendingAcquires.length) {
         const r = pendingAcquires.shift();
-        return r(p);
+        if (r) r(p);
+        return;
     }
     availablePages.push(p);
 }
 
-export async function getPage() {
+export async function getPage(): Promise<Page> {
     return acquirePage();
 }
 
-export async function parse(url, func, options = {}) {
+export interface ParseOptions {
+    headers?: Record<string, string>;
+    cookies?: any;
+    forceNewContext?: boolean;
+    userAgent?: string;
+    timeout?: number;
+    strategies?: ("domcontentloaded" | "load" | "networkidle" | "commit")[];
+    waitUntil?: "domcontentloaded" | "load" | "networkidle" | "commit";
+    waitForSelector?: string;
+    selectorTimeout?: number;
+    preEvaluateDelay?: number;
+    humanizeDelay?: boolean;
+    humanizeDelayMax?: number;
+    evalArg?: any;
+}
+
+export async function parse<T>(url: string, func: (arg: any) => T | Promise<T>, options: ParseOptions = {}): Promise<T> {
     // If headers or cookies are provided, or caller requests isolation, create a fresh context
     const needsIsolation = options.headers || options.cookies || options.forceNewContext;
     if (needsIsolation) {
@@ -180,7 +197,7 @@ export async function parse(url, func, options = {}) {
         // add cookies if provided
         if (options.cookies) {
             try {
-                const cookies = [];
+                const cookies: any[] = [];
                 const u = new URL(url);
                 const domain = u.hostname;
                 if (Array.isArray(options.cookies)) {
@@ -209,7 +226,7 @@ export async function parse(url, func, options = {}) {
             } catch (e) { }
 
             const strategies = options.strategies || [options.waitUntil || 'networkidle', 'domcontentloaded'];
-            let lastErr = null;
+            let lastErr: any = null;
             for (const strat of strategies) {
                 try {
                     const gotoOptions = { waitUntil: strat, timeout: options.timeout || timeout };
@@ -228,7 +245,7 @@ export async function parse(url, func, options = {}) {
                         }
                     }
 
-                    return await page.evaluate(func);
+                    return await page.evaluate(func, options.evalArg);
                 } catch (err) {
                     lastErr = err;
                 }
@@ -251,7 +268,7 @@ export async function parse(url, func, options = {}) {
         } catch (e) { }
 
         const strategies = options.strategies || [options.waitUntil || 'networkidle', 'domcontentloaded'];
-        let lastErr = null;
+        let lastErr: any = null;
         for (const strat of strategies) {
             try {
                 const gotoOptions = { waitUntil: strat, timeout: options.timeout || timeout };
