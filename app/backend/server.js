@@ -5,6 +5,7 @@ import { parse } from './browser.js';
 import { parseMp4Streams } from "./streamParser.js";
 import fs from "fs";
 import fetch from "node-fetch";
+import * as dbService from "./db.js";
 
 const port = process.env.PORT || 3000;
 const downloadPath = process.env.DOWNLOAD_PATH || (process.platform === 'win32' ? "./media/downloads" : "/media/DOWNLOADS");
@@ -13,6 +14,8 @@ const baseUrl = process.env.BASE_URL || "https://hdrezka.me";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 app.use(express.json());
+
+dbService.initDB();
 
 app.get("/health", (req, res) => res.send("OK"));
 
@@ -221,11 +224,12 @@ app.post("/api/parse", async (req, res) => {
         });
 });
 
-const downloads = {};
+const activeControllers = {};
 
 const startDownload = async (id) => {
-    const task = downloads[id];
-    if (!task) return;
+    const task = await dbService.getTask(id);
+    if (!task)
+        return;
 
     try {
         if (!fs.existsSync(downloadPath)) {
@@ -235,7 +239,8 @@ const startDownload = async (id) => {
 
         task.status = 'downloading';
         task.error = null;
-        task.controller = new AbortController();
+        activeControllers[id] = new AbortController();
+        await dbService.saveTask(task);
 
         let headers = {};
         let flags = 'w';
@@ -251,11 +256,13 @@ const startDownload = async (id) => {
             task.loaded = 0;
         }
 
-        const response = await fetch(task.url, { headers, signal: task.controller.signal });
+        const response = await fetch(task.url, { headers, signal: activeControllers[id].signal });
         if (!response.ok) {
             if (response.status === 416) { // Range Not Satisfiable (likely completed)
                 task.status = 'completed';
                 task.progress = 100;
+                await dbService.saveTask(task);
+                delete activeControllers[id];
                 return;
             }
             throw new Error(`HTTP ${response.status}`);
@@ -278,6 +285,7 @@ const startDownload = async (id) => {
         } else {
             task.total = contentLength;
         }
+        await dbService.saveTask(task); // Save total size
 
         const fileStream = fs.createWriteStream(dest, { flags });
         let lastLoaded = task.loaded;
@@ -292,6 +300,7 @@ const startDownload = async (id) => {
                 task.speed = (task.loaded - lastLoaded) / ((now - lastTime) / 1000);
                 lastLoaded = task.loaded;
                 lastTime = now;
+                dbService.saveTask(task).catch(console.error);
             }
         });
 
@@ -300,6 +309,8 @@ const startDownload = async (id) => {
             task.status = 'error';
             task.error = error.message;
             task.speed = 0;
+            delete activeControllers[id];
+            dbService.saveTask(task).catch(console.error);
         });
 
         fileStream.on('finish', () => {
@@ -307,6 +318,13 @@ const startDownload = async (id) => {
                 task.status = 'completed';
                 task.progress = 100;
                 task.speed = 0;
+                delete activeControllers[id];
+                dbService.saveTask(task).catch(console.error);
+
+                // Log to Database
+                dbService.addHistory(task.filename, task.total)
+                    .then(() => console.info(`Saved ${task.filename} to history DB.`))
+                    .catch(error => console.error("Failed to save download to DB:", error));
             }
         });
 
@@ -322,11 +340,29 @@ const startDownload = async (id) => {
             task.error = error.message;
         }
         task.speed = 0;
+        delete activeControllers[id];
+        await dbService.saveTask(task);
     }
 };
 
-app.get("/api/downloads", (req, res) => {
-    res.json(Object.values(downloads).sort((a, b) => b.startTime - a.startTime));
+app.get("/api/downloads", async (req, res) => {
+    try {
+        const tasks = await dbService.getAllTasks();
+        res.json(tasks.sort((a, b) => b.startTime - a.startTime));
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
+});
+
+app.get("/api/history", async (req, res) => {
+    try {
+        await dbService.getHistory()
+            .then(rows => {
+                res.json(rows);
+            });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.post("/api/download", async (req, res) => {
@@ -336,7 +372,7 @@ app.post("/api/download", async (req, res) => {
     }
 
     const id = Date.now().toString();
-    downloads[id] = {
+    const task = {
         id,
         filename,
         url,
@@ -349,39 +385,43 @@ app.post("/api/download", async (req, res) => {
         error: null
     };
 
+    await dbService.saveTask(task);
     startDownload(id);
 
     res.json({ status: 'started', id });
 });
 
-app.post("/api/downloads/:id/pause", (req, res) => {
+app.post("/api/downloads/:id/pause", async (req, res) => {
     const { id } = req.params;
-    const task = downloads[id];
+    const task = await dbService.getTask(id);
     if (task && task.status === 'downloading') {
         task.status = 'paused';
-        if (task.controller) {
-            task.controller.abort();
+        if (activeControllers[id]) {
+            activeControllers[id].abort();
+            delete activeControllers[id];
         }
+        await dbService.saveTask(task);
     }
     res.send("ok");
 });
 
-app.post("/api/downloads/:id/resume", (req, res) => {
+app.post("/api/downloads/:id/resume", async (req, res) => {
     const { id } = req.params;
-    const task = downloads[id];
+    const task = await dbService.getTask(id);
     if (task && (task.status === 'paused' || task.status === 'error')) {
         startDownload(id);
     }
     res.send("ok");
 });
 
-app.delete("/api/downloads/:id", (req, res) => {
+app.delete("/api/downloads/:id", async (req, res) => {
     const { id } = req.params;
     const { removeFile } = req.query;
-    const task = downloads[id];
+    const task = await dbService.getTask(id);
     if (task) {
-        if (task.controller) {
-            task.controller.abort();
+        if (activeControllers[id]) {
+            activeControllers[id].abort();
+            delete activeControllers[id];
         }
         if (removeFile === 'true') {
             const dest = path.join(downloadPath, task.filename);
@@ -393,32 +433,48 @@ app.delete("/api/downloads/:id", (req, res) => {
                 }
             }
         }
-        delete downloads[id];
+        await dbService.deleteTask(id);
     }
     res.send("ok");
 });
 
-app.post("/api/downloads/:id/cancel", (req, res) => {
+app.post("/api/downloads/:id/cancel", async (req, res) => {
     const { id } = req.params;
-    if (downloads[id]) {
-        if (downloads[id].controller) {
-            downloads[id].controller.abort();
+    const task = await dbService.getTask(id);
+    if (task) {
+        if (activeControllers[id]) {
+            activeControllers[id].abort();
+            delete activeControllers[id];
         }
-        delete downloads[id];
+        await dbService.deleteTask(id);
     }
     res.send("ok");
 });
 
 app.use("/", express.static(path.join(__dirname, "../frontend")));
 
-app.listen(port, () => {
-    console.info("Starting server...");
+// Load tasks from DB before starting
+dbService.getAllTasks().then(tasks => {
+    Promise.all(tasks.map(async (t) => {
+        // If it was downloading when killed, set to paused
+        if (t.status === 'downloading') {
+            t.status = 'paused';
+            t.error = 'Interrupted by server restart';
+            await dbService.saveTask(t);
+        }
+    })).then(() => {
+        console.info(`Loaded ${tasks.length} tasks from DB.`);
 
-    console.info(`BASE_URL: ${process.env.BASE_URL}`);
-    console.info(`DOWNLOAD_PATH: ${process.env.DOWNLOAD_PATH}`);
-    console.info(`PORT: ${process.env.PORT}`);
-    console.info(`BROWSER_POOL_SIZE: ${process.env.BROWSER_POOL_SIZE}`);
-    console.info(`BROWSER_NAV_TIMEOUT: ${process.env.BROWSER_NAV_TIMEOUT}`);
+        app.listen(port, () => {
+            console.info("Starting server...");
 
-    console.info(`Server running on http://localhost:${port}`);
+            console.info(`BASE_URL: ${process.env.BASE_URL}`);
+            console.info(`DOWNLOAD_PATH: ${process.env.DOWNLOAD_PATH}`);
+            console.info(`PORT: ${process.env.PORT}`);
+            console.info(`BROWSER_POOL_SIZE: ${process.env.BROWSER_POOL_SIZE}`);
+            console.info(`BROWSER_NAV_TIMEOUT: ${process.env.BROWSER_NAV_TIMEOUT}`);
+
+            console.info(`Server running on http://localhost:${port}`);
+        });
+    });
 });
