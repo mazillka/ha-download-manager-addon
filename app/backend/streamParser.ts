@@ -1,7 +1,12 @@
-export function parseMp4Streams(data) {
+export interface Stream {
+    quality: string;
+    mp4: string;
+}
+
+export function parseMp4Streams(data: string): Stream[] {
     const trashList = ["@", "#", "!", "^", "$"];
 
-    function combinations(arr, n) {
+    function combinations(arr: string[], n: number): string[][] {
         if (n === 1) {
             return arr.map(a => [a]);
         }
@@ -9,7 +14,7 @@ export function parseMp4Streams(data) {
         return arr.flatMap(a => smaller.map(s => [...s, a]));
     }
 
-    function unite(arr) {
+    function unite(arr: string[][]): string[] {
         return arr.map(e => e.join(''));
     }
 
@@ -21,7 +26,7 @@ export function parseMp4Streams(data) {
     const trashRegex = new RegExp(trashCodesSet.map(i => btoa(i)).join('|'), 'g');
     trashString = trashString.replace(trashRegex, '');
 
-    let decoded;
+    let decoded: string;
     try {
         decoded = atob(trashString);
     } catch (e) {
@@ -29,11 +34,11 @@ export function parseMp4Streams(data) {
         return [];
     }
 
-    const result = [];
+    const result: Stream[] = [];
     const qualityRegex = /\[(\d+p[^\]]*)\]/g;
-    let match;
+    let match: RegExpExecArray | null;
     let lastIndex = 0;
-    let currentQuality = null;
+    let currentQuality: string | null = null;
 
     while ((match = qualityRegex.exec(decoded)) !== null) {
         const textSegment = decoded.slice(lastIndex, match.index);

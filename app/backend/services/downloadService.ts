@@ -2,11 +2,12 @@ import fs from "fs";
 import path from "path";
 import fetch from "node-fetch";
 import * as dbService from "./dbService.js";
+import { Task } from "./dbService.js";
 
 const downloadPath = process.env.DOWNLOAD_PATH || (process.platform === 'win32' ? "./media/downloads" : "/media/DOWNLOADS");
-const activeControllers = {};
+const activeControllers: Record<string, AbortController> = {};
 
-export const startDownload = async (id) => {
+export const startDownload = async (id: string): Promise<void> => {
     const task = await dbService.getTask(id);
     if (!task)
         return;
@@ -22,7 +23,7 @@ export const startDownload = async (id) => {
         activeControllers[id] = new AbortController();
         await dbService.saveTask(task);
 
-        let headers = {};
+        let headers: Record<string, string> = {};
         let flags = 'w';
 
         if (task.loaded > 0 && fs.existsSync(dest)) {
@@ -71,45 +72,47 @@ export const startDownload = async (id) => {
         let lastLoaded = task.loaded;
         let lastTime = Date.now();
 
-        response.body.on('data', (chunk) => {
-            task.loaded += chunk.length;
-            if (task.total) task.progress = Math.round((task.loaded / task.total) * 100);
+        if (response.body) {
+            response.body.on('data', (chunk: Buffer) => {
+                task.loaded += chunk.length;
+                if (task.total) task.progress = Math.round((task.loaded / task.total) * 100);
 
-            const now = Date.now();
-            if (now - lastTime >= 1000) {
-                task.speed = (task.loaded - lastLoaded) / ((now - lastTime) / 1000);
-                lastLoaded = task.loaded;
-                lastTime = now;
-                dbService.saveTask(task).catch(console.error);
-            }
-        });
+                const now = Date.now();
+                if (now - lastTime >= 1000) {
+                    task.speed = (task.loaded - lastLoaded) / ((now - lastTime) / 1000);
+                    lastLoaded = task.loaded;
+                    lastTime = now;
+                    dbService.saveTask(task).catch(console.error);
+                }
+            });
 
-        response.body.on('error', (error) => {
-            if (error.name === 'AbortError') return;
-            task.status = 'error';
-            task.error = error.message;
-            task.speed = 0;
-            delete activeControllers[id];
-            dbService.saveTask(task).catch(console.error);
-        });
-
-        fileStream.on('finish', () => {
-            if (task.status === 'downloading') {
-                task.status = 'completed';
-                task.progress = 100;
+            response.body.on('error', (error: Error) => {
+                if (error.name === 'AbortError') return;
+                task.status = 'error';
+                task.error = error.message;
                 task.speed = 0;
                 delete activeControllers[id];
                 dbService.saveTask(task).catch(console.error);
+            });
 
-                // Log to Database
-                dbService.addHistory(task.filename, task.total)
-                    .then(() => console.info(`Saved ${task.filename} to history DB.`))
-                    .catch(error => console.error("Failed to save download to DB:", error));
-            }
-        });
+            fileStream.on('finish', () => {
+                if (task.status === 'downloading') {
+                    task.status = 'completed';
+                    task.progress = 100;
+                    task.speed = 0;
+                    delete activeControllers[id];
+                    dbService.saveTask(task).catch(console.error);
 
-        response.body.pipe(fileStream);
-    } catch (error) {
+                    // Log to Database
+                    dbService.addHistory(task.filename, task.total)
+                        .then(() => console.info(`Saved ${task.filename} to history DB.`))
+                        .catch(error => console.error("Failed to save download to DB:", error));
+                }
+            });
+
+            response.body.pipe(fileStream);
+        }
+    } catch (error: any) {
         if (error.name === 'AbortError') {
             if (task.status !== 'paused') {
                 task.status = 'error';
@@ -125,9 +128,9 @@ export const startDownload = async (id) => {
     }
 };
 
-export const createDownload = async (url, filename) => {
+export const createDownload = async (url: string, filename: string): Promise<string> => {
     const id = Date.now().toString();
-    const task = {
+    const task: Task = {
         id,
         filename,
         url,
@@ -145,7 +148,7 @@ export const createDownload = async (url, filename) => {
     return id;
 };
 
-export const pauseDownload = async (id) => {
+export const pauseDownload = async (id: string): Promise<void> => {
     const task = await dbService.getTask(id);
     if (task && task.status === 'downloading') {
         task.status = 'paused';
@@ -157,14 +160,14 @@ export const pauseDownload = async (id) => {
     }
 };
 
-export const resumeDownload = async (id) => {
+export const resumeDownload = async (id: string): Promise<void> => {
     const task = await dbService.getTask(id);
     if (task && (task.status === 'paused' || task.status === 'error')) {
         startDownload(id);
     }
 };
 
-export const deleteDownload = async (id, removeFile) => {
+export const deleteDownload = async (id: string, removeFile: boolean): Promise<void> => {
     const task = await dbService.getTask(id);
     if (task) {
         if (activeControllers[id]) {
@@ -185,11 +188,11 @@ export const deleteDownload = async (id, removeFile) => {
     }
 };
 
-export const cancelDownload = async (id) => {
+export const cancelDownload = async (id: string): Promise<void> => {
     return deleteDownload(id, false);
 };
 
-export const restoreDownloads = async () => {
+export const restoreDownloads = async (): Promise<Task[]> => {
     const tasks = await dbService.getAllTasks();
     await Promise.all(tasks.map(async (t) => {
         // If it was downloading when killed, set to paused

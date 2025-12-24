@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import * as dbService from "./services/dbService.js";
@@ -14,11 +14,11 @@ app.use(express.json());
 
 dbService.initDB();
 
-app.get("/health", (req, res) => res.send("OK"));
+app.get("/health", (req: Request, res: Response) => { res.send("OK"); });
 
-app.get("/api/config", (req, res) => res.json({ baseUrl }));
+app.get("/api/config", (req: Request, res: Response) => { res.json({ baseUrl }); });
 
-app.post("/api/search", async (req, res) => {
+app.post("/api/search", async (req: Request, res: Response) => {
     const { url } = req.body;
 
     try {
@@ -31,7 +31,7 @@ app.post("/api/search", async (req, res) => {
     }
 });
 
-app.post("/api/parse", async (req, res) => {
+app.post("/api/parse", async (req: Request, res: Response) => {
     const { url, data_translator_id } = req.body;
 
     try {
@@ -44,51 +44,50 @@ app.post("/api/parse", async (req, res) => {
     }
 });
 
-app.get("/api/downloads", async (req, res) => {
+app.get("/api/downloads", async (req: Request, res: Response) => {
     try {
         const tasks = await dbService.getAllTasks();
         res.json(tasks.sort((a, b) => b.startTime - a.startTime));
-    } catch (error) {
+    } catch (error: any) {
         res.status(500).send(error.message);
     }
 });
 
-app.get("/api/history", async (req, res) => {
+app.get("/api/history", async (req: Request, res: Response) => {
     try {
-        await dbService.getHistory()
-            .then(rows => {
-                res.json(rows);
-            });
-    } catch (error) {
+        const rows = await dbService.getHistory();
+        res.json(rows);
+    } catch (error: any) {
         res.status(500).json({ error: error.message });
     }
 });
 
-app.post("/api/download", async (req, res) => {
+app.post("/api/download", async (req: Request, res: Response) => {
     const { url, filename } = req.body;
     if (!url || !filename) {
-        return res.status(400).send("Missing url or filename");
+        res.status(400).send("Missing url or filename");
+        return;
     }
 
     const id = await downloadService.createDownload(url, filename);
     res.json({ status: 'started', id });
 });
 
-app.post("/api/downloads/:id/pause", async (req, res) => {
+app.post("/api/downloads/:id/pause", async (req: Request, res: Response) => {
     const { id } = req.params;
     
     await downloadService.pauseDownload(id);
     res.send("ok");
 });
 
-app.post("/api/downloads/:id/resume", async (req, res) => {
+app.post("/api/downloads/:id/resume", async (req: Request, res: Response) => {
     const { id } = req.params;
 
     await downloadService.resumeDownload(id);
     res.send("ok");
 });
 
-app.delete("/api/downloads/:id", async (req, res) => {
+app.delete("/api/downloads/:id", async (req: Request, res: Response) => {
     const { id } = req.params;
     const { removeFile } = req.query;
 
@@ -96,7 +95,7 @@ app.delete("/api/downloads/:id", async (req, res) => {
     res.send("ok");
 });
 
-app.post("/api/downloads/:id/cancel", async (req, res) => {
+app.post("/api/downloads/:id/cancel", async (req: Request, res: Response) => {
     const { id } = req.params;
 
     await downloadService.cancelDownload(id);
