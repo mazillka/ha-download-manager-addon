@@ -1,5 +1,12 @@
 {
-  "name": "Mazillka Home Assistant Add-ons",
-  "url": "https://github.com/mazillka/ha-download-manager-addon",
-  "maintainer": "Mazillka"
+  "name": "HA Download Manager Add-on",
+  "slug": "ha-download-manager-addon",
+  "description": "Download Manager for Home Assistant",
+  "addons": [
+    {
+      "name": "Download Manager",
+      "repository": "https://github.com/mazillka/ha-download-manager-addon",
+      "version": "1.0.13"
+    }
+  ]
 }
