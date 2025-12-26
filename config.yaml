@@ -1,5 +1,5 @@
 name: "HA Download Manager"
-slug: "ha_download_manager"
+slug: ha-download-manager
 version: "1.0.13"
 description: "Home Assistant Download Manager"
 
@@ -27,12 +27,7 @@ options:
   browser_nav_timeout: 60000
 
 schema:
-  baseUrl:
-    - "https://hdrezka.ag"
-    - "https://hdrezka.cm"
-    - "https://hdrezka.me"
-    - "https://hdrezka.co"
-    - "https://hdrezka-home.tv"
+  baseUrl: str
   download_path: str
   port: port
   browser_pool_size: int
