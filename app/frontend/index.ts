@@ -1,24 +1,45 @@
-import { createApp } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
+import './index.css';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
-let modalInstance = null;
+import * as bootstrap from 'bootstrap';
+import Swal from 'sweetalert2'
+import { createApp, defineComponent } from 'vue';
 
-createApp({
+interface DownloadTask {
+    id: string;
+    url: string;
+    filename: string;
+    status: 'pending' | 'downloading' | 'completed' | 'error' | 'paused';
+    startTime: number;
+    progress?: number;
+    speed?: number;
+    size?: number;
+}
+
+interface Tab {
+    id: string;
+    name: string;
+}
+
+let modalInstance: any = null;
+
+const App = defineComponent({
     data() {
         return {
             baseUrl: "https://hdrezka.me",
             query: '',
-            results: [],
+            results: [] as any[],
             loading: false,
             downloadProgress: 0,
             downloadLoaded: 0,
             downloadTotal: 0,
             downloadSpeed: 0,
-            downloadController: null,
-            selectedItem: null,
-            selectedUrl: null,
-            videoUrl: null,
-            serverDownloads: [],
-            serverPollInterval: null,
+            downloadController: null as AbortController | null,
+            selectedItem: null as any,
+            selectedUrl: null as string | null,
+            videoUrl: null as string | null,
+            serverDownloads: [] as DownloadTask[],
+            serverPollInterval: null as number | null,
             activeTab: 'search',
             tabs: [
                 { id: 'search', name: 'Search' },
@@ -26,21 +47,20 @@ createApp({
                 { id: 'latest', name: 'Latest arrivals' },
                 { id: 'popular', name: 'Popular' },
                 { id: 'downloads', name: 'Downloads' }
-            ]
+            ] as Tab[]
         }
     },
     computed: {
-        isAndroid() {
+        isAndroid(): boolean {
             return /android/i.test(navigator.userAgent);
         },
-        activeServerDownloads() {
+        activeServerDownloads(): number {
             return this.serverDownloads.filter(d => d.status === 'downloading' || d.status === 'pending').length;
         }
     },
     mounted() {
         // Initialize Bootstrap modal
-        const modalEl = this.$refs.modalRef;
-        // eslint-disable-next-line no-undef
+        const modalEl = this.$refs.modalRef as HTMLElement;
         modalInstance = new bootstrap.Modal(modalEl);
 
         modalEl.addEventListener('hidden.bs.modal', () => {
@@ -49,7 +69,7 @@ createApp({
 
         this.fetchConfig();
         this.fetchServerDownloads();
-        this.serverPollInterval = setInterval(() => this.fetchServerDownloads(), 1000);
+        this.serverPollInterval = window.setInterval(() => this.fetchServerDownloads(), 1000);
     },
     methods: {
         async fetchConfig() {
@@ -59,13 +79,13 @@ createApp({
                 }
 
                 return response.json();
-            }).then(data => {
+            }).then((data: any) => {
                 this.baseUrl = data.baseUrl;
             }).catch(error => {
                 console.error('Error:', error);
             });
         },
-        async selectTab(tabId) {
+        async selectTab(tabId: string) {
             this.activeTab = tabId;
             if (tabId === 'search') {
                 this.results = [];
@@ -87,7 +107,7 @@ createApp({
                 await this.fetchList(url);
             }
         },
-        async fetchList(url) {
+        async fetchList(url: string) {
             this.loading = true;
             this.results = [];
 
@@ -101,7 +121,7 @@ createApp({
                 }
 
                 return response.json();
-            }).then(data => {
+            }).then((data: any) => {
                 this.results = data;
             }).catch(error => {
                 console.error('Error:', error);
@@ -120,7 +140,7 @@ createApp({
             this.query = '';
             this.results = [];
         },
-        async parse(url, data_translator_id = null) {
+        async parse(url: string, data_translator_id: string | null = null) {
             this.loading = true;
             await fetch("api/parse", {
                 method: "POST",
@@ -131,7 +151,7 @@ createApp({
                     throw new Error('HTTP error ' + response.status);
                 }
                 return response.json();
-            }).then(data => {
+            }).then((data: any) => {
                 this.selectedItem = data;
                 this.selectedUrl = url;
                 this.videoUrl = null; // Reset video player
@@ -142,13 +162,13 @@ createApp({
                 this.loading = false;
             });
         },
-        showPlayer(url) {
+        showPlayer(url: string) {
             this.videoUrl = url;
         },
-        openStream(url) {
+        openStream(url: string) {
             window.open(url, '_blank');
         },
-        copyStreamUrl(url) {
+        copyStreamUrl(url: string) {
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(url);
             } else {
@@ -160,7 +180,7 @@ createApp({
                 ta.remove();
             }
         },
-        formatBytes(bytes, decimals = 2) {
+        formatBytes(bytes: number, decimals = 2) {
             if (!+bytes) {
                 return '0 Bytes';
             }
@@ -170,7 +190,7 @@ createApp({
             const i = Math.floor(Math.log(bytes) / Math.log(k));
             return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
         },
-        async download(url, filename) {
+        async download(url: string, filename: string) {
             this.loading = true;
             this.downloadController = new AbortController();
             this.downloadProgress = 0;
@@ -191,7 +211,7 @@ createApp({
                 let lastLoaded = 0;
                 let lastTime = Date.now();
 
-                const reader = response.body.getReader();
+                const reader = response.body!.getReader();
                 const chunks = [];
 
                 while (true) {
@@ -223,7 +243,7 @@ createApp({
                 a.click();
                 URL.revokeObjectURL(a.href);
                 a.remove();
-            } catch (error) {
+            } catch (error: any) {
                 if (error.name === 'AbortError') {
                     console.log('Download cancelled');
                 } else {
@@ -243,7 +263,7 @@ createApp({
                 this.downloadController.abort();
             }
         },
-        async downloadToServer(url, filename) {
+        async downloadToServer(url: string, filename: string) {
             Swal.fire({
                 title: "Are you sure?",
                 text: `${filename} will be downloaded to server.`,
@@ -255,7 +275,7 @@ createApp({
                     confirmButton: "btn btn-success",
                     cancelButton: "btn btn-danger"
                 }
-            }).then(async (result) => {
+            }).then(async (result: any) => {
                 if (result.isConfirmed) {
                     try {
                         await fetch("api/download", {
@@ -293,13 +313,13 @@ createApp({
                         throw new Error('HTTP error ' + response.status);
                     }
                     return response.json();
-                }).then(data => {
+                }).then((data: DownloadTask[]) => {
                     this.serverDownloads = data;
                 }).catch(error => {
                     console.error('Error:', error);
                 });
         },
-        async cancelServerDownload(id) {
+        async cancelServerDownload(id: string) {
             Swal.fire({
                 title: "Are you sure?",
                 text: "You won't be able to revert this!",
@@ -311,7 +331,7 @@ createApp({
                     confirmButton: "btn btn-success",
                     cancelButton: "btn btn-danger"
                 }
-            }).then(async (result) => {
+            }).then(async (result: any) => {
                 if (result.isConfirmed) {
                     try {
                         await fetch(`api/downloads/${id}/cancel`, { method: "POST" });
@@ -322,7 +342,7 @@ createApp({
                 }
             });
         },
-        async pauseServerDownload(id) {
+        async pauseServerDownload(id: string) {
             try {
                 await fetch(`api/downloads/${id}/pause`, { method: "POST" });
                 this.fetchServerDownloads();
@@ -330,7 +350,7 @@ createApp({
                 console.error('Error:', error);
             }
         },
-        async resumeServerDownload(id) {
+        async resumeServerDownload(id: string) {
             try {
                 await fetch(`api/downloads/${id}/resume`, { method: "POST" });
                 this.fetchServerDownloads();
@@ -338,7 +358,7 @@ createApp({
                 console.error('Error:', error);
             }
         },
-        async deleteServerDownload(id) {
+        async deleteServerDownload(id: string) {
             Swal.fire({
                 title: "Are you sure?",
                 text: "Are you sure you want to delete this download task?",
@@ -350,7 +370,7 @@ createApp({
                     confirmButton: "btn btn-success",
                     cancelButton: "btn btn-danger"
                 }
-            }).then(async (result) => {
+            }).then(async (result: any) => {
                 if (result.isConfirmed) {
                     Swal.fire({
                         title: "Are you sure?",
@@ -363,7 +383,7 @@ createApp({
                             confirmButton: "btn btn-success",
                             cancelButton: "btn btn-danger"
                         }
-                    }).then(async (result) => {
+                    }).then(async (result: any) => {
                         try {
                             await fetch(`api/downloads/${id}?removeFile=${result.isConfirmed}`, { method: "DELETE" });
                             this.fetchServerDownloads();
@@ -374,12 +394,14 @@ createApp({
                 }
             });
         },
-        handleParse(t) {
+        handleParse(t: any) {
             if (t.url) {
                 this.parse(t.url, null);
             } else {
-                this.parse(this.selectedUrl, t.data_translator_id);
+                this.parse(this.selectedUrl!, t.data_translator_id);
             }
         }
     }
-}).mount('#app');
+});
+
+createApp(App).mount('#app');
