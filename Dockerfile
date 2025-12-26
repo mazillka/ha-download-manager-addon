@@ -3,9 +3,11 @@ FROM node:20-bookworm AS builder
 WORKDIR /app
 
 COPY app/package.json app/package-lock.json ./
+COPY app/webpack.config.js ./
 RUN npm ci
 
-COPY app/tsconfig.json ./
+# COPY app/backend/tsconfig.json ./backend/
+# COPY app/frontend/tsconfig.json ./frontend/
 COPY app/backend ./backend
 COPY app/frontend ./frontend
 RUN npm run build
@@ -35,7 +37,7 @@ RUN npm ci --omit=dev && npm cache clean --force
 
 # ======= App source =======
 COPY --from=builder /app/dist/backend ./backend
-COPY --from=builder /app/frontend ./frontend
+COPY --from=builder /app/dist/frontend ./frontend
 
 # Home Assistant ingress
 EXPOSE 3000
