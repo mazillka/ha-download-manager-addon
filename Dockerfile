@@ -1,3 +1,15 @@
+FROM node:20-bookworm AS builder
+
+WORKDIR /app
+
+COPY app/package.json app/package-lock.json ./
+RUN npm ci
+
+COPY app/tsconfig.json ./
+COPY app/backend ./backend
+COPY app/frontend ./frontend
+RUN npm run build
+
 FROM node:20-bookworm
 
 # ========= Home Assistant / Node =========
@@ -15,14 +27,15 @@ ENV NPM_CONFIG_LOGLEVEL=warn
 RUN npx playwright install-deps chromium \
     && npx playwright install chromium
 
-WORKDIR /app
+WORKDIR /app/dist
 
 # ======= Install deps (cached layer) =======
 COPY app/package.json app/package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
 # ======= App source =======
-COPY app/ .
+COPY --from=builder /app/dist/backend ./backend
+COPY --from=builder /app/frontend ./frontend
 
 # Home Assistant ingress
 EXPOSE 3000
