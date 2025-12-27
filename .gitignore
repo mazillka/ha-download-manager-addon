@@ -140,3 +140,4 @@ vite.config.ts.timestamp-*
 app/backend/ha-download-manager.db
 app/backend/services/ha-download-manager.db
 /app/media/downloads
+/.vs

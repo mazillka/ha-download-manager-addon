@@ -1,4 +1,6 @@
-import { chromium, Browser, BrowserContext, Page } from "playwright";
+import { chromium } from "playwright";
+import type { Browser, BrowserContext, Page } from "playwright";
+import type { ParseOptions } from "../interfaces/index.js";
 
 let browser: Browser | null = null;
 let context: BrowserContext | null = null;
@@ -149,21 +151,6 @@ export async function getPage(): Promise<Page> {
     return acquirePage();
 }
 
-export interface ParseOptions {
-    headers?: Record<string, string>;
-    cookies?: any;
-    forceNewContext?: boolean;
-    userAgent?: string;
-    timeout?: number;
-    strategies?: ("domcontentloaded" | "load" | "networkidle" | "commit")[];
-    waitUntil?: "domcontentloaded" | "load" | "networkidle" | "commit";
-    waitForSelector?: string;
-    selectorTimeout?: number;
-    preEvaluateDelay?: number;
-    humanizeDelay?: boolean;
-    humanizeDelayMax?: number;
-    evalArg?: any;
-}
 
 export async function parse<T>(url: string, func: (arg: any) => T | Promise<T>, options: ParseOptions = {}): Promise<T> {
     // If headers or cookies are provided, or caller requests isolation, create a fresh context
@@ -298,3 +285,12 @@ export async function parse<T>(url: string, func: (arg: any) => T | Promise<T>, 
         releasePage(page);
     }
 }
+
+export default { 
+    getBrowser,
+    getContext,
+    acquirePage,
+    releasePage,
+    getPage,
+    parse
+};

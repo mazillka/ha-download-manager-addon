@@ -11,5 +11,6 @@
     "noEmit": false,
     "types": ["bootstrap"]
   },
-  "include": ["./**/*"]
+  "include": ["./**/*"],
+  "exclude": ["node_modules", "../dist"]
 }

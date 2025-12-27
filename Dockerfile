@@ -6,11 +6,9 @@ COPY app/package.json app/package-lock.json ./
 COPY app/webpack.config.js ./
 RUN npm ci
 
-# COPY app/backend/tsconfig.json ./backend/
-# COPY app/frontend/tsconfig.json ./frontend/
-COPY app/backend ./backend
-COPY app/frontend ./frontend
-RUN npm run build
+COPY app/backend ./backend/
+COPY app/frontend ./frontend/
+RUN npm run build:prod
 
 FROM node:20-bookworm
 
@@ -25,19 +23,19 @@ ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 # Less logs
 ENV NPM_CONFIG_LOGLEVEL=warn
 
-# Playwright deps
-RUN npx playwright install-deps chromium \
-    && npx playwright install chromium
-
 WORKDIR /app/dist
 
 # ======= Install deps (cached layer) =======
 COPY app/package.json app/package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
+# Playwright deps
+RUN npx -y playwright install-deps chromium \
+    && npx -y playwright install chromium
+
 # ======= App source =======
-COPY --from=builder /app/dist/backend ./backend
-COPY --from=builder /app/dist/frontend ./frontend
+COPY --from=builder /app/dist/backend ./backend/
+COPY --from=builder /app/dist/frontend ./frontend/
 
 # Home Assistant ingress
 EXPOSE 3000

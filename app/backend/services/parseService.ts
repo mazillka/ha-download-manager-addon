@@ -1,55 +1,6 @@
 import * as browserService from './browserService.js';
 import { parseMp4Streams } from "../streamParser.js";
-
-export interface SearchResult {
-    title: string;
-    pageUrl: string;
-    posterUrl: string;
-    category: string;
-}
-
-export interface Stream {
-    quality: string;
-    mp4FileName: string;
-    mp4: string;
-    mp4Android: string;
-}
-
-export interface Translation {
-    name: string;
-    active: boolean;
-    data_translator_id: string | null;
-    url: string;
-}
-
-export interface Season {
-    name: string;
-    active: boolean;
-    url: string;
-    data_tab_id: string | null;
-}
-
-export interface Episode {
-    name: string;
-    active: boolean;
-    url: string;
-    data_id: string | null;
-    data_season_id: string | null;
-    data_episode_id: string | null;
-}
-
-export interface ParseResult {
-    isShow: boolean;
-    year: number | string;
-    title: string;
-    titleOriginal: string;
-    posterUrl: string;
-    streams: Stream[];
-    translations: Translation[];
-    seasons: Season[];
-    episodes: Episode[];
-    debug: any;
-}
+import type { SearchResult, ParseResult } from "../interfaces/index.js";
 
 export const search = async (url: string): Promise<SearchResult[]> => {
     return await browserService.parse(url, () => {
@@ -240,3 +191,5 @@ export const parse = async (url: string, data_translator_id?: string): Promise<P
         debug: data.debug
     };
 };
+
+export default { search, parse };

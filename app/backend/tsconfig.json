@@ -10,5 +10,6 @@
     "outDir": "../dist/backend",
     "rootDir": "./",
   },
-  "include": ["./**/*"]
+  "include": ["./**/*"],
+  "exclude": ["node_modules", "../dist"]
 }
