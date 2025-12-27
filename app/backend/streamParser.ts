@@ -1,7 +1,4 @@
-export interface Stream {
-    quality: string;
-    mp4: string;
-}
+import type { Stream } from "./interfaces/index.js";
 
 export function parseMp4Streams(data: string): Stream[] {
     const trashList = ["@", "#", "!", "^", "$"];
@@ -46,7 +43,7 @@ export function parseMp4Streams(data: string): Stream[] {
             const urls = textSegment.match(/https?:\/\/[^\s,]+/g) || [];
             const mp4Url = urls.find(url => url.endsWith('.mp4')) || null;
             if (mp4Url) {
-                result.push({ quality: currentQuality, mp4: mp4Url });
+                result.push({ quality: currentQuality, mp4: mp4Url, mp4Android: null, mp4FileName: null });
             }
         }
         currentQuality = match[1].trim();
@@ -58,7 +55,7 @@ export function parseMp4Streams(data: string): Stream[] {
         const urls = remainingText.match(/https?:\/\/[^\s,]+/g) || [];
         const mp4Url = urls.find(url => url.endsWith('.mp4')) || null;
         if (mp4Url) {
-            result.push({ quality: currentQuality, mp4: mp4Url });
+            result.push({ quality: currentQuality, mp4: mp4Url, mp4Android: null, mp4FileName: null });
         }
     }
 
