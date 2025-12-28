@@ -104,12 +104,6 @@ app.post("/api/downloads/:id/cancel", async (req: Request, res: Response) => {
     res.send("ok");
 });
 
-// app.use(express.static(path.join(__dirname, "../dist/frontend")));
-
-// app.use((req: Request, res: Response) => {
-//   res.sendFile(path.join(__dirname, "../dist/frontend/index.html"));
-// });
-
 app.use(express.static(frontendPath));
 
 app.use((req: Request, res: Response) => {

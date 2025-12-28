@@ -11,7 +11,9 @@ const activeControllers: Record<string, AbortController> = {};
 
 export const startDownload = async (id: string): Promise<void> => {
   const task = await dbService.getTask(id);
-  if (!task) return;
+  if (!task) {
+    return;
+  }
 
   try {
     if (!fs.existsSync(downloadPath)) {
