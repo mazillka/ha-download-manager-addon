@@ -144,7 +144,9 @@ export async function acquirePage(): Promise<Page> {
 export function releasePage(p: Page): void {
   if (pendingAcquires.length) {
     const r = pendingAcquires.shift();
-    if (r) r(p);
+    if (r) {
+      r(p);
+    }
     return;
   }
   availablePages.push(p);
@@ -159,6 +161,15 @@ export async function parse<T>(
   func: (arg: any) => T | Promise<T>,
   options: ParseOptions = {}
 ): Promise<T> {
+  console.log(`[${new Date().toLocaleString()}] - ${url}`);
+
+  if (options.evalArg && options.evalArg.funcString) {
+    console.log(`[${new Date().toLocaleString()}] - funcString`);
+    console.log(" - - - - - - - - - - - - ");
+    console.log(options.evalArg.funcString);
+    console.log(" - - - - - - - - - - - - ");
+  }
+
   // If headers or cookies are provided, or caller requests isolation, create a fresh context
   const needsIsolation =
     options.headers || options.cookies || options.forceNewContext;
@@ -248,15 +259,6 @@ export async function parse<T>(
             });
           }
 
-          if (options.waitForCDNPlayerInfo) {
-            await page.waitForFunction(
-              () => typeof (window as any).CDNPlayerInfo !== "undefined",
-              { timeout: options.waitForCDNPlayerInfoTimeout || 5000 }
-            );
-
-            console.log(" - - - waitForCDNPlayerInfo - - - ");
-          }
-
           if (options.preEvaluateDelay || options.humanizeDelay) {
             const base = options.preEvaluateDelay || 0;
             const human = options.humanizeDelay
@@ -268,11 +270,26 @@ export async function parse<T>(
             }
           }
 
+          page.on("console", (msg) => {
+            if (msg.type() === "error") {
+              console.error(
+                `[${new Date().toLocaleString()}] - console: ${msg.text()}`
+              );
+            }
+          });
+
+          page.on("pageerror", (error) => {
+            console.error(
+              `[${new Date().toLocaleString()}] - exception: ${error.message}`
+            );
+          });
+
           return await page.evaluate(func, options.evalArg);
         } catch (err) {
           lastErr = err;
         }
       }
+
       throw lastErr;
     } finally {
       try {
@@ -312,15 +329,6 @@ export async function parse<T>(
           });
         }
 
-        if (options.waitForCDNPlayerInfo) {
-          await page.waitForFunction(
-            () => typeof (window as any).CDNPlayerInfo !== "undefined",
-            { timeout: options.waitForCDNPlayerInfoTimeout || 5000 }
-          );
-
-          console.log(" - - - waitForCDNPlayerInfo - - - ");
-        }
-
         if (options.preEvaluateDelay || options.humanizeDelay) {
           const base = options.preEvaluateDelay || 0;
           const human = options.humanizeDelay
@@ -331,6 +339,20 @@ export async function parse<T>(
             await page.waitForTimeout(delay);
           }
         }
+
+        page.on("console", (msg) => {
+          if (msg.type() === "error") {
+            console.error(
+              `[${new Date().toLocaleString()}] - console: ${msg.text()}`
+            );
+          }
+        });
+
+        page.on("pageerror", (error) => {
+          console.error(
+            `[${new Date().toLocaleString()}] - exception: ${error.message}`
+          );
+        });
 
         return await page.evaluate(func, options.evalArg);
       } catch (err) {

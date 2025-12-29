@@ -5,7 +5,12 @@ import { fileURLToPath } from "url";
 import { DbService, DownloadService, ParseService } from "./services/index.js";
 
 const port = process.env.PORT || 3000;
-const baseUrl = process.env.BASE_URL || "https://hdrezka.me";
+const baseUrl = process.env.BASE_URL || "https://hdrezka.name";
+
+// https://hdrezka.ag
+// https://hdrezka.me
+// https://hdrezka.name
+// https://hdrezka-home.tv
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

@@ -10,5 +10,4 @@ export default interface ParseResult {
   translations: Translation[];
   seasons: Season[];
   episodes: Episode[];
-  debug: any;
 }

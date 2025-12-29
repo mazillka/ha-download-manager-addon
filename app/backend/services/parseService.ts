@@ -1,42 +1,22 @@
 import { BrowserService } from "./index.js";
-import { StreamParser } from "../helpers/index.js";
 import type { SearchResult, ParseResult } from "../interfaces/index.js";
+import { SearchHelper, ParseHelper } from "../helpers/index.js";
 
 export const search = async (url: string): Promise<SearchResult[]> => {
   return await BrowserService.parse(
     url,
-    () => {
-      return [...document.querySelectorAll(".b-content__inline_item")].map(
-        (item) => {
-          const title =
-            item
-              .querySelector(".b-content__inline_item-link")
-              ?.textContent?.trim() || "No title";
-
-          const element = item.querySelector(".b-content__inline_item-cover");
-
-          const pageUrl =
-            (element?.querySelector("a") as HTMLAnchorElement)?.href || "#";
-          const posterUrl =
-            (element?.querySelector("img") as HTMLImageElement)?.src || "";
-
-          const category =
-            element?.querySelector(".cat")?.textContent?.trim() || "";
-
-          return {
-            title,
-            pageUrl,
-            posterUrl,
-            category,
-          };
-        }
-      );
+    (evalArg: any) => {
+      const func = new Function(`return (${evalArg.funcString})`)();
+      return func();
     },
     {
       timeout: 120000,
       strategies: ["domcontentloaded", "networkidle"],
       waitForSelector: ".b-content__htitle",
       selectorTimeout: 15000,
+      evalArg: {
+        funcString: SearchHelper.toString(),
+      },
     }
   );
 };
@@ -48,183 +28,17 @@ export const parse = async (
   const data = await BrowserService.parse(
     url,
     async (evalArg: any) => {
-      // https://hdrezka.me/ajax/get_cdn_series/?t=1766898393483
-      // ajax/get_cdn_movie/?t=
-      
-      function triggerAll(el: Element | null) {
-        if (!el) {
-          return;
-        }
-
-        // @ts-ignore
-        el.focus();
-
-        const events = [
-          "pointerdown",
-          "mousedown",
-          "pointerup",
-          "mouseup",
-          "click",
-        ];
-
-        events.forEach((type) => {
-          el.dispatchEvent(
-            new Event(type, {
-              bubbles: true,
-              cancelable: true,
-            })
-          );
-        });
-      }
-
-      const parseStreamsFunc = new Function(
-        "return " + evalArg.parseStreamsFuncString
-      )();
-
-      let getSreams = async () => {
-        let res: any[] = [];
-
-        for (let i = 0; i < 20; i++) {
-          // @ts-ignore
-          if (typeof CDNPlayerInfo !== "undefined" && CDNPlayerInfo.streams) {
-            // @ts-ignore
-            res = parseStreamsFunc(CDNPlayerInfo.streams);
-            if (res.length > 0) {
-              break;
-            }
-          }
-          await new Promise((r) => setTimeout(r, 250));
-        }
-
-        return res;
-      };
-
-      let streams = await getSreams();
-
-      let videoElement = () => {
-        return document.querySelector("#player")!.querySelector("video")!;
-      };
-
-      let temp_video_src = videoElement().src;
-
-      if (
-        evalArg.data_translator_id != null &&
-        evalArg.data_translator_id != undefined
-      ) {
-        const translation = document.querySelector(
-          `[data-translator_id="${evalArg.data_translator_id}"]`
-        );
-
-        if (translation) {
-          triggerAll(translation);
-
-          for (let i = 0; i < 40; i++) {
-            const t = document.querySelector(
-              `[data-translator_id="${evalArg.data_translator_id}"]`
-            );
-            if (t && t.classList.contains("active")) {
-              break;
-            }
-            await new Promise((r) => setTimeout(r, 250));
-          }
-        }
-      }
-
-      let current_video_src = videoElement().src;
-
-      if (temp_video_src != current_video_src) {
-        streams = await getSreams();
-      }
-
-      const title =
-        document.querySelector(".b-post__title")?.textContent?.trim() || "";
-      const titleOriginal =
-        document.querySelector(".b-post__origtitle")?.textContent?.trim() || "";
-      const posterUrl =
-        (document.querySelector(".b-sidecover img") as HTMLImageElement)?.src ||
-        "";
-
-      const yearMatch = document
-        .querySelector('.b-post__info a[href*="/year/"]')
-        ?.textContent?.match(/\d{4}/);
-      const year = yearMatch ? Number(yearMatch[0]) : 0;
-
-      const translations = [
-        ...document.querySelectorAll(".b-translator__item"),
-      ].map((el) => {
-        return {
-          name: el.textContent?.trim() || "",
-          active: el.classList.contains("active"),
-          data_translator_id: el.getAttribute("data-translator_id"),
-          url: (el as HTMLAnchorElement).href,
-        };
-      });
-
-      var seasons: any[] = [];
-
-      var episodes: any[] = [];
-
-      const seasonsElement = document.querySelector("#simple-seasons-tabs");
-      if (seasonsElement) {
-        seasons = [
-          ...seasonsElement.querySelectorAll(".b-simple_season__item"),
-        ].map((el) => {
-          return {
-            name: el.textContent?.trim() || "",
-            active: el.classList.contains("active"),
-            url: (el as HTMLAnchorElement).href,
-            data_tab_id: el.getAttribute("data-tab_id"),
-          };
-        });
-
-        const activeEpisodeItem = document.querySelector(
-          ".b-simple_episode__item.active"
-        );
-        const episodesElement = activeEpisodeItem
-          ? activeEpisodeItem.parentElement
-          : null;
-        if (episodesElement) {
-          episodes = [
-            ...episodesElement.querySelectorAll(".b-simple_episode__item"),
-          ].map((el) => {
-            return {
-              name: el.textContent?.trim() || "",
-              active: el.classList.contains("active"),
-              url: (el as HTMLAnchorElement).href,
-              data_id: el.getAttribute("data-id"),
-              data_season_id: el.getAttribute("data-season_id"),
-              data_episode_id: el.getAttribute("data-episode_id"),
-            };
-          });
-        }
-      }
-
-      return {
-        year,
-        title,
-        titleOriginal,
-        posterUrl,
-        streams,
-        translations,
-        seasons,
-        episodes,
-
-        debug: {
-          temp_video_src,
-          current_video_src,
-        },
-      };
+      const func = new Function(`return (${evalArg.funcString})`)();
+      return func();
     },
     {
       timeout: 120000,
       strategies: ["domcontentloaded", "networkidle"],
       waitForSelector: ".b-post__title",
       selectorTimeout: 15000,
-      waitForCDNPlayerInfo: true,
-      waitForCDNPlayerInfoTimeout: 15000,
       evalArg: {
         data_translator_id: data_translator_id,
-        parseStreamsFuncString: StreamParser.toString(),
+        funcString: ParseHelper.toString(),
       },
     }
   );
@@ -259,8 +73,7 @@ export const parse = async (
     }),
     translations: data.translations,
     seasons: data.seasons,
-    episodes: data.episodes,
-    debug: data.debug,
+    episodes: data.episodes
   };
 };
 
