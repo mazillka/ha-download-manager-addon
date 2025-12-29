@@ -1,3 +1,4 @@
-import StreamParser from "./streamParser.js";
+import SearchHelper from "./searchHelper.js";
+import ParseHelper from "./parseHelper.js";
 
-export { StreamParser };
+export { SearchHelper, ParseHelper };

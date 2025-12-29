@@ -1,4 +1,4 @@
-FROM node:20-bookworm AS builder
+FROM node:20-bookworm-slim AS builder
 
 WORKDIR /app
 
@@ -10,7 +10,7 @@ COPY app/backend ./backend/
 COPY app/frontend ./frontend/
 RUN npm run build:prod
 
-FROM node:20-bookworm
+FROM node:20-bookworm-slim
 
 # ========= Home Assistant / Node =========
 ENV NODE_ENV=production

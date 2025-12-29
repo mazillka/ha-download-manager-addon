@@ -8,8 +8,6 @@ export default interface ParseOptions {
   waitUntil?: "domcontentloaded" | "load" | "networkidle" | "commit";
   waitForSelector?: string;
   selectorTimeout?: number;
-  waitForCDNPlayerInfo?: boolean;
-  waitForCDNPlayerInfoTimeout?: number;
   preEvaluateDelay?: number;
   humanizeDelay?: boolean;
   humanizeDelayMax?: number;
