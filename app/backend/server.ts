@@ -2,10 +2,10 @@ import express from "express";
 import type { Request, Response } from "express";
 import path from "path";
 import { fileURLToPath } from "url";
-import { DbService, DownloadService, ParseService } from "./services/index.js";
+import { DbService, DownloadService, ParseService } from "./services/index";
 
 const port = process.env.PORT || 3000;
-const baseUrl = process.env.BASE_URL || "https://hdrezka.name";
+const baseUrl = process.env.BASE_URL || "https://hdrezka.me";
 
 // https://hdrezka.ag
 // https://hdrezka.me

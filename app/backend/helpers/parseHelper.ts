@@ -1,10 +1,6 @@
-import type { Stream } from "../interfaces/index.js";
+import type { Stream } from "../interfaces/index";
 
-export default async function ParseHelper(evalArg: any) {
-  // ajax/get_cdn_movie/?t=
-  // ajax/get_cdn_series/?t=
-
-  const TriggerAll = (el: Element | null): void => {
+export const TriggerAll = (el: Element | null): void => {
     if (!el) {
       return;
     }
@@ -30,7 +26,7 @@ export default async function ParseHelper(evalArg: any) {
     });
   };
 
-  const StreamParser = (data: string): Stream[] => {
+  export const StreamParser = (data: string): Stream[] => {
     const trashList = ["@", "#", "!", "^", "$"];
 
     function combinations(arr: string[], n: number): string[][] {
@@ -95,7 +91,7 @@ export default async function ParseHelper(evalArg: any) {
     return result;
   };
 
-  const getSreams = () => {
+  export const getSreams = () => {
     let res: any[] = [];
 
     // @ts-ignore
@@ -106,6 +102,10 @@ export default async function ParseHelper(evalArg: any) {
 
     return res;
   };
+
+export default async function ParseHelper(evalArg: any) {
+  // ajax/get_cdn_movie/?t=
+  // ajax/get_cdn_series/?t=
 
   const streams = getSreams();
 
