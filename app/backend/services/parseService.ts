@@ -25,7 +25,7 @@ export const parse = async (
   url: string,
   data_translator_id?: string
 ): Promise<ParseResult> => {
-  const data = await BrowserService.parse(
+  return await BrowserService.parse(
     url,
     async (evalArg: any) => {
       const func = new Function(`return (${evalArg.funcString})`)();
@@ -42,39 +42,6 @@ export const parse = async (
       },
     }
   );
-
-  const isShow = data.seasons.length > 0;
-
-  const activeEpisode = data.episodes.find((x: any) => x.active);
-  const seasonAndEipisode = activeEpisode
-    ? `S${activeEpisode.data_season_id}E${activeEpisode.data_episode_id} `
-    : "";
-
-  let yearStr = "";
-  if (!isShow) {
-    yearStr = ` (${data.year}) `;
-  }
-
-  return {
-    isShow: isShow,
-    year: data.year,
-    title: data.title,
-    titleOriginal: data.titleOriginal,
-    posterUrl: data.posterUrl,
-    streams: data.streams.map((originalStream: any) => {
-      return {
-        quality: originalStream.quality,
-        mp4FileName: `${
-          data.titleOriginal || data.title
-        } ${yearStr}${seasonAndEipisode}[${originalStream.quality}].mp4`,
-        mp4: originalStream.mp4,
-        mp4Android: `intent:${originalStream.mp4}#Intent;action=android.intent.action.VIEW;type=video/mp4;end`,
-      };
-    }),
-    translations: data.translations,
-    seasons: data.seasons,
-    episodes: data.episodes
-  };
 };
 
 export default { search, parse };
