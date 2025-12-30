@@ -20,7 +20,7 @@ map:
   - media:rw
 
 options:
-  baseUrl: "https://hdrezka.name"
+  baseUrl: "https://hdrezka.me"
   download_path: /media/DOWNLOADS
   browser_pool_size: 4
   browser_nav_timeout: 60000

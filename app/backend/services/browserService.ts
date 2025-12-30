@@ -1,6 +1,6 @@
 import { chromium } from "playwright";
 import type { Browser, BrowserContext, Page } from "playwright";
-import type { ParseOptions } from "../interfaces/index.js";
+import type { ParseOptions } from "../interfaces/index";
 
 let browser: Browser | null = null;
 let context: BrowserContext | null = null;

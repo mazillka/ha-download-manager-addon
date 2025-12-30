@@ -1,6 +1,6 @@
-import ParseService from "./parseService.js";
-import BrowserService from "./browserService.js";
-import DbService from "./dbService.js";
-import DownloadService from "./downloadService.js";
+import ParseService from "./parseService";
+import BrowserService from "./browserService";
+import DbService from "./dbService";
+import DownloadService from "./downloadService";
 
 export { ParseService, BrowserService, DbService, DownloadService };

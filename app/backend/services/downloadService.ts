@@ -1,8 +1,8 @@
 import fs from "fs";
 import path from "path";
 import fetch from "node-fetch";
-import * as dbService from "./dbService.js";
-import type { Task } from "../interfaces/index.js";
+import * as dbService from "./dbService";
+import type { Task } from "../interfaces/index";
 
 const downloadPath =
   process.env.DOWNLOAD_PATH ||

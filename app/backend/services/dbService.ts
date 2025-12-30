@@ -1,7 +1,7 @@
 import path from "path";
 import { fileURLToPath } from "url";
 import sqlite3 from "sqlite3";
-import type { Task, HistoryItem } from "../interfaces/index.js";
+import type { Task, HistoryItem } from "../interfaces/index";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dbPath = path.join(__dirname, "ha-download-manager.db");

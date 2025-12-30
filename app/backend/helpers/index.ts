@@ -1,4 +1,4 @@
-import SearchHelper from "./searchHelper.js";
-import ParseHelper from "./parseHelper.js";
+import SearchHelper from "./searchHelper";
+import ParseHelper from "./parseHelper";
 
 export { SearchHelper, ParseHelper };

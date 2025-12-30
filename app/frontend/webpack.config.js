@@ -16,7 +16,7 @@ export default {
                 use: {
                     loader: 'ts-loader',
                     options: {
-                        configFile: path.resolve(__dirname, 'frontend/tsconfig.json'),
+                        configFile: path.resolve(__dirname, 'tsconfig.json'),
                     },
                 },
                 exclude: /node_modules/,
@@ -35,7 +35,7 @@ export default {
     },
     output: {
         filename: 'bundle.js',
-        path: path.resolve(__dirname, 'dist/frontend'),
+        path: path.resolve(__dirname, '../dist/frontend'),
         clean: true,
     },
     plugins: [
