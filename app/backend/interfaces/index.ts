@@ -8,7 +8,7 @@ import type Translation from "./Translation";
 import type SearchResult from "./SearchResult";
 import type ParseResult from "./ParseResult";
 
-export {
+export type {
   ParseOptions,
   Task,
   HistoryItem,
