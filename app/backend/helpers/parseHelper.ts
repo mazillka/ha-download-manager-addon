@@ -1,6 +1,10 @@
 import type { Stream } from "../interfaces/index";
 
-export const TriggerAll = (el: Element | null): void => {
+export default async function ParseHelper(evalArg: any) {
+  // ajax/get_cdn_movie/?t=
+  // ajax/get_cdn_series/?t=
+
+  const TriggerAll = (el: Element | null): void => {
     if (!el) {
       return;
     }
@@ -26,7 +30,7 @@ export const TriggerAll = (el: Element | null): void => {
     });
   };
 
-  export const StreamParser = (data: string): Stream[] => {
+  const StreamParser = (data: string): Stream[] => {
     const trashList = ["@", "#", "!", "^", "$"];
 
     function combinations(arr: string[], n: number): string[][] {
@@ -91,7 +95,7 @@ export const TriggerAll = (el: Element | null): void => {
     return result;
   };
 
-  export const getSreams = () => {
+  const getSreams = () => {
     let res: any[] = [];
 
     // @ts-ignore
@@ -102,10 +106,6 @@ export const TriggerAll = (el: Element | null): void => {
 
     return res;
   };
-
-export default async function ParseHelper(evalArg: any) {
-  // ajax/get_cdn_movie/?t=
-  // ajax/get_cdn_series/?t=
 
   const streams = getSreams();
 
@@ -181,14 +181,36 @@ export default async function ParseHelper(evalArg: any) {
     }
   }
 
+  const isShow = seasons.length > 0;
+
+  const activeEpisode = episodes.find((x: any) => x.active);
+  const seasonAndEipisode = activeEpisode
+    ? `S${activeEpisode.data_season_id}E${activeEpisode.data_episode_id} `
+    : "";
+
+  let yearStr = "";
+  if (!isShow) {
+    yearStr = ` (${year}) `;
+  }
+
   return {
-    year,
-    title,
-    titleOriginal,
-    posterUrl,
-    streams,
-    translations,
-    seasons,
-    episodes,
+    isShow: isShow,
+    year: year,
+    title: title,
+    titleOriginal: titleOriginal,
+    posterUrl: posterUrl,
+    streams: streams.map((originalStream: any) => {
+      return {
+        quality: originalStream.quality,
+        mp4FileName: `${
+          titleOriginal || title
+        } ${yearStr}${seasonAndEipisode}[${originalStream.quality}].mp4`,
+        mp4: originalStream.mp4,
+        mp4Android: `intent:${originalStream.mp4}#Intent;action=android.intent.action.VIEW;type=video/mp4;end`,
+      };
+    }),
+    translations: translations,
+    seasons: seasons,
+    episodes: episodes,
   };
 }
