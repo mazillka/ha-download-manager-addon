@@ -23,13 +23,21 @@ export const search = async (url: string): Promise<SearchResult[]> => {
 
 export const parse = async (
   url: string,
-  data_translator_id?: string
+  data_id?: string,
+  data_translator_id?: string,
+  is_camrip?: string,
+  is_ads?: string,
+  is_director?: string
 ): Promise<ParseResult> => {
+  console.log(
+    `url: ${url}, data_id: ${data_id}, data_translator_id: ${data_translator_id}, is_camrip: ${is_camrip}, is_ads: ${is_ads}, is_director: ${is_director}`
+  );
+
   return await BrowserService.parse(
     url,
     async (evalArg: any) => {
       const func = new Function(`return (${evalArg.funcString})`)();
-      return func();
+      return func(evalArg);
     },
     {
       timeout: 120000,
@@ -37,7 +45,11 @@ export const parse = async (
       waitForSelector: ".b-post__title",
       selectorTimeout: 15000,
       evalArg: {
+        data_id: data_id,
         data_translator_id: data_translator_id,
+        is_camrip: is_camrip,
+        is_ads: is_ads,
+        is_director: is_director,
         funcString: ParseHelper.toString(),
       },
     }

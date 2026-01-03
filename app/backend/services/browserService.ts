@@ -161,14 +161,14 @@ export async function parse<T>(
   func: (arg: any) => T | Promise<T>,
   options: ParseOptions = {}
 ): Promise<T> {
-  console.log(`[${new Date().toLocaleString()}] - ${url}`);
+  // console.log(`[${new Date().toLocaleString()}] - ${url}`);
 
-  if (options.evalArg && options.evalArg.funcString) {
-    console.log(`[${new Date().toLocaleString()}] - funcString`);
-    console.log(" - - - - - - - - - - - - ");
-    console.log(options.evalArg.funcString);
-    console.log(" - - - - - - - - - - - - ");
-  }
+  // if (options.evalArg && options.evalArg.funcString) {
+  //   console.log(`[${new Date().toLocaleString()}] - funcString`);
+  //   console.log(" - - - - - - - - - - - - ");
+  //   console.log(options.evalArg.funcString);
+  //   console.log(" - - - - - - - - - - - - ");
+  // }
 
   // If headers or cookies are provided, or caller requests isolation, create a fresh context
   const needsIsolation =
@@ -270,19 +270,7 @@ export async function parse<T>(
             }
           }
 
-          page.on("console", (msg) => {
-            if (msg.type() === "error") {
-              console.error(
-                `[${new Date().toLocaleString()}] - console: ${msg.text()}`
-              );
-            }
-          });
-
-          page.on("pageerror", (error) => {
-            console.error(
-              `[${new Date().toLocaleString()}] - exception: ${error.message}`
-            );
-          });
+          SubscribeForLogs(page);
 
           return await page.evaluate(func, options.evalArg);
         } catch (err) {
@@ -340,19 +328,7 @@ export async function parse<T>(
           }
         }
 
-        page.on("console", (msg) => {
-          if (msg.type() === "error") {
-            console.error(
-              `[${new Date().toLocaleString()}] - console: ${msg.text()}`
-            );
-          }
-        });
-
-        page.on("pageerror", (error) => {
-          console.error(
-            `[${new Date().toLocaleString()}] - exception: ${error.message}`
-          );
-        });
+        SubscribeForLogs(page);
 
         return await page.evaluate(func, options.evalArg);
       } catch (err) {
@@ -364,6 +340,44 @@ export async function parse<T>(
   } finally {
     releasePage(page);
   }
+}
+
+function SubscribeForLogs(page: Page) {
+  page.on("console", (msg) => {
+    if (msg.type() === "log") {
+      console.log(`[${new Date().toLocaleString()}] - console: ${msg.text()}`);
+    }
+
+    if (msg.type() === "error") {
+      if (msg.text().includes("Failed to load resource: net::")) {
+        return;
+      }
+
+      console.log(" - - - - - - - - - - - - - - ");
+      console.error(
+        `[${new Date().toLocaleString()}] - console error: ${msg.text()}`
+      );
+      console.log(" - - - - - - - - - - - - - - ");
+    }
+  });
+
+  page.on("pageerror", (error) => {
+    if (error.message.includes("Failed to fetch")) {
+      return;
+    }
+
+    console.log(" - - - - - - - - - - - - - - ");
+    console.error(
+      `[${new Date().toLocaleString()}] - exception name: ${error.name}`
+    );
+    console.error(
+      `[${new Date().toLocaleString()}] - exception message: ${error.message}`
+    );
+    console.error(
+      `[${new Date().toLocaleString()}] - exception stack: ${error.stack}`
+    );
+    console.log(" - - - - - - - - - - - - - - ");
+  });
 }
 
 export default {

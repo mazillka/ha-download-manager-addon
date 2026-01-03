@@ -137,12 +137,26 @@ const App = defineComponent({
       this.query = "";
       this.results = [];
     },
-    async parse(url: string, data_translator_id: string | null = null) {
+    async parse(
+      url: string,
+      data_id?: string | null,
+      data_translator_id?: string | null,
+      is_camrip?: string | null,
+      is_ads?: string | null,
+      is_director?: string | null
+    ) {
       this.loading = true;
       await fetch("api/parse", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, data_translator_id }),
+        body: JSON.stringify({
+          url: url,
+          data_id: data_id,
+          data_translator_id: data_translator_id,
+          is_camrip: is_camrip,
+          is_ads: is_ads,
+          is_director: is_director,
+        }),
       })
         .then((response) => {
           if (!response.ok) {
@@ -151,7 +165,14 @@ const App = defineComponent({
           return response.json();
         })
         .then((data: any) => {
+
+          // console.log(this.selectedItem);
+          // console.log(" - - - - - - - - - - ");
+          // console.log(data);
+
+          // this.selectedItem = null;
           this.selectedItem = data;
+          
           this.selectedUrl = url;
           this.videoUrl = null; // Reset video player
           modalInstance.show();
@@ -404,9 +425,16 @@ const App = defineComponent({
     },
     handleParse(t: any) {
       if (t.url) {
-        this.parse(t.url, null);
+        this.parse(t.url);
       } else {
-        this.parse(this.selectedUrl!, t.data_translator_id);
+        this.parse(
+          this.selectedUrl!,
+          t.data_id,
+          t.data_translator_id,
+          t.is_camrip,
+          t.is_ads,
+          t.is_director
+        );
       }
     },
   },

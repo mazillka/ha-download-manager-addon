@@ -118,8 +118,24 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <div class="text-center mb-3" v-if="selectedItem.posterUrl">
-                            <img class="img-fluid" style="max-height: 250px;" :src="selectedItem.posterUrl" :alt="selectedItem.title">
+                        <div class="row mb-3">
+                            <div class="col-md-4 text-center" v-if="selectedItem.posterUrl">
+                                <img class="img-fluid" style="max-height: 250px;" :src="selectedItem.posterUrl" :alt="selectedItem.title">
+                            </div>
+                            <div :class="selectedItem.posterUrl ? 'col-md-8' : 'col-12'">
+                                <!-- Translations -->
+                                <div v-if="selectedItem.translations && selectedItem.translations.length">
+                                    <h6>Translations</h6>
+                                    <div class="d-flex flex-wrap">
+                                        <button v-for="(t, index) in selectedItem.translations" :key="index + '-' + t.data_translator_id"
+                                            class="btn btn-sm me-2 mb-2"
+                                            :class="t.active ? 'btn-success' : 'btn-outline-primary'" :disabled="t.active"
+                                            @click="handleParse(t)">
+                                            {{ t.name }}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Video Player -->
@@ -130,24 +146,11 @@
                             </div>
                         </div>
 
-                        <!-- Translations -->
-                        <div v-if="selectedItem.translations && selectedItem.translations.length">
-                            <h6>Translations</h6>
-                            <div class="d-flex flex-wrap mb-3">
-                                <button v-for="t in selectedItem.translations" :key="t.data_translator_id"
-                                    class="btn btn-sm me-2 mb-2"
-                                    :class="t.active ? 'btn-success' : 'btn-outline-primary'" :disabled="t.active"
-                                    @click="handleParse(t)">
-                                    {{ t.name }}
-                                </button>
-                            </div>
-                        </div>
-
                         <!-- Seasons -->
                         <div v-if="selectedItem.seasons && selectedItem.seasons.length">
                             <h6>Seasons</h6>
                             <div class="d-flex flex-wrap mb-3">
-                                <button v-for="t in selectedItem.seasons" :key="t.url"
+                                <button v-for="(t, index) in selectedItem.seasons" :key="index + '-' + t.url"
                                     class="btn btn-sm me-2 mb-2"
                                     :class="t.active ? 'btn-success' : 'btn-outline-primary'" :disabled="t.active"
                                     @click="handleParse(t)">
@@ -160,7 +163,7 @@
                         <div v-if="selectedItem.episodes && selectedItem.episodes.length">
                             <h6>Episodes</h6>
                             <div class="d-flex flex-wrap mb-3">
-                                <button v-for="t in selectedItem.episodes" :key="t.url"
+                                <button v-for="(t, index) in selectedItem.episodes" :key="index + '-' + t.url"
                                     class="btn btn-sm me-2 mb-2"
                                     :class="t.active ? 'btn-success' : 'btn-outline-primary'" :disabled="t.active"
                                     @click="handleParse(t)">
@@ -173,7 +176,8 @@
                         <div v-if="selectedItem.streams && selectedItem.streams.length">
                             <h6>Streams</h6>
                             <ul class="list-unstyled">
-                                <li v-for="stream in selectedItem.streams" :key="stream.mp4" class="mb-2">
+                                <li v-for="(stream, index) in selectedItem.streams" :key="index + '-' + stream.mp4" 
+                                class="mb-2">
                                     [{{ stream.quality }}]
                                     <button v-if="isAndroid" class="btn btn-sm btn-outline-secondary"
                                         @click="openStream(stream.mp4Android)">Watch External</button>

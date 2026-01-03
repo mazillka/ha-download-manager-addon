@@ -1,9 +1,6 @@
 import type { Stream } from "../interfaces/index";
 
 export default async function ParseHelper(evalArg: any) {
-  // ajax/get_cdn_movie/?t=
-  // ajax/get_cdn_series/?t=
-
   const TriggerAll = (el: Element | null): void => {
     if (!el) {
       return;
@@ -95,11 +92,11 @@ export default async function ParseHelper(evalArg: any) {
     return result;
   };
 
-  const getSreams = () => {
-    let res: any[] = [];
+  const getStreams = (): Stream[] => {
+    let res: Stream[] = [];
 
     // @ts-ignore
-    if (CDNPlayerInfo && CDNPlayerInfo.streams) {
+    if (typeof CDNPlayerInfo !== "undefined" && CDNPlayerInfo.streams) {
       // @ts-ignore
       res = StreamParser(CDNPlayerInfo.streams);
     }
@@ -107,15 +104,29 @@ export default async function ParseHelper(evalArg: any) {
     return res;
   };
 
-  const streams = getSreams();
+  if (
+    evalArg !== null &&
+    evalArg !== undefined &&
+    evalArg.data_translator_id !== null &&
+    evalArg.data_translator_id !== undefined &&
+    typeof evalArg.data_translator_id !== "undefined"
+  ) {
+    for (let i = 0; i < 20; i++) {
+      const translation = document.querySelector(
+        `[data-translator_id="${evalArg.data_translator_id}"]`
+      );
 
-  if (evalArg && evalArg.data_translator_id) {
-    const translation = document.querySelector(
-      `[data-translator_id="${evalArg.data_translator_id}"]`
-    );
+      if (translation) {
+        TriggerAll(translation);
 
-    if (translation) {
-      TriggerAll(translation);
+        await new Promise((r) => setTimeout(r, 250));
+
+        if (translation.classList.contains("active")) {
+          break;
+        }
+      } else {
+        break;
+      }
     }
   }
 
@@ -137,7 +148,11 @@ export default async function ParseHelper(evalArg: any) {
     return {
       name: el.textContent?.trim() || "",
       active: el.classList.contains("active"),
+      data_id: el.getAttribute("data-id"),
       data_translator_id: el.getAttribute("data-translator_id"),
+      is_camrip: el.getAttribute("data-camrip"),
+      is_ads: el.getAttribute("data-ads"),
+      is_director: el.getAttribute("data-director"),
       url: (el as HTMLAnchorElement).href,
     };
   });
@@ -193,13 +208,15 @@ export default async function ParseHelper(evalArg: any) {
     yearStr = ` (${year}) `;
   }
 
+  await new Promise((r) => setTimeout(r, 2000));
+
   return {
     isShow: isShow,
     year: year,
     title: title,
     titleOriginal: titleOriginal,
     posterUrl: posterUrl,
-    streams: streams.map((originalStream: any) => {
+    streams: getStreams().map((originalStream: any) => {
       return {
         quality: originalStream.quality,
         mp4FileName: `${
