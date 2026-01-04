@@ -303,7 +303,10 @@
 
                         <!-- Video Player -->
                         <div v-if="videoUrl" class="mb-3">
-                            <h6>Video</h6>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="mb-0">Video</h6>
+                                <button class="btn btn-sm btn-danger" @click="hidePlayer()">Close Player</button>
+                            </div>
                             <div class="ratio">
                                 <video v-if="videoUrl" id="my-video" class="video-js vjs-default-skin" controls
                                     preload="auto" width="640" height="264" poster="" data-setup="{}">

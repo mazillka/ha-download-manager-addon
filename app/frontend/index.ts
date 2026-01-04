@@ -181,6 +181,9 @@ const App = defineComponent({
         this.videoUrl = url;
       }, 100);
     },
+    hidePlayer() {
+      this.videoUrl = null;
+    },
     openStream(url: string) {
       window.open(url, "_blank");
     },
