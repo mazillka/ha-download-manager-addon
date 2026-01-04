@@ -39,12 +39,10 @@ app.post("/api/search", async (req: Request, res: Response) => {
 });
 
 app.post("/api/parse", async (req: Request, res: Response) => {
-    const { url, data_id, data_translator_id, is_camrip, is_ads, is_director} = req.body;
-
-    console.log(req.body);
-
+    const { url, data_id, data_translator_id } = req.body;
+    
     try {
-        const data = await ParseService.parse(url, data_id, data_translator_id, is_camrip, is_ads, is_director);
+        const data = await ParseService.parse(url, data_id, data_translator_id);
         res.send(data);
     } catch (error) {
         console.info(`Parse failed for URL: ${url}`);

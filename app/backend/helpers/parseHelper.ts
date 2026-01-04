@@ -150,9 +150,6 @@ export default async function ParseHelper(evalArg: any) {
       active: el.classList.contains("active"),
       data_id: el.getAttribute("data-id"),
       data_translator_id: el.getAttribute("data-translator_id"),
-      is_camrip: el.getAttribute("data-camrip"),
-      is_ads: el.getAttribute("data-ads"),
-      is_director: el.getAttribute("data-director"),
       url: (el as HTMLAnchorElement).href,
     };
   });

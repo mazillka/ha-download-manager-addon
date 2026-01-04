@@ -161,15 +161,6 @@ export async function parse<T>(
   func: (arg: any) => T | Promise<T>,
   options: ParseOptions = {}
 ): Promise<T> {
-  // console.log(`[${new Date().toLocaleString()}] - ${url}`);
-
-  // if (options.evalArg && options.evalArg.funcString) {
-  //   console.log(`[${new Date().toLocaleString()}] - funcString`);
-  //   console.log(" - - - - - - - - - - - - ");
-  //   console.log(options.evalArg.funcString);
-  //   console.log(" - - - - - - - - - - - - ");
-  // }
-
   // If headers or cookies are provided, or caller requests isolation, create a fresh context
   const needsIsolation =
     options.headers || options.cookies || options.forceNewContext;

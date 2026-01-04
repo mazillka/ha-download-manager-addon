@@ -1,11 +1,11 @@
 {
   "name": "ha-download-manager",
-  "version": "1.0.22",
+  "version": "1.0.23",
   "type": "module",
   "description": "Home Assistant Download Manager Add-on",
   "main": "backend/server.ts",
   "scripts": {
-    "dev": "npm run dev:backend && npm run dev:frontend",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "nodemon --watch backend --ext ts,json --exec \"node ./backend/esbuild.config.js && node ./dist/backend/server.js\"",
     "dev:frontend": "webpack --config ./frontend/webpack.config.js --watch --mode development",
     "build:dev": "npm run build:backend && npm run build:frontend:dev",
@@ -21,6 +21,7 @@
     "playwright": "^1.57.0",
     "sqlite3": "^5.1.7",
     "sweetalert2": "^11.26.17",
+    "video.js": "^8.23.4",
     "vue": "^3.5.26"
   },
   "devDependencies": {
