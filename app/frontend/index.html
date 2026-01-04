@@ -18,7 +18,8 @@
                     </div>
                 </div>
                 <div class="mt-2 text-primary">
-                    Downloading... {{ formatBytes(downloadLoaded) }} / {{ formatBytes(downloadTotal) }} ({{ formatBytes(downloadSpeed) }}/s)
+                    Downloading... {{ formatBytes(downloadLoaded) }} / {{ formatBytes(downloadTotal) }} ({{
+                    formatBytes(downloadSpeed) }}/s)
                 </div>
                 <button class="btn btn-danger btn-sm mt-2" @click="cancelDownload">Cancel</button>
             </div>
@@ -29,17 +30,18 @@
 
         <div class="container py-4">
             <div class="d-flex justify-content-between align-items-center mb-4">
-            <!-- Tabs -->
-            <ul class="nav nav-tabs mb-0">
-                <li class="nav-item" v-for="tab in tabs" :key="tab.id">
-                    <button class="nav-link" :class="{ active: activeTab === tab.id }" @click="selectTab(tab.id)">
-                        {{ tab.name }}
-                        <span v-if="tab.id === 'downloads' && activeServerDownloads > 0" class="badge bg-danger ms-1 rounded-pill">
-                            {{ activeServerDownloads }}
-                        </span>
-                    </button>
-                </li>
-            </ul>
+                <!-- Tabs -->
+                <ul class="nav nav-tabs mb-0">
+                    <li class="nav-item" v-for="tab in tabs" :key="tab.id">
+                        <button class="nav-link" :class="{ active: activeTab === tab.id }" @click="selectTab(tab.id)">
+                            {{ tab.name }}
+                            <span v-if="tab.id === 'downloads' && activeServerDownloads > 0"
+                                class="badge bg-danger ms-1 rounded-pill">
+                                {{ activeServerDownloads }}
+                            </span>
+                        </button>
+                    </li>
+                </ul>
             </div>
 
             <!-- Search -->
@@ -63,8 +65,10 @@
                             <h5 class="card-title">{{ item.title }}</h5>
                             <div class="mt-auto d-flex justify-content-center">
                                 <div style="max-height:150px; display:flex; align-items:flex-end; position: relative;">
-                                    <img :src="item.posterUrl" :alt="item.title" class="img-fluid" style="max-width:100%; max-height:100%;">
-                                    <span v-if="item.category" class="badge bg-primary position-absolute top-0 end-0 rounded-0 opacity-75">
+                                    <img :src="item.posterUrl" :alt="item.title" class="img-fluid"
+                                        style="max-width:100%; max-height:100%;">
+                                    <span v-if="item.category"
+                                        class="badge bg-primary position-absolute top-0 end-0 rounded-0 opacity-75">
                                         {{ item.category }}
                                     </span>
                                 </div>
@@ -81,13 +85,17 @@
                     <div class="card-body">
                         <div v-for="item in serverDownloads" :key="item.id" class="mb-3 border-bottom pb-2">
                             <div class="d-flex justify-content-between align-items-center mb-1">
-                                <div class="text-truncate me-2" :title="item.filename"><strong>{{ item.filename }}</strong></div>
+                                <div class="text-truncate me-2" :title="item.filename"><strong>{{ item.filename
+                                        }}</strong></div>
                                 <div>
-                                    <span class="badge" :class="{'bg-primary': item.status === 'downloading', 'bg-success': item.status === 'completed', 'bg-danger': item.status === 'error', 'bg-secondary': item.status === 'pending'}">{{ item.status }}</span>
+                                    <span class="badge"
+                                        :class="{'bg-primary': item.status === 'downloading', 'bg-success': item.status === 'completed', 'bg-danger': item.status === 'error', 'bg-secondary': item.status === 'pending'}">{{
+                                        item.status }}</span>
                                 </div>
                             </div>
                             <div class="progress mb-1" style="height: 10px;">
-                                <div class="progress-bar" role="progressbar" :style="{ width: item.progress + '%' }"></div>
+                                <div class="progress-bar" role="progressbar" :style="{ width: item.progress + '%' }">
+                                </div>
                             </div>
                             <div class="d-flex justify-content-between align-items-center small text-muted">
                                 <div>
@@ -95,10 +103,17 @@
                                     <span v-if="item.status === 'downloading'">({{ formatBytes(item.speed) }}/s)</span>
                                 </div>
                                 <div>
-                                    <button v-if="item.status === 'downloading'" class="btn btn-sm btn-warning py-0 me-1" @click="pauseServerDownload(item.id)">Pause</button>
-                                    <button v-if="item.status === 'paused' || item.status === 'error'" class="btn btn-sm btn-success py-0 me-1" @click="resumeServerDownload(item.id)">Resume</button>
-                                    <button v-if="item.status === 'downloading' || item.status === 'pending'" class="btn btn-sm btn-secondary py-0 me-1" @click="cancelServerDownload(item.id)">Cancel</button>
-                                    <button class="btn btn-sm btn-danger py-0" @click="deleteServerDownload(item.id)">Delete</button>
+                                    <button v-if="item.status === 'downloading'"
+                                        class="btn btn-sm btn-warning py-0 me-1"
+                                        @click="pauseServerDownload(item.id)">Pause</button>
+                                    <button v-if="item.status === 'paused' || item.status === 'error'"
+                                        class="btn btn-sm btn-success py-0 me-1"
+                                        @click="resumeServerDownload(item.id)">Resume</button>
+                                    <button v-if="item.status === 'downloading' || item.status === 'pending'"
+                                        class="btn btn-sm btn-secondary py-0 me-1"
+                                        @click="cancelServerDownload(item.id)">Cancel</button>
+                                    <button class="btn btn-sm btn-danger py-0"
+                                        @click="deleteServerDownload(item.id)">Delete</button>
                                 </div>
                             </div>
                         </div>
@@ -113,36 +128,30 @@
                 <div class="modal-content" v-if="selectedItem">
                     <div class="modal-header">
                         <h5 class="modal-title">
-                            <a :href="selectedUrl" target="_blank">{{ selectedItem.titleOriginal || selectedItem.title }}</a>
+                            <a :href="selectedUrl" target="_blank">{{ selectedItem.titleOriginal || selectedItem.title
+                                }}</a>
                         </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         <div class="row mb-3">
                             <div class="col-md-4 text-center" v-if="selectedItem.posterUrl">
-                                <img class="img-fluid" style="max-height: 250px;" :src="selectedItem.posterUrl" :alt="selectedItem.title">
+                                <img class="img-fluid" style="max-height: 250px;" :src="selectedItem.posterUrl"
+                                    :alt="selectedItem.title">
                             </div>
                             <div :class="selectedItem.posterUrl ? 'col-md-8' : 'col-12'">
                                 <!-- Translations -->
                                 <div v-if="selectedItem.translations && selectedItem.translations.length">
                                     <h6>Translations</h6>
                                     <div class="d-flex flex-wrap">
-                                        <button v-for="(t, index) in selectedItem.translations" :key="index + '-' + t.data_translator_id"
-                                            class="btn btn-sm me-2 mb-2"
-                                            :class="t.active ? 'btn-success' : 'btn-outline-primary'" :disabled="t.active"
-                                            @click="handleParse(t)">
+                                        <button v-for="(t, index) in selectedItem.translations"
+                                            :key="index + '-' + t.data_translator_id" class="btn btn-sm me-2 mb-2"
+                                            :class="t.active ? 'btn-success' : 'btn-outline-primary'"
+                                            :disabled="t.active" @click="handleParse(t)">
                                             {{ t.name }}
                                         </button>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-
-                        <!-- Video Player -->
-                        <div v-if="videoUrl" class="mb-3">
-                            <h6>Video</h6>
-                            <div class="ratio ratio-16x9">
-                                <iframe :src="videoUrl" allowfullscreen></iframe>
                             </div>
                         </div>
 
@@ -154,7 +163,7 @@
                                     class="btn btn-sm me-2 mb-2"
                                     :class="t.active ? 'btn-success' : 'btn-outline-primary'" :disabled="t.active"
                                     @click="handleParse(t)">
-                                    {{ t.name }}
+                                    {{ t.name.replace("Сезон", "Season") }}
                                 </button>
                             </div>
                         </div>
@@ -167,33 +176,147 @@
                                     class="btn btn-sm me-2 mb-2"
                                     :class="t.active ? 'btn-success' : 'btn-outline-primary'" :disabled="t.active"
                                     @click="handleParse(t)">
-                                    {{ t.name }}
+                                    {{ t.name.replace("Серия", "Episode") }}
                                 </button>
                             </div>
                         </div>
 
-                        <!-- Streams -->
+                        <!-- Actions -->
                         <div v-if="selectedItem.streams && selectedItem.streams.length">
-                            <h6>Streams</h6>
-                            <ul class="list-unstyled">
-                                <li v-for="(stream, index) in selectedItem.streams" :key="index + '-' + stream.mp4" 
-                                class="mb-2">
-                                    [{{ stream.quality }}]
-                                    <button v-if="isAndroid" class="btn btn-sm btn-outline-secondary"
-                                        @click="openStream(stream.mp4Android)">Watch External</button>
-                                    <button class="btn btn-sm btn-outline-secondary"
-                                        @click="showPlayer(stream.mp4)">Watch</button>
-                                    <button class="btn btn-sm btn-outline-secondary"
-                                        @click="openStream(stream.mp4)">Open in Tab</button>
-                                    <button class="btn btn-sm btn-outline-secondary"
-                                        @click="copyStreamUrl(stream.mp4)">Copy Url</button>
-                                    <button class="btn btn-sm btn-outline-secondary"
-                                        @click="download(stream.mp4, stream.mp4FileName)">Download</button>
-                                    <button class="btn btn-sm btn-outline-secondary"
-                                        @click="downloadToServer(stream.mp4, stream.mp4FileName)">Download to Server</button>
-                                </li>
-                            </ul>
+                            <h6>Actions</h6>
+                            <div class="btn-group me-2 mb-2" role="group"
+                                aria-label="Button group with nested dropdown">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-outline-primary dropdown-toggle"
+                                        data-bs-toggle="dropdown" aria-expanded="false">
+                                        Watch
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li v-for="(stream, index) in selectedItem.streams"
+                                            :key="index + '-' + stream.mp4">
+                                            <a class="dropdown-item" href="#" @click="showPlayer(stream.mp4)">[{{
+                                                stream.quality }}]</a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div v-if="isAndroid" class="btn-group me-2 mb-2" role="group"
+                                aria-label="Button group with nested dropdown">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-outline-primary dropdown-toggle"
+                                        data-bs-toggle="dropdown" aria-expanded="false">
+                                        Watch External
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li v-for="(stream, index) in selectedItem.streams"
+                                            :key="index + '-' + stream.mp4">
+                                            <a class="dropdown-item" href="#" @click="openStream(stream.mp4Android)">[{{
+                                                stream.quality }}]</a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="btn-group me-2 mb-2" role="group"
+                                aria-label="Button group with nested dropdown">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-outline-primary dropdown-toggle"
+                                        data-bs-toggle="dropdown" aria-expanded="false">
+                                        Open in Tab
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li v-for="(stream, index) in selectedItem.streams"
+                                            :key="index + '-' + stream.mp4">
+                                            <a class="dropdown-item" href="#" @click="openStream(stream.mp4)">[{{
+                                                stream.quality }}]</a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="btn-group me-2 mb-2" role="group"
+                                aria-label="Button group with nested dropdown">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-outline-primary dropdown-toggle"
+                                        data-bs-toggle="dropdown" aria-expanded="false">
+                                        Copy Url
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li v-for="(stream, index) in selectedItem.streams"
+                                            :key="index + '-' + stream.mp4">
+                                            <a class="dropdown-item" href="#" @click="copyStreamUrl(stream.mp4)">[{{
+                                                stream.quality }}]</a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="btn-group me-2 mb-2" role="group"
+                                aria-label="Button group with nested dropdown">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-outline-primary dropdown-toggle"
+                                        data-bs-toggle="dropdown" aria-expanded="false">
+                                        Download
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li v-for="(stream, index) in selectedItem.streams"
+                                            :key="index + '-' + stream.mp4">
+                                            <a class="dropdown-item" href="#"
+                                                @click="download(stream.mp4, stream.mp4FileName)">[{{ stream.quality
+                                                }}]</a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="btn-group me-2 mb-2" role="group"
+                                aria-label="Button group with nested dropdown">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-outline-primary dropdown-toggle"
+                                        data-bs-toggle="dropdown" aria-expanded="false">
+                                        Download To Server
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li v-for="(stream, index) in selectedItem.streams"
+                                            :key="index + '-' + stream.mp4">
+                                            <a class="dropdown-item" href="#"
+                                                @click="downloadToServer(stream.mp4, stream.mp4FileName)">[{{
+                                                stream.quality }}]</a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="btn-group me-2 mb-2" role="group"
+                                aria-label="Button group with nested dropdown">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-outline-primary dropdown-toggle"
+                                        data-bs-toggle="dropdown" aria-expanded="false">
+                                        Download Season
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li v-for="(stream, index) in selectedItem.streams"
+                                            :key="index + '-' + stream.mp4">
+                                            <a class="dropdown-item" href="#">[{{
+                                                stream.quality }}]</a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
+
+                        <!-- Video Player -->
+                        <div v-if="videoUrl" class="mb-3">
+                            <h6>Video</h6>
+                            <div class="ratio">
+                                <video v-if="videoUrl" id="my-video" class="video-js vjs-default-skin" controls
+                                    preload="auto" width="640" height="264" poster="" data-setup="{}">
+                                    <source v-if="videoUrl" :src="videoUrl" type="video/mp4" />
+                                    <p class="vjs-no-js">
+                                        To view this video please enable JavaScript, and consider upgrading to a
+                                        web browser that
+                                        <a href="videojs.com" target="_blank">supports HTML5 video</a>
+                                    </p>
+                                </video>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>

@@ -1,6 +1,8 @@
 import "./index.css";
 import "bootstrap/dist/css/bootstrap.min.css";
+import 'video.js/dist/video-js.css';
 
+import "video.js/dist/video.js"
 import * as bootstrap from "bootstrap";
 import Swal from "sweetalert2";
 import { createApp, defineComponent } from "vue";
@@ -141,9 +143,6 @@ const App = defineComponent({
       url: string,
       data_id?: string | null,
       data_translator_id?: string | null,
-      is_camrip?: string | null,
-      is_ads?: string | null,
-      is_director?: string | null
     ) {
       this.loading = true;
       await fetch("api/parse", {
@@ -152,10 +151,7 @@ const App = defineComponent({
         body: JSON.stringify({
           url: url,
           data_id: data_id,
-          data_translator_id: data_translator_id,
-          is_camrip: is_camrip,
-          is_ads: is_ads,
-          is_director: is_director,
+          data_translator_id: data_translator_id
         }),
       })
         .then((response) => {
@@ -165,12 +161,6 @@ const App = defineComponent({
           return response.json();
         })
         .then((data: any) => {
-
-          // console.log(this.selectedItem);
-          // console.log(" - - - - - - - - - - ");
-          // console.log(data);
-
-          // this.selectedItem = null;
           this.selectedItem = data;
           
           this.selectedUrl = url;
@@ -185,7 +175,11 @@ const App = defineComponent({
         });
     },
     showPlayer(url: string) {
-      this.videoUrl = url;
+      this.videoUrl = null; 
+
+      setTimeout(() => {
+        this.videoUrl = url;
+      }, 100);
     },
     openStream(url: string) {
       window.open(url, "_blank");
@@ -430,10 +424,7 @@ const App = defineComponent({
         this.parse(
           this.selectedUrl!,
           t.data_id,
-          t.data_translator_id,
-          t.is_camrip,
-          t.is_ads,
-          t.is_director
+          t.data_translator_id
         );
       }
     },
