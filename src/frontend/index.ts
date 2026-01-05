@@ -1,12 +1,13 @@
 import "./index.css";
 import "bootstrap/dist/css/bootstrap.min.css";
-import 'video.js/dist/video-js.css';
+import "video.js/dist/video-js.css";
 
-import "video.js/dist/video.js"
+import "video.js/dist/video.js";
 import * as bootstrap from "bootstrap";
 import Swal from "sweetalert2";
 import { createApp, defineComponent } from "vue";
-import { DownloadTask, Tab } from "./interfaces/index";
+import type { DownloadTask, Tab } from "./interfaces/index";
+import { StreamDropdown } from "./components/index";
 
 let modalInstance: any = null;
 
@@ -142,7 +143,7 @@ const App = defineComponent({
     async parse(
       url: string,
       data_id?: string | null,
-      data_translator_id?: string | null,
+      data_translator_id?: string | null
     ) {
       this.loading = true;
       await fetch("api/parse", {
@@ -151,7 +152,7 @@ const App = defineComponent({
         body: JSON.stringify({
           url: url,
           data_id: data_id,
-          data_translator_id: data_translator_id
+          data_translator_id: data_translator_id,
         }),
       })
         .then((response) => {
@@ -162,7 +163,7 @@ const App = defineComponent({
         })
         .then((data: any) => {
           this.selectedItem = data;
-          
+
           this.selectedUrl = url;
           this.videoUrl = null; // Reset video player
           modalInstance.show();
@@ -175,7 +176,7 @@ const App = defineComponent({
         });
     },
     showPlayer(url: string) {
-      this.videoUrl = null; 
+      this.videoUrl = null;
 
       setTimeout(() => {
         this.videoUrl = url;
@@ -424,14 +425,12 @@ const App = defineComponent({
       if (t.url) {
         this.parse(t.url);
       } else {
-        this.parse(
-          this.selectedUrl!,
-          t.data_id,
-          t.data_translator_id
-        );
+        this.parse(this.selectedUrl!, t.data_id, t.data_translator_id);
       }
     },
   },
 });
 
-createApp(App).mount("#app");
+const app = createApp(App);
+app.component("stream-dropdown", StreamDropdown);
+app.mount("#app");

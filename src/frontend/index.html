@@ -180,125 +180,29 @@
                                 </button>
                             </div>
                         </div>
-
+                        
                         <!-- Actions -->
                         <div v-if="selectedItem.streams && selectedItem.streams.length">
                             <h6>Actions</h6>
-                            <div class="btn-group me-2 mb-2" role="group"
-                                aria-label="Button group with nested dropdown">
-                                <div class="btn-group" role="group">
-                                    <button type="button" class="btn btn-outline-primary dropdown-toggle"
-                                        data-bs-toggle="dropdown" aria-expanded="false">
-                                        Watch
-                                    </button>
-                                    <ul class="dropdown-menu">
-                                        <li v-for="(stream, index) in selectedItem.streams"
-                                            :key="index + '-' + stream.mp4">
-                                            <a class="dropdown-item" href="#" @click="showPlayer(stream.mp4)">[{{
-                                                stream.quality }}]</a>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                            <div v-if="isAndroid" class="btn-group me-2 mb-2" role="group"
-                                aria-label="Button group with nested dropdown">
-                                <div class="btn-group" role="group">
-                                    <button type="button" class="btn btn-outline-primary dropdown-toggle"
-                                        data-bs-toggle="dropdown" aria-expanded="false">
-                                        Watch External
-                                    </button>
-                                    <ul class="dropdown-menu">
-                                        <li v-for="(stream, index) in selectedItem.streams"
-                                            :key="index + '-' + stream.mp4">
-                                            <a class="dropdown-item" href="#" @click="openStream(stream.mp4Android)">[{{
-                                                stream.quality }}]</a>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                            <div class="btn-group me-2 mb-2" role="group"
-                                aria-label="Button group with nested dropdown">
-                                <div class="btn-group" role="group">
-                                    <button type="button" class="btn btn-outline-primary dropdown-toggle"
-                                        data-bs-toggle="dropdown" aria-expanded="false">
-                                        Open in Tab
-                                    </button>
-                                    <ul class="dropdown-menu">
-                                        <li v-for="(stream, index) in selectedItem.streams"
-                                            :key="index + '-' + stream.mp4">
-                                            <a class="dropdown-item" href="#" @click="openStream(stream.mp4)">[{{
-                                                stream.quality }}]</a>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                            <div class="btn-group me-2 mb-2" role="group"
-                                aria-label="Button group with nested dropdown">
-                                <div class="btn-group" role="group">
-                                    <button type="button" class="btn btn-outline-primary dropdown-toggle"
-                                        data-bs-toggle="dropdown" aria-expanded="false">
-                                        Copy Url
-                                    </button>
-                                    <ul class="dropdown-menu">
-                                        <li v-for="(stream, index) in selectedItem.streams"
-                                            :key="index + '-' + stream.mp4">
-                                            <a class="dropdown-item" href="#" @click="copyStreamUrl(stream.mp4)">[{{
-                                                stream.quality }}]</a>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                            <div class="btn-group me-2 mb-2" role="group"
-                                aria-label="Button group with nested dropdown">
-                                <div class="btn-group" role="group">
-                                    <button type="button" class="btn btn-outline-primary dropdown-toggle"
-                                        data-bs-toggle="dropdown" aria-expanded="false">
-                                        Download
-                                    </button>
-                                    <ul class="dropdown-menu">
-                                        <li v-for="(stream, index) in selectedItem.streams"
-                                            :key="index + '-' + stream.mp4">
-                                            <a class="dropdown-item" href="#"
-                                                @click="download(stream.mp4, stream.mp4FileName)">[{{ stream.quality
-                                                }}]</a>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                            <div class="btn-group me-2 mb-2" role="group"
-                                aria-label="Button group with nested dropdown">
-                                <div class="btn-group" role="group">
-                                    <button type="button" class="btn btn-outline-primary dropdown-toggle"
-                                        data-bs-toggle="dropdown" aria-expanded="false">
-                                        Download To Server
-                                    </button>
-                                    <ul class="dropdown-menu">
-                                        <li v-for="(stream, index) in selectedItem.streams"
-                                            :key="index + '-' + stream.mp4">
-                                            <a class="dropdown-item" href="#"
-                                                @click="downloadToServer(stream.mp4, stream.mp4FileName)">[{{
-                                                stream.quality }}]</a>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
+                            <stream-dropdown label="Watch" :streams="selectedItem.streams"
+                                @select="showPlayer($event.mp4)"></stream-dropdown>
 
-                            <div class="btn-group me-2 mb-2" role="group"
-                                aria-label="Button group with nested dropdown">
-                                <div class="btn-group" role="group">
-                                    <button type="button" class="btn btn-outline-primary dropdown-toggle"
-                                        data-bs-toggle="dropdown" aria-expanded="false">
-                                        Download Season
-                                    </button>
-                                    <ul class="dropdown-menu">
-                                        <li v-for="(stream, index) in selectedItem.streams"
-                                            :key="index + '-' + stream.mp4">
-                                            <a class="dropdown-item" href="#">[{{
-                                                stream.quality }}]</a>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
+                            <stream-dropdown v-if="isAndroid" label="Watch External" :streams="selectedItem.streams"
+                                @select="openStream($event.mp4Android)"></stream-dropdown>
+
+                            <stream-dropdown label="Open in Tab" :streams="selectedItem.streams"
+                                @select="openStream($event.mp4)"></stream-dropdown>
+
+                            <stream-dropdown label="Copy Url" :streams="selectedItem.streams"
+                                @select="copyStreamUrl($event.mp4)"></stream-dropdown>
+
+                            <stream-dropdown label="Download" :streams="selectedItem.streams"
+                                @select="download($event.mp4, $event.mp4FileName)"></stream-dropdown>
+
+                            <stream-dropdown label="Download To Server" :streams="selectedItem.streams"
+                                @select="downloadToServer($event.mp4, $event.mp4FileName)"></stream-dropdown>
+
+                            <stream-dropdown label="Download Season" :streams="selectedItem.streams"></stream-dropdown>
                         </div>
 
                         <!-- Video Player -->
@@ -308,8 +212,14 @@
                                 <button class="btn btn-sm btn-danger" @click="hidePlayer()">Close Player</button>
                             </div>
                             <div class="ratio">
+                                <div v-if="videoLoading" class="d-flex justify-content-center align-items-center bg-dark bg-opacity-75" style="z-index: 10;">
+                                    <div class="spinner-border text-light" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
                                 <video v-if="videoUrl" id="my-video" class="video-js vjs-default-skin" controls
-                                    preload="auto" width="640" height="264" poster="" data-setup="{}">
+                                    preload="auto" width="640" height="264" poster="" data-setup="{}"
+                                    @loadstart="videoLoading = true" @waiting="videoLoading = true" @canplay="videoLoading = false" @playing="videoLoading = false">
                                     <source v-if="videoUrl" :src="videoUrl" type="video/mp4" />
                                     <p class="vjs-no-js">
                                         To view this video please enable JavaScript, and consider upgrading to a
