@@ -9,24 +9,9 @@
 
 <body>
     <div id="app" v-cloak>
-        <!-- Spinner -->
-        <div v-if="loading" class="spinner-overlay">
-            <div v-if="downloadProgress > 0" class="text-center">
-                <div class="progress">
-                    <div class="progress-bar" role="progressbar" :style="{ width: downloadProgress + '%' }">
-                        {{ downloadProgress }}%
-                    </div>
-                </div>
-                <div class="mt-2 text-primary">
-                    Downloading... {{ formatBytes(downloadLoaded) }} / {{ formatBytes(downloadTotal) }} ({{
-                    formatBytes(downloadSpeed) }}/s)
-                </div>
-                <button class="btn btn-danger btn-sm mt-2" @click="cancelDownload">Cancel</button>
-            </div>
-            <div v-else class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-        </div>
+        <!-- Loading Overlay -->
+        <loading-overlay :loading="loading" :progress="downloadProgress" :loaded="downloadLoaded" :total="downloadTotal"
+            :speed="downloadSpeed" @cancel="cancelDownload"></loading-overlay>
 
         <div class="container py-4">
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -141,46 +126,19 @@
                             </div>
                             <div :class="selectedItem.posterUrl ? 'col-md-8' : 'col-12'">
                                 <!-- Translations -->
-                                <div v-if="selectedItem.translations && selectedItem.translations.length">
-                                    <h6>Translations</h6>
-                                    <div class="d-flex flex-wrap">
-                                        <button v-for="(t, index) in selectedItem.translations"
-                                            :key="index + '-' + t.data_translator_id" class="btn btn-sm me-2 mb-2"
-                                            :class="t.active ? 'btn-success' : 'btn-outline-primary'"
-                                            :disabled="t.active" @click="handleParse(t)">
-                                            {{ t.name }}
-                                        </button>
-                                    </div>
-                                </div>
+                                <section-with-buttons title="Translations" :items="selectedItem.translations"
+                                    @parse="handleParse"></section-with-buttons>
                             </div>
                         </div>
 
                         <!-- Seasons -->
-                        <div v-if="selectedItem.seasons && selectedItem.seasons.length">
-                            <h6>Seasons</h6>
-                            <div class="d-flex flex-wrap mb-3">
-                                <button v-for="(t, index) in selectedItem.seasons" :key="index + '-' + t.url"
-                                    class="btn btn-sm me-2 mb-2"
-                                    :class="t.active ? 'btn-success' : 'btn-outline-primary'" :disabled="t.active"
-                                    @click="handleParse(t)">
-                                    {{ t.name.replace("Сезон", "Season") }}
-                                </button>
-                            </div>
-                        </div>
+                        <section-with-buttons title="Seasons" :items="selectedItem.seasons" replace-from="Сезон"
+                            replace-to="Season" @parse="handleParse"></section-with-buttons>
 
                         <!-- Episodes -->
-                        <div v-if="selectedItem.episodes && selectedItem.episodes.length">
-                            <h6>Episodes</h6>
-                            <div class="d-flex flex-wrap mb-3">
-                                <button v-for="(t, index) in selectedItem.episodes" :key="index + '-' + t.url"
-                                    class="btn btn-sm me-2 mb-2"
-                                    :class="t.active ? 'btn-success' : 'btn-outline-primary'" :disabled="t.active"
-                                    @click="handleParse(t)">
-                                    {{ t.name.replace("Серия", "Episode") }}
-                                </button>
-                            </div>
-                        </div>
-                        
+                        <section-with-buttons title="Episodes" :items="selectedItem.episodes" replace-from="Серия"
+                            replace-to="Episode" @parse="handleParse"></section-with-buttons>
+
                         <!-- Actions -->
                         <div v-if="selectedItem.streams && selectedItem.streams.length">
                             <h6>Actions</h6>
@@ -209,17 +167,13 @@
                         <div v-if="videoUrl" class="mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <h6 class="mb-0">Video</h6>
-                                <button class="btn btn-sm btn-danger" @click="hidePlayer()">Close Player</button>
+                                <button class="btn btn-sm btn-danger" @click="hidePlayer()" aria-label="Close Player">Close Player</button>
                             </div>
-                            <div class="ratio">
-                                <div v-if="videoLoading" class="d-flex justify-content-center align-items-center bg-dark bg-opacity-75" style="z-index: 10;">
-                                    <div class="spinner-border text-light" role="status">
-                                        <span class="visually-hidden">Loading...</span>
-                                    </div>
-                                </div>
+                            <div class="ratio bg-dark rounded overflow-hidden">
                                 <video v-if="videoUrl" id="my-video" class="video-js vjs-default-skin" controls
                                     preload="auto" width="640" height="264" poster="" data-setup="{}"
-                                    @loadstart="videoLoading = true" @waiting="videoLoading = true" @canplay="videoLoading = false" @playing="videoLoading = false">
+                                    @loadstart="videoLoading = true" @waiting="videoLoading = true"
+                                    @canplay="videoLoading = false" @playing="videoLoading = false">
                                     <source v-if="videoUrl" :src="videoUrl" type="video/mp4" />
                                     <p class="vjs-no-js">
                                         To view this video please enable JavaScript, and consider upgrading to a
@@ -227,6 +181,13 @@
                                         <a href="videojs.com" target="_blank">supports HTML5 video</a>
                                     </p>
                                 </video>
+                                <div v-if="videoLoading"
+                                    class="d-flex justify-content-center align-items-center bg-dark bg-opacity-75"
+                                    style="z-index: 10;">
+                                    <div class="spinner-border text-light" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 

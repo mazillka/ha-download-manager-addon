@@ -1,9 +1,20 @@
 import { defineComponent } from "vue";
 
 export default defineComponent({
-    props: ['label', 'streams'],
-    template:
-    `
+  name: "StreamDropdown",
+
+  props: {
+    label: {
+      type: String,
+      required: true,
+    },
+    streams: {
+      type: Array,
+      required: true,
+    },
+  },
+  
+  template: `
         <div class="btn-group me-2 mb-2" role="group" aria-label="Button group with nested dropdown">
             <div class="btn-group" role="group">
                 <button type="button" class="btn btn-outline-primary dropdown-toggle"
@@ -19,5 +30,5 @@ export default defineComponent({
                 </ul>
             </div>
         </div>
-    `
+    `,
 });

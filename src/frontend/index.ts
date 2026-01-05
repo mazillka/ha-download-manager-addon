@@ -7,7 +7,7 @@ import * as bootstrap from "bootstrap";
 import Swal from "sweetalert2";
 import { createApp, defineComponent } from "vue";
 import type { DownloadTask, Tab } from "./interfaces/index";
-import { StreamDropdown } from "./components/index";
+import { StreamDropdown, SectionWithButtons, LoadingOverlay } from "./components/index";
 
 let modalInstance: any = null;
 
@@ -433,4 +433,6 @@ const App = defineComponent({
 
 const app = createApp(App);
 app.component("stream-dropdown", StreamDropdown);
+app.component("section-with-buttons", SectionWithButtons);
+app.component("loading-overlay", LoadingOverlay);
 app.mount("#app");
