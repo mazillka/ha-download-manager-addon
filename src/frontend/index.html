@@ -105,6 +105,21 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Settings -->
+            <div v-if="activeTab === 'settings'" class="mt-4">
+                <div class="card">
+                    <div class="card-header">Settings</div>
+                    <div class="card-body">
+                        <div class="mb-3" v-for="config in configs" :key="config.key">
+                            <label :for="config.key" class="form-label">{{ config.title }}</label>
+                            <input type="text" class="form-control" :id="config.key" v-model="config.value">
+                            <div class="form-text" v-if="config.description">{{ config.description }}</div>
+                        </div>
+                        <button class="btn btn-primary" @click="saveConfig">Save</button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Modal -->

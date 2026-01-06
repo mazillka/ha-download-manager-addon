@@ -2,14 +2,17 @@ import fs from "fs";
 import path from "path";
 import fetch from "node-fetch";
 import * as dbService from "./dbService";
-import type { Task } from "../interfaces/index";
+import type { Task } from "../interfaces";
+import { ConfigKey } from "../../common/enums";
 
-const downloadPath =
-  process.env.DOWNLOAD_PATH ||
-  (process.platform === "win32" ? "./media/downloads" : "/media/DOWNLOADS");
 const activeControllers: Record<string, AbortController> = {};
 
 export const startDownload = async (id: string): Promise<void> => {
+  const downloadPath = await dbService.getConfig(ConfigKey.DownloadPath);
+  if (!downloadPath) {
+    return;
+  }
+
   const task = await dbService.getTask(id);
   if (!task) {
     return;
@@ -188,24 +191,31 @@ export const deleteDownload = async (
   id: string,
   removeFile: boolean
 ): Promise<void> => {
+  const downloadPath = await dbService.getConfig(ConfigKey.DownloadPath);
+  if (!downloadPath) {
+    return;
+  }
+
   const task = await dbService.getTask(id);
-  if (task) {
-    if (activeControllers[id]) {
-      activeControllers[id].abort();
-      delete activeControllers[id];
-    }
-    if (removeFile) {
-      const dest = path.join(downloadPath, task.filename);
-      if (fs.existsSync(dest)) {
-        try {
-          fs.unlinkSync(dest);
-        } catch (error) {
-          console.error("Error:", error);
-        }
+  if (!task) {
+    return;
+  }
+
+  if (activeControllers[id]) {
+    activeControllers[id].abort();
+    delete activeControllers[id];
+  }
+  if (removeFile) {
+    const dest = path.join(downloadPath, task.filename);
+    if (fs.existsSync(dest)) {
+      try {
+        fs.unlinkSync(dest);
+      } catch (error) {
+        console.error("Error:", error);
       }
     }
-    await dbService.deleteTask(id);
   }
+  await dbService.deleteTask(id);
 };
 
 export const cancelDownload = async (id: string): Promise<void> => {

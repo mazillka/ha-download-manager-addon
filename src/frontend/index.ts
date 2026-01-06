@@ -6,15 +6,16 @@ import "video.js/dist/video.js";
 import * as bootstrap from "bootstrap";
 import Swal from "sweetalert2";
 import { createApp, defineComponent } from "vue";
-import type { DownloadTask, Tab } from "./interfaces/index";
-import { StreamDropdown, SectionWithButtons, LoadingOverlay } from "./components/index";
+import type { DownloadTask, Tab } from "./interfaces/";
+import { StreamDropdown, SectionWithButtons, LoadingOverlay } from "./components/";
+import type { Config } from "../common/interfaces";
+import { ConfigKey } from "../common/enums";
 
 let modalInstance: any = null;
 
 const App = defineComponent({
   data() {
     return {
-      baseUrl: "https://hdrezka.me",
       query: "",
       results: [] as any[],
       loading: false,
@@ -35,7 +36,9 @@ const App = defineComponent({
         { id: "latest", name: "Latest arrivals" },
         { id: "popular", name: "Popular" },
         { id: "downloads", name: "Downloads" },
+        { id: "settings", name: "Settings" },
       ] as Tab[],
+      configs: [] as Config[]
     };
   },
   computed: {
@@ -47,6 +50,9 @@ const App = defineComponent({
         (d) => d.status === "downloading" || d.status === "pending"
       ).length;
     },
+    baseUrl(): string {
+      return this.configs.find(x => x.key === ConfigKey.BaseUrl)?.value || "";
+    }
   },
   mounted() {
     // Initialize Bootstrap modal
@@ -57,16 +63,16 @@ const App = defineComponent({
       this.videoUrl = null; // Stop video when modal closes
     });
 
-    this.fetchConfig();
-    this.fetchServerDownloads();
+    this.getConfigs();
+    this.getServerDownloads();
     this.serverPollInterval = window.setInterval(
-      () => this.fetchServerDownloads(),
+      () => this.getServerDownloads(),
       1000
     );
   },
   methods: {
-    async fetchConfig() {
-      await fetch("api/config")
+    async getConfigs() {
+      await fetch("api/configs")
         .then((response) => {
           if (!response.ok) {
             throw new Error("HTTP error " + response.status);
@@ -75,16 +81,55 @@ const App = defineComponent({
           return response.json();
         })
         .then((data: any) => {
-          this.baseUrl = data.baseUrl;
+          this.configs = data.configs;
         })
         .catch((error) => {
           console.error("Error:", error);
+        });
+    },
+    async saveConfig() {
+
+
+
+      await fetch("api/configs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({configs: this.configs}),
+      })
+        .then(async (response) => {
+          if (!response.ok) {
+            throw new Error("HTTP error " + response.status);
+          }
+
+          setTimeout(async () => {
+            await this.getConfigs();
+          }, 1000);
+
+          Swal.fire({
+            icon: "success",
+            title: "Settings saved",
+            showConfirmButton: false,
+            timer: 1500,
+          });
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          Swal.fire({
+            icon: "error",
+            title: "Error saving settings",
+            text: error.message,
+          });
         });
     },
     async selectTab(tabId: string) {
       this.activeTab = tabId;
       if (tabId === "search") {
         this.results = [];
+        return;
+      }
+      if (tabId === "settings") {
+        this.results = [];
+        await this.getConfigs();
         return;
       }
 
@@ -98,10 +143,10 @@ const App = defineComponent({
       }
 
       if (url) {
-        await this.fetchList(url);
+        await this.getList(url);
       }
     },
-    async fetchList(url: string) {
+    async getList(url: string) {
       this.loading = true;
       this.results = [];
 
@@ -134,7 +179,7 @@ const App = defineComponent({
       const searchUrl = `${
         this.baseUrl
       }/search/?do=search&subaction=search&q=${encodeURIComponent(this.query)}`;
-      await this.fetchList(searchUrl);
+      await this.getList(searchUrl);
     },
     async clear() {
       this.query = "";
@@ -306,7 +351,7 @@ const App = defineComponent({
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ url, filename }),
             });
-            this.fetchServerDownloads(); // Update count
+            this.getServerDownloads(); // Update count
 
             Swal.fire({
               title: "Download started on server!",
@@ -328,7 +373,7 @@ const App = defineComponent({
         }
       });
     },
-    async fetchServerDownloads() {
+    async getServerDownloads() {
       await fetch("api/downloads")
         .then((response) => {
           if (!response.ok) {
@@ -359,7 +404,7 @@ const App = defineComponent({
         if (result.isConfirmed) {
           try {
             await fetch(`api/downloads/${id}/cancel`, { method: "POST" });
-            this.fetchServerDownloads();
+            this.getServerDownloads();
           } catch (error) {
             console.error("Error:", error);
           }
@@ -369,7 +414,7 @@ const App = defineComponent({
     async pauseServerDownload(id: string) {
       try {
         await fetch(`api/downloads/${id}/pause`, { method: "POST" });
-        this.fetchServerDownloads();
+        this.getServerDownloads();
       } catch (error) {
         console.error("Error:", error);
       }
@@ -377,7 +422,7 @@ const App = defineComponent({
     async resumeServerDownload(id: string) {
       try {
         await fetch(`api/downloads/${id}/resume`, { method: "POST" });
-        this.fetchServerDownloads();
+        this.getServerDownloads();
       } catch (error) {
         console.error("Error:", error);
       }
@@ -413,7 +458,7 @@ const App = defineComponent({
                 `api/downloads/${id}?removeFile=${result.isConfirmed}`,
                 { method: "DELETE" }
               );
-              this.fetchServerDownloads();
+              this.getServerDownloads();
             } catch (error) {
               console.error("Error:", error);
             }

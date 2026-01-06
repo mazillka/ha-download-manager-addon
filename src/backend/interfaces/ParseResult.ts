@@ -1,4 +1,4 @@
-import type { Episode, Season, Stream, Translation } from "./index";
+import type { Episode, Season, Stream, Translation } from "./";
 
 export default interface ParseResult {
   isShow: boolean;

@@ -1,7 +1,9 @@
 import path from "path";
 import { fileURLToPath } from "url";
 import sqlite3 from "sqlite3";
-import type { Task, HistoryItem } from "../interfaces/index";
+import type { Task, HistoryItem } from "../interfaces";
+import type { Config } from "../../common/interfaces";
+import { ConfigKey } from "../../common/enums";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dbPath = path.join(__dirname, "ha-download-manager.db");
@@ -25,7 +27,44 @@ export const initDB = (): void => {
             startTime INTEGER,
             error TEXT
         )`);
+    db.run(
+      "CREATE TABLE IF NOT EXISTS config (key TEXT PRIMARY KEY, value TEXT, description TEXT)"
+    );
+
+    insertDefaultConfig();
   });
+};
+
+const defaultConfigs: Config[] = [
+  {
+    key: ConfigKey.BaseUrl,
+    value: "https://hdrezka.me",
+    description: "Base Site URL",
+  },
+  {
+    key: ConfigKey.DownloadPath,
+    value: "/media/DOWNLOADS",
+    description: "Server Download Path",
+  },
+];
+
+const insertDefaultConfig = (): void => {
+  const stmt = db.prepare(
+    `INSERT OR IGNORE INTO config (key, value, description) VALUES (?, ?, ?)`
+  );
+
+  defaultConfigs.forEach((config) => {
+    stmt.run([config.key, config.value, config.description], (err) => {
+      if (err) {
+        return console.log(err.message);
+      }
+      console.log(
+        `Row was added to the table: [${config.key}]: ${config.value} - ${config.description}`
+      );
+    });
+  });
+
+  stmt.finalize();
 };
 
 export const addHistory = (filename: string, size: number): Promise<number> => {
@@ -124,6 +163,64 @@ export const getTask = (id: string): Promise<Task | undefined> => {
   });
 };
 
+export const getConfigs = (): Promise<Config[]> => {
+  return new Promise((resolve, reject) => {
+    db.all("SELECT * FROM config", (err, rows: Config[]) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(rows);
+      }
+    });
+  });
+};
+
+export const saveConfigs = (configs: Config[]): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    configs.forEach((config) => {
+      db.run(
+        "INSERT OR REPLACE INTO config (key, value, description) VALUES (?, ?, ?)",
+        [config.key, config.value, config.description],
+        (err) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        }
+      );
+    });
+  });
+};
+
+export const getConfig = (key: string): Promise<string | null> => {
+  return new Promise((resolve, reject) => {
+    db.get("SELECT value FROM config WHERE key = ?", [key], (err, row: any) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(row ? row.value : null);
+      }
+    });
+  });
+};
+
+// export const saveConfig = (key: string, value: string): Promise<void> => {
+//   return new Promise((resolve, reject) => {
+//     db.run(
+//       "INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)",
+//       [key, value],
+//       (err) => {
+//         if (err) {
+//           reject(err);
+//         } else {
+//           resolve();
+//         }
+//       }
+//     );
+//   });
+// };
+
 export default {
   initDB,
   addHistory,
@@ -132,4 +229,8 @@ export default {
   getAllTasks,
   getHistory,
   getTask,
+  getConfigs,
+  saveConfigs,
+  // getConfig,
+  // saveConfig,
 };

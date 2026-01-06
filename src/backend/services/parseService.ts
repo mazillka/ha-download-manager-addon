@@ -1,6 +1,6 @@
-import { BrowserService } from "./index";
-import type { SearchResult, ParseResult } from "../interfaces/index";
-import { SearchHelper, ParseHelper } from "../helpers/index";
+import { BrowserService } from "./";
+import type { SearchResult, ParseResult } from "../interfaces";
+import { SearchHelper, ParseHelper } from "../helpers";
 
 export const search = async (url: string): Promise<SearchResult[]> => {
   return await BrowserService.parse(
