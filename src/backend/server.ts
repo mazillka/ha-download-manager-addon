@@ -1,156 +1,18 @@
-import express from "express";
-import type { Request, Response } from "express";
-import path from "path";
-import { fileURLToPath } from "url";
-import { DbService, DownloadService, ParseService } from "./services";
+import { app } from "./app";
+import { DbService, DownloadService } from "./services";
 
 const port = process.env.PORT || 3000;
 
-// https://hdrezka.ag
-// https://hdrezka.me
-// https://hdrezka.name
-// https://hdrezka-home.tv
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-const frontendPath = path.resolve(__dirname, "../frontend");
-
-const app = express();
-app.use(express.json());
-
 DbService.initDB();
 
-app.get("/health", (req: Request, res: Response) => {
-  res.send("OK");
-});
+(async () => {
+  const tasks = await DownloadService.restoreDownloads();
+  console.info(`Loaded ${tasks.length} tasks`);
 
-app.get("/api/configs", async (req: Request, res: Response) => {
   const configs = await DbService.getConfigs();
-
-  console.info(configs);
-
-  res.json({ configs: configs });
-});
-
-app.post("/api/configs", async (req: Request, res: Response) => {
-  const { configs } = req.body;
-
-  try {
-    await DbService.saveConfigs(configs);
-  } catch (error) {
-    console.error("Error saving config:", error);
-  }
-
-  res.json({ configs: configs });
-});
-
-app.post("/api/search", async (req: Request, res: Response) => {
-  const { url } = req.body;
-
-  try {
-    const data = await ParseService.search(url);
-    res.send(data);
-  } catch (error) {
-    console.info(`Search failed for URL: ${url}`);
-    console.error("Error:", error);
-    res.status(500).send("Search failed");
-  }
-});
-
-app.post("/api/parse", async (req: Request, res: Response) => {
-  const { url, data_id, data_translator_id } = req.body;
-
-  try {
-    const data = await ParseService.parse(url, data_id, data_translator_id);
-    res.send(data);
-  } catch (error) {
-    console.info(`Parse failed for URL: ${url}`);
-    console.error("Error:", error);
-    res.status(500).send("Parse failed");
-  }
-});
-
-app.get("/api/downloads", async (req: Request, res: Response) => {
-  try {
-    const tasks = await DbService.getAllTasks();
-    res.json(tasks.sort((a, b) => b.startTime - a.startTime));
-  } catch (error: any) {
-    res.status(500).send(error.message);
-  }
-});
-
-app.get("/api/history", async (req: Request, res: Response) => {
-  try {
-    const rows = await DbService.getHistory();
-    res.json(rows);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.post("/api/download", async (req: Request, res: Response) => {
-  const { url, filename } = req.body;
-  if (!url || !filename) {
-    res.status(400).send("Missing url or filename");
-    return;
-  }
-
-  const id = await DownloadService.createDownload(url, filename);
-  res.json({ status: "started", id });
-});
-
-app.post("/api/downloads/:id/pause", async (req: Request, res: Response) => {
-  const { id } = req.params;
-
-  await DownloadService.pauseDownload(id);
-  res.send("ok");
-});
-
-app.post("/api/downloads/:id/resume", async (req: Request, res: Response) => {
-  const { id } = req.params;
-
-  await DownloadService.resumeDownload(id);
-  res.send("ok");
-});
-
-app.delete("/api/downloads/:id", async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const { removeFile } = req.query;
-
-  await DownloadService.deleteDownload(id, removeFile === "true");
-  res.send("ok");
-});
-
-app.post("/api/downloads/:id/cancel", async (req: Request, res: Response) => {
-  const { id } = req.params;
-
-  await DownloadService.cancelDownload(id);
-  res.send("ok");
-});
-
-app.use(express.static(frontendPath));
-
-app.use((req: Request, res: Response) => {
-  res.sendFile(path.join(frontendPath, "index.html"));
-});
-
-// Load tasks from DB before starting
-DownloadService.restoreDownloads().then(async (tasks) => {
-  console.info(`Loaded ${tasks.length} tasks from DB.`);
-
-  try {
-    const configs = await DbService.getConfigs();
-
-    console.info(`Loaded ${configs.length} configs from DB.`);
-    configs.forEach((config) => {
-      console.info(`[${config.key}]: ${config.value}`);
-    });
-  } catch (error) {
-    console.error("Error loading configs:", error);
-  }
+  console.info(`Loaded ${configs.length} configs`);
 
   app.listen(port, () => {
-    console.info("Starting server...");
-    console.info(`Server running on http://localhost:${port}`);
+    console.info(`🚀 Server running on http://localhost:${port}`);
   });
-});
+})();
