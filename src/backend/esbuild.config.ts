@@ -9,8 +9,8 @@ const __dirname = path.dirname(__filename);
 // Plugin to resolve .js imports to .ts files
 const resolveExtensions = {
   name: 'resolve-extensions',
-  setup(build) {
-    build.onResolve({ filter: /.*/ }, async (args) => {
+  setup(build: any) {
+    build.onResolve({ filter: /.*/ }, async (args: any) => {
       if (args.importer && (args.path.startsWith('.') || args.path.startsWith('/'))) {
         const resolveDir = args.resolveDir || path.dirname(args.importer);
         const absolutePath = path.resolve(resolveDir, args.path);

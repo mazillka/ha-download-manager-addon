@@ -6,13 +6,13 @@
   "main": "backend/server.ts",
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:backend": "nodemon --watch backend --ext ts,json --exec \"node ./backend/esbuild.config.js && node ./dist/backend/server.js\"",
-    "dev:frontend": "webpack --config ./frontend/webpack.config.js --watch --mode development",
+    "dev:backend": "nodemon --watch backend --ext ts,json --exec \"node ./backend/esbuild.config.ts && node ./dist/backend/server.js\"",
+    "dev:frontend": "webpack --config ./frontend/webpack.config.ts --watch --mode development",
     "build:dev": "npm run build:backend && npm run build:frontend:dev",
     "build:prod": "npm run build:frontend:prod && npm run build:backend",
-    "build:backend": "node ./backend/esbuild.config.js",
-    "build:frontend:dev": "webpack --config ./frontend/webpack.config.js --mode development",
-    "build:frontend:prod": "webpack --config ./frontend/webpack.config.js --mode production"
+    "build:backend": "node ./backend/esbuild.config.ts",
+    "build:frontend:dev": "webpack --config ./frontend/webpack.config.ts --mode development",
+    "build:frontend:prod": "webpack --config ./frontend/webpack.config.ts --mode production"
   },
   "dependencies": {
     "bootstrap": "^5.3.8",

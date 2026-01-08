@@ -5,8 +5,8 @@ WORKDIR /src
 COPY src/package.json src/package-lock.json ./
 RUN npm ci
 
-COPY src/backend ./backend/
 COPY src/common ./common/
+COPY src/backend ./backend/
 COPY src/frontend ./frontend/
 RUN npm run build:prod
 
