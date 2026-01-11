@@ -7,7 +7,7 @@ import {
   configRoutes,
   parseRoutes,
   downloadRoutes,
-  historyRoutes,
+  watchLaterRoutes,
 } from "./routes";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -21,7 +21,7 @@ app.use("/health", healthRoutes);
 app.use("/api/configs", configRoutes);
 app.use("/api", parseRoutes);
 app.use("/api/downloads", downloadRoutes);
-app.use("/api/history", historyRoutes);
+app.use("/api/watchLater", watchLaterRoutes);
 
 app.use(express.static(frontendPath));
 app.use((req, res) => {

@@ -1,16 +1,16 @@
 import type { Request, Response } from "express";
 import { DbService } from "../services";
 
-export const getConfigs = async (req: Request, res: Response) => {
-  const configs = await DbService.getConfigs();
+export const getAll = async (req: Request, res: Response) => {
+  const configs = await DbService.getAllConfig();
   res.json({ configs });
 };
 
-export const saveConfigs = async (req: Request, res: Response) => {
+export const addOrUpdate = async (req: Request, res: Response) => {
   const { configs } = req.body;
 
   try {
-    await DbService.saveConfigs(configs);
+    await DbService.addOrUpdateConfigs(configs);
     res.json({ configs });
   } catch (error) {
     console.error("Error saving config:", error);

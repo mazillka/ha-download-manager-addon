@@ -7,11 +7,29 @@ import * as bootstrap from "bootstrap";
 import Swal from "sweetalert2";
 import { createApp, defineComponent } from "vue";
 import type { DownloadTask, Tab } from "./interfaces/";
-import { StreamDropdown, SectionWithButtons, LoadingOverlay } from "./components/";
+import {
+  StreamDropdown,
+  SectionWithButtons,
+  LoadingOverlay,
+} from "./components/";
 import type { Config } from "../common/interfaces";
 import { ConfigKey } from "../common/enums";
 
+import { api } from "./api";
+
 let modalInstance: any = null;
+
+const TAB_URLS: Record<string, string> = {
+  watching: "?filter=watching",
+  popular: "?filter=popular",
+  latest: "?filter=last",
+};
+
+interface WatchLater {
+  title: string;
+  pageUrl: string;
+  posterUrl: string;
+}
 
 const App = defineComponent({
   data() {
@@ -36,9 +54,11 @@ const App = defineComponent({
         { id: "latest", name: "Latest arrivals" },
         { id: "popular", name: "Popular" },
         { id: "downloads", name: "Downloads" },
+        { id: "watch_later", name: "Watch Later" },
         { id: "settings", name: "Settings" },
       ] as Tab[],
-      configs: [] as Config[]
+      configs: [] as Config[],
+      watchLaterList: [] as WatchLater[],
     };
   },
   computed: {
@@ -51,8 +71,8 @@ const App = defineComponent({
       ).length;
     },
     baseUrl(): string {
-      return this.configs.find(x => x.key === ConfigKey.BaseUrl)?.value || "";
-    }
+      return this.configs.find((x) => x.key === ConfigKey.BaseUrl)?.value || "";
+    },
   },
   mounted() {
     // Initialize Bootstrap modal
@@ -72,78 +92,71 @@ const App = defineComponent({
   },
   methods: {
     async getConfigs() {
-      await fetch("api/configs")
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error("HTTP error " + response.status);
-          }
-
-          return response.json();
-        })
-        .then((data: any) => {
-          this.configs = data.configs;
-        })
-        .catch((error) => {
-          console.error("Error:", error);
-        });
+      try {
+        const { configs } = await api.getConfigs();
+        this.configs = configs;
+      } catch (error) {
+        console.error(`Error: ${error}`);
+      }
     },
     async saveConfig() {
+      try {
+        await api.saveConfigs(this.configs);
+      } catch (error) {
+        console.error(`Error: ${error}`);
+      }
 
+      // await fetch("api/configs", {
+      //   method: "POST",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify({ configs: this.configs }),
+      // })
+      //   .then(async (response) => {
+      //     if (!response.ok) {
+      //       throw new Error("HTTP error " + response.status);
+      //     }
 
+      //     setTimeout(async () => {
+      //       await this.getConfigs();
+      //     }, 1000);
 
-      await fetch("api/configs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({configs: this.configs}),
-      })
-        .then(async (response) => {
-          if (!response.ok) {
-            throw new Error("HTTP error " + response.status);
-          }
-
-          setTimeout(async () => {
-            await this.getConfigs();
-          }, 1000);
-
-          Swal.fire({
-            icon: "success",
-            title: "Settings saved",
-            showConfirmButton: false,
-            timer: 1500,
-          });
-        })
-        .catch((error) => {
-          console.error("Error:", error);
-          Swal.fire({
-            icon: "error",
-            title: "Error saving settings",
-            text: error.message,
-          });
-        });
+      //     Swal.fire({
+      //       icon: "success",
+      //       title: "Settings saved",
+      //       showConfirmButton: false,
+      //       timer: 1500,
+      //     });
+      //   })
+      //   .catch((error) => {
+      //     console.error("Error:", error);
+      //     Swal.fire({
+      //       icon: "error",
+      //       title: "Error saving settings",
+      //       text: error.message,
+      //     });
+      //   });
     },
     async selectTab(tabId: string) {
       this.activeTab = tabId;
+      this.results = [];
+
       if (tabId === "search") {
-        this.results = [];
         return;
       }
+
       if (tabId === "settings") {
-        this.results = [];
         await this.getConfigs();
         return;
       }
 
-      let url;
-      if (tabId === "watching") {
-        url = `${this.baseUrl}/?filter=watching`;
-      } else if (tabId === "popular") {
-        url = `${this.baseUrl}/?filter=popular`;
-      } else if (tabId === "latest") {
-        url = `${this.baseUrl}/?filter=last`;
+      if (tabId === "watch_later") {
+        await this.getWatchLaterList();
+        return;
       }
 
-      if (url) {
-        await this.getList(url);
+      const filter = TAB_URLS[tabId];
+      if (filter) {
+        await this.getList(`${this.baseUrl}/${filter}`);
       }
     },
     async getList(url: string) {
@@ -463,6 +476,84 @@ const App = defineComponent({
               console.error("Error:", error);
             }
           });
+        }
+      });
+    },
+    async getWatchLaterList() {
+      this.loading = true;
+      await fetch("api/watchLater")
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("HTTP error " + response.status);
+          }
+          return response.json();
+        })
+        .then((data: WatchLater[]) => {
+          this.watchLaterList = data;
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+        })
+        .finally(() => {
+          this.loading = false;
+        });
+    },
+    async addToWatchLater(item: any) {
+      const payload: WatchLater = {
+        title: item.title,
+        pageUrl: item.pageUrl || this.selectedUrl || "",
+        posterUrl: item.posterUrl,
+      };
+
+      await fetch("api/watchLater", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+        .then((response) => {
+          if (!response.ok) throw new Error("HTTP error " + response.status);
+          Swal.fire({
+            icon: "success",
+            title: "Added to Watch Later",
+            showConfirmButton: false,
+            timer: 1500,
+          });
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          Swal.fire({
+            icon: "error",
+            title: "Error saving to Watch Later",
+            text: error.message,
+          });
+        });
+    },
+    async removeFromWatchLater(pageUrl: string) {
+      Swal.fire({
+        title: "Are you sure?",
+        text: "Remove from Watch Later?",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Yes",
+        cancelButtonText: "No",
+        customClass: {
+          confirmButton: "btn btn-success",
+          cancelButton: "btn btn-danger",
+        },
+      }).then(async (result: any) => {
+        if (result.isConfirmed) {
+          try {
+            await fetch(`api/watchLater`, {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                pageUrl: pageUrl,
+              }),
+            });
+            this.getWatchLaterList();
+          } catch (error) {
+            console.error("Error:", error);
+          }
         }
       });
     },

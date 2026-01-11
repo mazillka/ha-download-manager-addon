@@ -20,21 +20,21 @@ export const createDownload = async (req: Request, res: Response) => {
 
 export const pauseDownload = async (req: Request, res: Response) => {
   await DownloadService.pauseDownload(req.params.id);
-  res.send("ok");
+  res.status(200).send("OK");
 };
 
 export const resumeDownload = async (req: Request, res: Response) => {
   await DownloadService.resumeDownload(req.params.id);
-  res.send("ok");
+  res.status(200).send("OK");
 };
 
 export const cancelDownload = async (req: Request, res: Response) => {
   await DownloadService.cancelDownload(req.params.id);
-  res.send("ok");
+  res.status(200).send("OK");
 };
 
 export const deleteDownload = async (req: Request, res: Response) => {
   const removeFile = req.query.removeFile === "true";
   await DownloadService.deleteDownload(req.params.id, removeFile);
-  res.send("ok");
+  res.status(200).send("OK");
 };

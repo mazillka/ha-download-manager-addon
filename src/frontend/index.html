@@ -24,6 +24,10 @@
                                 class="badge bg-danger ms-1 rounded-pill">
                                 {{ activeServerDownloads }}
                             </span>
+                            <span v-if="tab.id === 'watch_later' && watchLaterList && watchLaterList.length > 0"
+                                class="badge bg-danger ms-1 rounded-pill">
+                                {{ watchLaterList.length }}
+                            </span>
                         </button>
                     </li>
                 </ul>
@@ -42,7 +46,7 @@
             </div>
 
             <!-- Results -->
-            <div class="row g-4" id="cards-row" v-if="activeTab !== 'downloads'">
+            <div class="row g-4" id="cards-row" v-if="activeTab === 'search' || activeTab === 'watching' || activeTab === 'latest' || activeTab === 'popular'">
                 <div v-for="(item, index) in results" :key="index"
                     class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 d-flex">
                     <div class="card h-100 w-100 d-flex flex-column" @click="parse(item.pageUrl)">
@@ -56,6 +60,27 @@
                                         class="badge bg-primary position-absolute top-0 end-0 rounded-0 opacity-75">
                                         {{ item.category }}
                                     </span>
+                                    <button class="btn btn-success btn-sm position-absolute top-0 start-0 rounded-0" @click.stop="addToWatchLater(item)" title="Add to Watch Later">+</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Watch Later -->
+            <div class="row g-4" v-if="activeTab === 'watch_later'">
+                <div v-if="!watchLaterList || watchLaterList.length === 0" class="col-12 text-center text-muted mt-5">No items in Watch Later</div>
+                <div v-for="(item, index) in watchLaterList" :key="index"
+                    class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 d-flex">
+                    <div class="card h-100 w-100 d-flex flex-column" @click="parse(item.pageUrl)">
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">{{ item.title }}</h5>
+                            <div class="mt-auto d-flex justify-content-center">
+                                <div style="max-height:150px; display:flex; align-items:flex-end; position: relative;">
+                                    <img :src="item.posterUrl" :alt="item.title" class="img-fluid"
+                                        style="max-width:100%; max-height:100%;">
+                                    <button class="btn btn-danger btn-sm position-absolute top-0 end-0 rounded-0" @click.stop="removeFromWatchLater(item.pageUrl)" title="Remove">&times;</button>
                                 </div>
                             </div>
                         </div>
@@ -140,6 +165,7 @@
                                     :alt="selectedItem.title">
                             </div>
                             <div :class="selectedItem.posterUrl ? 'col-md-8' : 'col-12'">
+                                <button class="btn btn-outline-primary w-100 mb-2" @click="addToWatchLater(selectedItem)">Add to Watch Later</button>
                                 <!-- Translations -->
                                 <section-with-buttons title="Translations" :items="selectedItem.translations"
                                     @parse="handleParse"></section-with-buttons>
@@ -210,6 +236,7 @@
                 </div>
             </div>
         </div>
+        
     </div>
 </body>
 

@@ -1,12 +1,12 @@
 import { Router } from "express";
 import {
-  getConfigs,
-  saveConfigs
+  getAll,
+  addOrUpdate
 } from "../controllers/config.controller";
 
 const router = Router();
 
-router.get("/", getConfigs);
-router.post("/", saveConfigs);
+router.get("/", getAll);
+router.post("/", addOrUpdate);
 
 export default router;

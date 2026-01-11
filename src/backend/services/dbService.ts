@@ -30,10 +30,19 @@ export const initDB = (): void => {
     db.run(
       "CREATE TABLE IF NOT EXISTS config (key TEXT PRIMARY KEY, value TEXT, description TEXT)"
     );
+    db.run(
+      "CREATE TABLE IF NOT EXISTS watch_later (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, pageUrl TEXT, posterUrl TEXT)"
+    );
 
     insertDefaultConfig();
   });
 };
+
+interface WatchLater {
+  title: string;
+  pageUrl: string;
+  posterUrl: string;
+}
 
 const defaultConfigs: Config[] = [
   {
@@ -175,7 +184,7 @@ export const getConfigs = (): Promise<Config[]> => {
   });
 };
 
-export const saveConfigs = (configs: Config[]): Promise<void> => {
+export const addOrUpdateConfigs = (configs: Config[]): Promise<void> => {
   return new Promise((resolve, reject) => {
     configs.forEach((config) => {
       db.run(
@@ -205,21 +214,45 @@ export const getConfig = (key: string): Promise<string | null> => {
   });
 };
 
-// export const saveConfig = (key: string, value: string): Promise<void> => {
-//   return new Promise((resolve, reject) => {
-//     db.run(
-//       "INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)",
-//       [key, value],
-//       (err) => {
-//         if (err) {
-//           reject(err);
-//         } else {
-//           resolve();
-//         }
-//       }
-//     );
-//   });
-// };
+export const addWatchLater = (watchLater: WatchLater): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    db.run(
+      "INSERT INTO watch_later (title, pageUrl, posterUrl) VALUES (?, ?, ?)",
+      [watchLater.title, watchLater.pageUrl, watchLater.posterUrl],
+      (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      }
+    );
+  });
+};
+
+export const deleteWatchLater = (pageUrl: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    db.run("DELETE FROM watch_later WHERE pageUrl = ?", [pageUrl], (err) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve();
+      }
+    });
+  });
+};
+
+export const getAllWatchLater = (): Promise<WatchLater[]> => {
+  return new Promise((resolve, reject) => {
+    db.all("SELECT * FROM watch_later", (err, rows: WatchLater[]) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(rows);
+      }
+    });
+  });
+};
 
 export default {
   initDB,
@@ -229,8 +262,10 @@ export default {
   getAllTasks,
   getHistory,
   getTask,
-  getConfigs,
-  saveConfigs,
-  // getConfig,
-  // saveConfig,
+  getAllConfig: getConfigs,
+  addOrUpdateConfigs,
+  getConfig,
+  addWatchLater,
+  deleteWatchLater,
+  getAllWatchLater,
 };

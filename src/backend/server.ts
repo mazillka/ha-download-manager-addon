@@ -9,7 +9,7 @@ DbService.initDB();
   const tasks = await DownloadService.restoreDownloads();
   console.info(`Loaded ${tasks.length} tasks`);
 
-  const configs = await DbService.getConfigs();
+  const configs = await DbService.getAllConfig();
   console.info(`Loaded ${configs.length} configs`);
 
   app.listen(port, () => {
