@@ -31,7 +31,7 @@ export const initDB = (): void => {
       "CREATE TABLE IF NOT EXISTS config (key TEXT PRIMARY KEY, value TEXT, description TEXT)"
     );
     db.run(
-      "CREATE TABLE IF NOT EXISTS watch_later (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, pageUrl TEXT, posterUrl TEXT)"
+      "CREATE TABLE IF NOT EXISTS watch_later (pageUrl TEXT PRIMARY KEY, title TEXT, posterUrl TEXT)"
     );
 
     insertDefaultConfig();
@@ -217,8 +217,8 @@ export const getConfig = (key: string): Promise<string | null> => {
 export const addWatchLater = (watchLater: WatchLater): Promise<void> => {
   return new Promise((resolve, reject) => {
     db.run(
-      "INSERT INTO watch_later (title, pageUrl, posterUrl) VALUES (?, ?, ?)",
-      [watchLater.title, watchLater.pageUrl, watchLater.posterUrl],
+      "INSERT INTO watch_later (pageUrl, title, posterUrl) VALUES (?, ?, ?)",
+      [watchLater.pageUrl, watchLater.title, watchLater.posterUrl],
       (err) => {
         if (err) {
           reject(err);

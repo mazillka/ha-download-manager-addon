@@ -14,10 +14,10 @@ export const search = async (req: Request, res: Response) => {
 };
 
 export const parse = async (req: Request, res: Response) => {
-  const { url, data_id, data_translator_id } = req.body;
+  const { url, data_translator_id } = req.body;
 
   try {
-    const data = await ParseService.parse(url, data_id, data_translator_id);
+    const data = await ParseService.parse(url, data_translator_id);
     res.send(data);
   } catch (error) {
     console.info(`Parse failed for URL: ${url}`);

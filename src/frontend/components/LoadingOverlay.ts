@@ -1,8 +1,9 @@
 import { defineComponent } from "vue";
+import { formatBytes } from "../utils/format";
 
 export default defineComponent({
   name: "LoadingOverlay",
-
+  emits: ["cancel-local-download"],
   props: {
     loading: {
       type: Boolean,
@@ -27,14 +28,10 @@ export default defineComponent({
   },
 
   methods: {
-    formatBytes(bytes: number) {
-      if (!bytes) {
-        return "0 B";
-      }
-      const sizes = ["B", "KB", "MB", "GB", "TB"];
-      const i = Math.floor(Math.log(bytes) / Math.log(1024));
-      return (bytes / Math.pow(1024, i)).toFixed(2) + " " + sizes[i];
+    onCancel() {
+      this.$emit("cancel-local-download");
     },
+    formatBytes
   },
 
   template: `
@@ -59,7 +56,7 @@ export default defineComponent({
 
         <button
           class="btn btn-danger btn-sm mt-2"
-          @click="$emit('cancel')"
+          @click="onCancel()"
         >
           Cancel
         </button>

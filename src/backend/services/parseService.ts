@@ -23,7 +23,6 @@ export const search = async (url: string): Promise<SearchResult[]> => {
 
 export const parse = async (
   url: string,
-  data_id?: string,
   data_translator_id?: string,
 ): Promise<ParseResult> => {
   return await BrowserService.parse(
@@ -38,7 +37,6 @@ export const parse = async (
       waitForSelector: ".b-post__title",
       selectorTimeout: 15000,
       evalArg: {
-        data_id: data_id,
         data_translator_id: data_translator_id,
         funcString: ParseHelper.toString(),
       },

@@ -10,9 +10,9 @@
 <body>
     <div id="app" v-cloak>
         <!-- Loading Overlay -->
-        <loading-overlay :loading="loading" :progress="downloadProgress" :loaded="downloadLoaded" :total="downloadTotal"
-            :speed="downloadSpeed" @cancel="cancelDownload"></loading-overlay>
+        <loading-overlay :loading="loading"></loading-overlay>
 
+        <!-- Navbar -->
         <div class="container py-4">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <!-- Tabs -->
@@ -24,9 +24,9 @@
                                 class="badge bg-danger ms-1 rounded-pill">
                                 {{ activeServerDownloads }}
                             </span>
-                            <span v-if="tab.id === 'watch_later' && watchLaterList && watchLaterList.length > 0"
+                            <span v-if="tab.id === 'watch_later' && watchLaterCount > 0"
                                 class="badge bg-danger ms-1 rounded-pill">
-                                {{ watchLaterList.length }}
+                                {{ watchLaterCount }}
                             </span>
                         </button>
                     </li>
@@ -46,10 +46,11 @@
             </div>
 
             <!-- Results -->
-            <div class="row g-4" id="cards-row" v-if="activeTab === 'search' || activeTab === 'watching' || activeTab === 'latest' || activeTab === 'popular'">
+            <div class="row g-4" id="cards-row"
+                v-if="activeTab === 'search' || activeTab === 'watching' || activeTab === 'latest' || activeTab === 'popular'">
                 <div v-for="(item, index) in results" :key="index"
                     class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 d-flex">
-                    <div class="card h-100 w-100 d-flex flex-column" @click="parse(item.pageUrl)">
+                    <div class="card h-100 w-100 d-flex flex-column" @click="handleGetDetails(item.pageUrl)">
                         <div class="card-body d-flex flex-column">
                             <h5 class="card-title">{{ item.title }}</h5>
                             <div class="mt-auto d-flex justify-content-center">
@@ -58,11 +59,13 @@
                                         style="max-width:100%; max-height:100%;">
                                     <span v-if="item.category"
                                         class="badge bg-primary position-absolute top-0 end-0 rounded-0 opacity-75">
-                                        {{ item.category }}
+                                        {{ item.category.replace("Сериал", "Show").replace("Фильм",
+                                        "Movie").replace("Аниме", "Anime").replace("Мультфильм", "Cartoon")}}
                                     </span>
-                                    <button class="btn btn-success btn-sm position-absolute top-0 start-0 rounded-0" @click.stop="addToWatchLater(item)" title="Add to Watch Later">+</button>
                                 </div>
                             </div>
+                            <button class="btn btn-outline-primary mt-2" @click.stop="addToWatchLater(item)"
+                                title="Add to Watch Later">Add to Watch Later</button>
                         </div>
                     </div>
                 </div>
@@ -70,19 +73,21 @@
 
             <!-- Watch Later -->
             <div class="row g-4" v-if="activeTab === 'watch_later'">
-                <div v-if="!watchLaterList || watchLaterList.length === 0" class="col-12 text-center text-muted mt-5">No items in Watch Later</div>
+                <div v-if="!watchLaterList || watchLaterList.length === 0" class="col-12 text-center text-muted mt-5">No
+                    items in Watch Later</div>
                 <div v-for="(item, index) in watchLaterList" :key="index"
                     class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 d-flex">
-                    <div class="card h-100 w-100 d-flex flex-column" @click="parse(item.pageUrl)">
+                    <div class="card h-100 w-100 d-flex flex-column" @click="handleGetDetails(item.pageUrl)">
                         <div class="card-body d-flex flex-column">
                             <h5 class="card-title">{{ item.title }}</h5>
                             <div class="mt-auto d-flex justify-content-center">
                                 <div style="max-height:150px; display:flex; align-items:flex-end; position: relative;">
                                     <img :src="item.posterUrl" :alt="item.title" class="img-fluid"
                                         style="max-width:100%; max-height:100%;">
-                                    <button class="btn btn-danger btn-sm position-absolute top-0 end-0 rounded-0" @click.stop="removeFromWatchLater(item.pageUrl)" title="Remove">&times;</button>
                                 </div>
                             </div>
+                            <button class="btn btn-outline-danger mt-2"
+                                @click="removeFromWatchLater(item.pageUrl)">Remove</button>
                         </div>
                     </div>
                 </div>
@@ -147,96 +152,8 @@
             </div>
         </div>
 
-        <!-- Modal -->
-        <div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true" ref="modalRef">
-            <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-                <div class="modal-content" v-if="selectedItem">
-                    <div class="modal-header">
-                        <h5 class="modal-title">
-                            <a :href="selectedUrl" target="_blank">{{ selectedItem.titleOriginal || selectedItem.title
-                                }}</a>
-                        </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="row mb-3">
-                            <div class="col-md-4 text-center" v-if="selectedItem.posterUrl">
-                                <img class="img-fluid" style="max-height: 250px;" :src="selectedItem.posterUrl"
-                                    :alt="selectedItem.title">
-                            </div>
-                            <div :class="selectedItem.posterUrl ? 'col-md-8' : 'col-12'">
-                                <button class="btn btn-outline-primary w-100 mb-2" @click="addToWatchLater(selectedItem)">Add to Watch Later</button>
-                                <!-- Translations -->
-                                <section-with-buttons title="Translations" :items="selectedItem.translations"
-                                    @parse="handleParse"></section-with-buttons>
-                            </div>
-                        </div>
+        <details-modal :url="modal.url" :item="modal.item" @get-details="handleGetDetails"></details-modal>
 
-                        <!-- Seasons -->
-                        <section-with-buttons title="Seasons" :items="selectedItem.seasons" replace-from="Сезон"
-                            replace-to="Season" @parse="handleParse"></section-with-buttons>
-
-                        <!-- Episodes -->
-                        <section-with-buttons title="Episodes" :items="selectedItem.episodes" replace-from="Серия"
-                            replace-to="Episode" @parse="handleParse"></section-with-buttons>
-
-                        <!-- Actions -->
-                        <div v-if="selectedItem.streams && selectedItem.streams.length">
-                            <h6>Actions</h6>
-                            <stream-dropdown label="Watch" :streams="selectedItem.streams"
-                                @select="showPlayer($event.mp4)"></stream-dropdown>
-
-                            <stream-dropdown v-if="isAndroid" label="Watch External" :streams="selectedItem.streams"
-                                @select="openStream($event.mp4Android)"></stream-dropdown>
-
-                            <stream-dropdown label="Open in Tab" :streams="selectedItem.streams"
-                                @select="openStream($event.mp4)"></stream-dropdown>
-
-                            <stream-dropdown label="Copy Url" :streams="selectedItem.streams"
-                                @select="copyStreamUrl($event.mp4)"></stream-dropdown>
-
-                            <stream-dropdown label="Download" :streams="selectedItem.streams"
-                                @select="download($event.mp4, $event.mp4FileName)"></stream-dropdown>
-
-                            <stream-dropdown label="Download To Server" :streams="selectedItem.streams"
-                                @select="downloadToServer($event.mp4, $event.mp4FileName)"></stream-dropdown>
-
-                            <stream-dropdown label="Download Season" :streams="selectedItem.streams"></stream-dropdown>
-                        </div>
-
-                        <!-- Video Player -->
-                        <div v-if="videoUrl" class="mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="mb-0">Video</h6>
-                                <button class="btn btn-sm btn-danger" @click="hidePlayer()" aria-label="Close Player">Close Player</button>
-                            </div>
-                            <div class="ratio bg-dark rounded overflow-hidden">
-                                <video v-if="videoUrl" id="my-video" class="video-js vjs-default-skin" controls
-                                    preload="auto" width="640" height="264" poster="" data-setup="{}"
-                                    @loadstart="videoLoading = true" @waiting="videoLoading = true"
-                                    @canplay="videoLoading = false" @playing="videoLoading = false">
-                                    <source v-if="videoUrl" :src="videoUrl" type="video/mp4" />
-                                    <p class="vjs-no-js">
-                                        To view this video please enable JavaScript, and consider upgrading to a
-                                        web browser that
-                                        <a href="videojs.com" target="_blank">supports HTML5 video</a>
-                                    </p>
-                                </video>
-                                <div v-if="videoLoading"
-                                    class="d-flex justify-content-center align-items-center bg-dark bg-opacity-75"
-                                    style="z-index: 10;">
-                                    <div class="spinner-border text-light" role="status">
-                                        <span class="visually-hidden">Loading...</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-        </div>
-        
     </div>
 </body>
 

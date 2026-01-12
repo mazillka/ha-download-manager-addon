@@ -1,4 +1,4 @@
-import {ConfigKey} from "../enums";
+import { ConfigKey } from "../enums";
 
 export default interface Config {
   key: ConfigKey;

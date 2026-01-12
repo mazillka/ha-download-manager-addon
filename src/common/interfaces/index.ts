@@ -1,3 +1,4 @@
 import type Config from "./Config";
+import type WatchLater from "./WatchLater";
 
-export type { Config };
+export type { Config, WatchLater };

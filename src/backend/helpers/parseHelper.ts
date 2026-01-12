@@ -148,7 +148,6 @@ export default async function ParseHelper(evalArg: any) {
     return {
       name: el.textContent?.trim() || "",
       active: el.classList.contains("active"),
-      data_id: el.getAttribute("data-id"),
       data_translator_id: el.getAttribute("data-translator_id"),
       url: (el as HTMLAnchorElement).href,
     };
@@ -185,7 +184,6 @@ export default async function ParseHelper(evalArg: any) {
           name: el.textContent?.trim() || "",
           active: el.classList.contains("active"),
           url: (el as HTMLAnchorElement).href,
-          data_id: el.getAttribute("data-id"),
           data_season_id: el.getAttribute("data-season_id"),
           data_episode_id: el.getAttribute("data-episode_id"),
         };

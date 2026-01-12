@@ -2,7 +2,7 @@ import { defineComponent } from "vue";
 
 export default defineComponent({
   name: "SectionWithButtons",
-  
+  emits: ["get-details"],
   props: {
     title: {
       type: String,
@@ -23,6 +23,9 @@ export default defineComponent({
   },
 
   methods: {
+    getDetails(item: any) {
+      this.$emit("get-details", item);
+    },
     formatName(name: string) {
       if (!this.replaceFrom) {
         return name;
@@ -42,7 +45,7 @@ export default defineComponent({
                     class="btn btn-sm me-2 mb-2"
                     :class="item.active ? 'btn-success' : 'btn-outline-primary'"
                     :disabled="item.active"
-                    @click="$emit('parse', item)">
+                    @click="getDetails(item)">
                     {{ formatName(item.name) }}
                 </button>
             </div>
