@@ -12,6 +12,8 @@ import {
 
 import { StreamDropdown, SectionWithButtons, LoadingOverlay } from "./";
 
+import { api } from "../api";
+
 export default defineComponent({
   name: "DetailsModal",
   emits: ["get-details"],
@@ -194,11 +196,7 @@ export default defineComponent({
             filename: filename,
           } as object;
 
-          await fetch("api/download", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
+          await api.downloadToServer(payload);
           // this.getServerDownloads(); // TODO:
 
           showSuccessDialog("Download started on server!");
@@ -211,17 +209,17 @@ export default defineComponent({
         "You won't be able to revert this!"
       ).then(async (isConfirmed) => {
         if (isConfirmed) {
-          await fetch(`api/downloads/${id}/cancel`, { method: "POST" });
+          await api.cancelServerDownload(id);
           // this.getServerDownloads(); // TODO:
         }
       });
     },
     async pauseServerDownload(id: string) {
-      await fetch(`api/downloads/${id}/pause`, { method: "POST" });
+      await api.pauseServerDownload(id);
       // this.getServerDownloads(); // TODO:
     },
     async resumeServerDownload(id: string) {
-      await fetch(`api/downloads/${id}/resume`, { method: "POST" });
+      await api.resumeServerDownload(id);
       // this.getServerDownloads(); // TODO:
     },
     async deleteServerDownload(id: string) {
@@ -235,9 +233,7 @@ export default defineComponent({
             "Do you also want to delete the file from the disk?"
           ).then(async (isConfirmed) => {
             if (isConfirmed) {
-              await fetch(`api/downloads/${id}?removeFile=${isConfirmed}`, {
-                method: "DELETE",
-              });
+              await api.deleteServerDownload(id, isConfirmed);
               //   this.getServerDownloads(); // TODO:
             }
           });

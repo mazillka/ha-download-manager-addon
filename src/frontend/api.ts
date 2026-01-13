@@ -64,14 +64,6 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
-  getDownloads: () => request<DownloadTask[]>("api/downloads"),
-
-  startDownload: (url: string, filename: string) =>
-    request("api/download", {
-      method: "POST",
-      body: JSON.stringify({ url, filename }),
-    }),
-
   addWatchLater: (watchLater: WatchLater) =>
     request("api/watchLater", {
       method: "POST",
@@ -84,11 +76,41 @@ export const api = {
       body: JSON.stringify({ pageUrl: pageUrl }),
     }),
 
-  getWatchLater: () => request<{ list: any[] }>("api/watchLater", {
-    showLoading: false,
-  }),
+  getWatchLater: () =>
+    request<{ list: any[] }>("api/watchLater", {
+      method: "GET",
+      showLoading: false,
+    }),
 
-  getServerDownloads: () => request<{ list: DownloadTask[] }>("api/downloads", {
-    showLoading: false,
-  }),
+  getServerDownloads: () =>
+    request<{ list: DownloadTask[] }>("api/downloads", {
+      method: "GET",
+      showLoading: false,
+    }),
+
+  downloadToServer: (payload: any) =>
+    request("api/download", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  cancelServerDownload: (id: string) =>
+    request(`api/downloads/${id}/cancel`, {
+      method: "POST",
+    }),
+
+  pauseServerDownload: (id: string) =>
+    request(`api/downloads/${id}/pause`, {
+      method: "POST",
+    }),
+
+  resumeServerDownload: (id: string) =>
+    request(`api/downloads/${id}/resume`, {
+      method: "POST",
+    }),
+
+  deleteServerDownload: (id: string, removeFile: boolean) =>
+    request(`api/downloads/${id}?removeFile=${removeFile}`, {
+      method: "DELETE",
+    }),
 };
