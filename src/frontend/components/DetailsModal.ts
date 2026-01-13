@@ -1,6 +1,14 @@
+import "video.js/dist/video-js.css";
+import "video.js/dist/video.js";
+
 import { defineComponent } from "vue";
 import * as bootstrap from "bootstrap";
-import Swal from "sweetalert2";
+
+import {
+  showWarningDialog,
+  showErrorDialog,
+  showSuccessDialog,
+} from "../utils/dialogs";
 
 import { StreamDropdown, SectionWithButtons, LoadingOverlay } from "./";
 
@@ -26,8 +34,7 @@ export default defineComponent({
     item: {
       immediate: true,
       handler(newItem) {
-        if (!newItem) 
-            return;
+        if (!newItem) return;
         this.resetPlayer();
         this.show();
       },
@@ -177,120 +184,61 @@ export default defineComponent({
       this.download.controller?.abort();
     },
     async downloadToServer(url: string, filename: string) {
-      Swal.fire({
-        title: "Are you sure?",
-        text: `${filename} will be downloaded to server.`,
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonText: "Yes",
-        cancelButtonText: "No",
-        customClass: {
-          confirmButton: "btn btn-success",
-          cancelButton: "btn btn-danger",
-        },
-      }).then(async (result: any) => {
-        if (result.isConfirmed) {
-          try {
-            await fetch("api/download", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ url, filename }),
-            });
-            // this.getServerDownloads(); // TODO:
+      showWarningDialog(
+        "Download to Server",
+        `${filename} will be downloaded to server.`
+      ).then(async (isConfirmed) => {
+        if (isConfirmed) {
+          const payload = {
+            url: url,
+            filename: filename,
+          } as object;
 
-            Swal.fire({
-              title: "Download started on server!",
-              icon: "success",
-              customClass: {
-                confirmButton: "btn btn-success",
-                cancelButton: "btn btn-danger",
-              },
-            });
-          } catch (error) {
-            console.error("Error:", error);
-            Swal.fire({
-              title: "Failed to start download",
-              customClass: {
-                confirmButton: "btn btn-success",
-              },
-            });
-          }
+          await fetch("api/download", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          // this.getServerDownloads(); // TODO:
+
+          showSuccessDialog("Download started on server!");
         }
       });
     },
     async cancelServerDownload(id: string) {
-      Swal.fire({
-        title: "Are you sure?",
-        text: "You won't be able to revert this!",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonText: "Yes",
-        cancelButtonText: "No",
-        customClass: {
-          confirmButton: "btn btn-success",
-          cancelButton: "btn btn-danger",
-        },
-      }).then(async (result: any) => {
-        if (result.isConfirmed) {
-          try {
-            await fetch(`api/downloads/${id}/cancel`, { method: "POST" });
-            // this.getServerDownloads(); // TODO:
-          } catch (error) {
-            console.error("Error:", error);
-          }
+      showWarningDialog(
+        "Are you sure?",
+        "You won't be able to revert this!"
+      ).then(async (isConfirmed) => {
+        if (isConfirmed) {
+          await fetch(`api/downloads/${id}/cancel`, { method: "POST" });
+          // this.getServerDownloads(); // TODO:
         }
       });
     },
     async pauseServerDownload(id: string) {
-      try {
-        await fetch(`api/downloads/${id}/pause`, { method: "POST" });
-        // this.getServerDownloads(); // TODO:
-      } catch (error) {
-        console.error("Error:", error);
-      }
+      await fetch(`api/downloads/${id}/pause`, { method: "POST" });
+      // this.getServerDownloads(); // TODO:
     },
     async resumeServerDownload(id: string) {
-      try {
-        await fetch(`api/downloads/${id}/resume`, { method: "POST" });
-        // this.getServerDownloads(); // TODO:
-      } catch (error) {
-        console.error("Error:", error);
-      }
+      await fetch(`api/downloads/${id}/resume`, { method: "POST" });
+      // this.getServerDownloads(); // TODO:
     },
     async deleteServerDownload(id: string) {
-      Swal.fire({
-        title: "Are you sure?",
-        text: "Are you sure you want to delete this download task?",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonText: "Yes",
-        cancelButtonText: "No",
-        customClass: {
-          confirmButton: "btn btn-success",
-          cancelButton: "btn btn-danger",
-        },
-      }).then(async (result: any) => {
-        if (result.isConfirmed) {
-          Swal.fire({
-            title: "Are you sure?",
-            text: "Do you also want to delete the file from the disk?",
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonText: "Yes",
-            cancelButtonText: "No",
-            customClass: {
-              confirmButton: "btn btn-success",
-              cancelButton: "btn btn-danger",
-            },
-          }).then(async (result: any) => {
-            try {
-              await fetch(
-                `api/downloads/${id}?removeFile=${result.isConfirmed}`,
-                { method: "DELETE" }
-              );
+      showWarningDialog(
+        "Are you sure?",
+        "Are you sure you want to delete this download task?"
+      ).then(async (isConfirmed) => {
+        if (isConfirmed) {
+          showWarningDialog(
+            "Are you sure?",
+            "Do you also want to delete the file from the disk?"
+          ).then(async (isConfirmed) => {
+            if (isConfirmed) {
+              await fetch(`api/downloads/${id}?removeFile=${isConfirmed}`, {
+                method: "DELETE",
+              });
               //   this.getServerDownloads(); // TODO:
-            } catch (error) {
-              console.error("Error:", error);
             }
           });
         }

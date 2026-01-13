@@ -1,10 +1,7 @@
 import "./index.css";
 import "bootstrap/dist/css/bootstrap.min.css";
-import "video.js/dist/video-js.css";
 
-import "video.js/dist/video.js";
-import Swal from "sweetalert2";
-import { createApp, defineComponent } from "vue";
+import { createApp, defineComponent, ref, onMounted } from "vue";
 import type { DownloadTask, Tab } from "./interfaces/";
 import {
   StreamDropdown,
@@ -15,15 +12,15 @@ import {
 import type { Config, WatchLater } from "../common/interfaces";
 import { ConfigKey } from "../common/enums";
 import { formatBytes } from "./utils/format";
-
-import { api } from "./api";
+import { showWarningDialog, showSuccessDialog } from "./utils/dialogs";
+import { api, subscribeLoading } from "./api";
 
 const App = defineComponent({
   data() {
     return {
+      isLoading: false,
       query: "",
-      results: [] as any[],
-      loading: false,
+      searchResults: [] as any[],
 
       modal: {
         item: null as any,
@@ -73,6 +70,10 @@ const App = defineComponent({
     },
   },
   mounted() {
+    subscribeLoading((v) => {
+      this.isLoading = v;
+    });
+
     this.getConfigs();
     this.getServerDownloads();
     this.getWatchLaterList();
@@ -83,53 +84,17 @@ const App = defineComponent({
   methods: {
     formatBytes,
     async getConfigs() {
-      try {
-        const { configs } = await api.getConfigs();
-        this.configs = configs;
-      } catch (error) {
-        console.error(`Error: ${error}`);
-      }
+      const { list } = await api.getConfigs();
+
+      this.configs = list;
     },
     async saveConfig() {
-      try {
-        await api.saveConfigs(this.configs);
-      } catch (error) {
-        console.error(`Error: ${error}`);
-      }
-
-      // await fetch("api/configs", {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify({ configs: this.configs }),
-      // })
-      //   .then(async (response) => {
-      //     if (!response.ok) {
-      //       throw new Error("HTTP error " + response.status);
-      //     }
-
-      //     setTimeout(async () => {
-      //       await this.getConfigs();
-      //     }, 1000);
-
-      //     Swal.fire({
-      //       icon: "success",
-      //       title: "Settings saved",
-      //       showConfirmButton: false,
-      //       timer: 1500,
-      //     });
-      //   })
-      //   .catch((error) => {
-      //     console.error("Error:", error);
-      //     Swal.fire({
-      //       icon: "error",
-      //       title: "Error saving settings",
-      //       text: error.message,
-      //     });
-      //   });
+      await api.saveConfigs(this.configs);
     },
-    async selectTab(tabId: string) {
+    async onSelectTab(tabId: string) {
       this.activeTab = tabId;
-      this.results = [];
+      this.query = "";
+      this.searchResults = [];
 
       if (tabId === "search") {
         return;
@@ -147,178 +112,79 @@ const App = defineComponent({
 
       const filter = this.tabUrls[tabId];
       if (filter) {
-        await this.getList(`${this.baseUrl}/${filter}`);
+        await this.getSearchResults(`${this.baseUrl}/${filter}`);
       }
     },
-    async getList(url: string) {
-      this.loading = true;
-      this.results = [];
+    async getSearchResults(url: string) {
+      const { list } = await api.getSearchResults(url);
 
-      await fetch("api/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: url }),
-      })
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error("HTTP error " + response.status);
-          }
-
-          return response.json();
-        })
-        .then((data: any) => {
-          this.results = data;
-        })
-        .catch((error) => {
-          console.error("Error:", error);
-        })
-        .finally(() => {
-          this.loading = false;
-        });
+      this.searchResults = list;
     },
-    async search() {
+    async onSearch() {
       if (!this.query) {
         return;
       }
       const searchUrl = `${
         this.baseUrl
       }/search/?do=search&subaction=search&q=${encodeURIComponent(this.query)}`;
-      await this.getList(searchUrl);
+      await this.getSearchResults(searchUrl);
     },
-    async clear() {
+    async onClear() {
       this.query = "";
-      this.results = [];
+      this.searchResults = [];
     },
     async getDetails(url: string, data_translator_id?: string | null) {
-      this.loading = true;
-      await fetch("api/parse", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url: url,
-          data_translator_id: data_translator_id,
-        }),
-      })
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error("HTTP error " + response.status);
-          }
-          return response.json();
-        })
-        .then((data: any) => {
-          this.modal.init(data, url);
-          // this.modal.show();
-        })
-        .catch((error) => {
-          console.error("Error:", error);
-        })
-        .finally(() => {
-          this.loading = false;
-        });
+      const payload = {
+        url: url,
+        data_translator_id: data_translator_id,
+      } as object;
+
+      const { details } = await api.getDetails(payload);
+
+      this.modal.init(details, url);
     },
     async getServerDownloads() {
-      await fetch("api/downloads")
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error("HTTP error " + response.status);
-          }
-          return response.json();
-        })
-        .then((data: DownloadTask[]) => {
-          this.serverDownloads = data;
-        })
-        .catch((error) => {
-          console.error("Error:", error);
-        });
+      const { list } = await api.getServerDownloads();
+
+      this.serverDownloads = list;
     },
     async getWatchLaterList() {
-      // this.loading = true;
-      await fetch("api/watchLater")
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error("HTTP error " + response.status);
-          }
-          return response.json();
-        })
-        .then((data: WatchLater[]) => {
-          this.watchLaterList = data;
-        })
-        .catch((error) => {
-          console.error("Error:", error);
-        });
-      // .finally(() => {
-      //   this.loading = false;
-      // });
+      const { list } = await api.getWatchLater();
+
+      this.watchLaterList = list;
     },
     async addToWatchLater(item: any) {
-      const payload: WatchLater = {
+      const watchLater: WatchLater = {
         title: item.title,
         pageUrl: item.pageUrl || this.modal.url || "",
         posterUrl: item.posterUrl,
       };
 
-      await fetch("api/watchLater", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
-        .then((response) => {
-          if (!response.ok) throw new Error("HTTP error " + response.status);
-          Swal.fire({
-            icon: "success",
-            title: "Added to Watch Later",
-            showConfirmButton: false,
-            timer: 1500,
-          });
-        })
-        .catch((error) => {
-          console.error("Error:", error);
-          Swal.fire({
-            icon: "error",
-            title: "Error saving to Watch Later",
-            text: error.message,
-          });
-        });
+      await api.addWatchLater(watchLater);
+
+      showSuccessDialog("Added to Watch Later");
     },
     async removeFromWatchLater(pageUrl: string) {
-      Swal.fire({
-        title: "Are you sure?",
-        text: "Remove from Watch Later?",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonText: "Yes",
-        cancelButtonText: "No",
-        customClass: {
-          confirmButton: "btn btn-success",
-          cancelButton: "btn btn-danger",
-        },
-      }).then(async (result: any) => {
-        if (result.isConfirmed) {
-          try {
-            await fetch(`api/watchLater`, {
-              method: "DELETE",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                pageUrl: pageUrl,
-              }),
-            });
+      showWarningDialog("Are you sure?", "Remove from Watch Later?").then(
+        async (isConfirmed) => {
+          if (isConfirmed) {
+            await api.deleteWatchLater(pageUrl);
+
             this.getWatchLaterList();
-          } catch (error) {
-            console.error("Error:", error);
           }
         }
-      });
+      );
     },
-    handleGetDetails(
+    async handleGetDetails(
       t: string | { url?: string; data_translator_id?: string }
     ) {
       if (typeof t === "string") {
-        this.getDetails(t);
+        await this.getDetails(t);
       } else {
         if (t.url) {
-          this.getDetails(t.url);
+          await this.getDetails(t.url);
         } else {
-          this.getDetails(this.modal.url!, t.data_translator_id);
+          await this.getDetails(this.modal.url!, t.data_translator_id);
         }
       }
     },

@@ -1,23 +1,50 @@
 import type { DownloadTask } from "./interfaces/";
+import type { WatchLater } from "../common/interfaces";
 
-async function request<T>(
-  url: string,
-  options?: RequestInit
-): Promise<T> {
-  const res = await fetch(url, {
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
+type LoadingListener = (value: boolean) => void;
 
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}`);
+let loading = false;
+const listeners: LoadingListener[] = [];
+
+export function subscribeLoading(cb: LoadingListener) {
+  listeners.push(cb);
+  cb(loading); // initial state
+}
+
+function setLoading(value: boolean) {
+  loading = value;
+  listeners.forEach((l) => l(value));
+}
+
+type RequestOptions = RequestInit & {
+  showLoading?: boolean;
+};
+
+async function request<T>(url: string, options?: RequestOptions): Promise<T> {
+  const showLoading = options?.showLoading !== false; // default = true
+
+  try {
+    if (showLoading) {
+      setLoading(true);
+    }
+
+    const res = await fetch(url, {
+      headers: { "Content-Type": "application/json" },
+      ...options,
+    });
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+
+    return await res.json();
+  } finally {
+    if (showLoading) setLoading(false);
   }
-
-  return res.json();
 }
 
 export const api = {
-  getConfigs: () => request<{ configs: any[] }>("api/configs"),
+  getConfigs: () => request<{ list: any[] }>("api/configs"),
 
   saveConfigs: (configs: any[]) =>
     request("api/configs", {
@@ -25,14 +52,14 @@ export const api = {
       body: JSON.stringify({ configs }),
     }),
 
-  search: (url: string) =>
-    request<any[]>("api/search", {
+  getSearchResults: (url: string) =>
+    request<{ list: any[] }>("api/search", {
       method: "POST",
       body: JSON.stringify({ url }),
     }),
 
-  parse: (payload: any) =>
-    request("api/parse", {
+  getDetails: (payload: any) =>
+    request<{ details: any }>("api/parse", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
@@ -44,4 +71,24 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ url, filename }),
     }),
+
+  addWatchLater: (watchLater: WatchLater) =>
+    request("api/watchLater", {
+      method: "POST",
+      body: JSON.stringify(watchLater),
+    }),
+
+  deleteWatchLater: (pageUrl: string) =>
+    request("api/watchLater", {
+      method: "DELETE",
+      body: JSON.stringify({ pageUrl: pageUrl }),
+    }),
+
+  getWatchLater: () => request<{ list: any[] }>("api/watchLater", {
+    showLoading: false,
+  }),
+
+  getServerDownloads: () => request<{ list: DownloadTask[] }>("api/downloads", {
+    showLoading: false,
+  }),
 };

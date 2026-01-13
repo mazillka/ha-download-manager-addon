@@ -2,8 +2,8 @@ import type { Request, Response } from "express";
 import { DownloadService, DbService } from "../services";
 
 export const getDownloads = async (req: Request, res: Response) => {
-  const tasks = await DbService.getAllTasks();
-  res.json(tasks.sort((a, b) => b.startTime - a.startTime));
+  const list = await DbService.getAllTasks();
+  res.json({ list: list.sort((a, b) => b.startTime - a.startTime) });
 };
 
 export const createDownload = async (req: Request, res: Response) => {
@@ -19,22 +19,22 @@ export const createDownload = async (req: Request, res: Response) => {
 };
 
 export const pauseDownload = async (req: Request, res: Response) => {
-  await DownloadService.pauseDownload(req.params.id);
+  await DownloadService.pauseDownload(req.params.id as string);
   res.status(200).send("OK");
 };
 
 export const resumeDownload = async (req: Request, res: Response) => {
-  await DownloadService.resumeDownload(req.params.id);
+  await DownloadService.resumeDownload(req.params.id as string);
   res.status(200).send("OK");
 };
 
 export const cancelDownload = async (req: Request, res: Response) => {
-  await DownloadService.cancelDownload(req.params.id);
+  await DownloadService.cancelDownload(req.params.id as string);
   res.status(200).send("OK");
 };
 
 export const deleteDownload = async (req: Request, res: Response) => {
   const removeFile = req.query.removeFile === "true";
-  await DownloadService.deleteDownload(req.params.id, removeFile);
+  await DownloadService.deleteDownload(req.params.id as string, removeFile);
   res.status(200).send("OK");
 };

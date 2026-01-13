@@ -10,7 +10,7 @@
 <body>
     <div id="app" v-cloak>
         <!-- Loading Overlay -->
-        <loading-overlay :loading="loading"></loading-overlay>
+        <loading-overlay :loading="isLoading"></loading-overlay>
 
         <!-- Navbar -->
         <div class="container py-4">
@@ -18,7 +18,7 @@
                 <!-- Tabs -->
                 <ul class="nav nav-tabs mb-0">
                     <li class="nav-item" v-for="tab in tabs" :key="tab.id">
-                        <button class="nav-link" :class="{ active: activeTab === tab.id }" @click="selectTab(tab.id)">
+                        <button class="nav-link" :class="{ active: activeTab === tab.id }" @click="onSelectTab(tab.id)">
                             {{ tab.name }}
                             <span v-if="tab.id === 'downloads' && activeServerDownloads > 0"
                                 class="badge bg-danger ms-1 rounded-pill">
@@ -38,17 +38,17 @@
                 <div class="col-12">
                     <div class="input-group">
                         <input type="text" class="form-control" placeholder="Search..." v-model="query"
-                            @keyup.enter="search">
-                        <button class="btn btn-success" @click="search" :disabled="loading">Search</button>
-                        <button class="btn btn-secondary" @click="clear" :disabled="loading">Clear</button>
+                            @keyup.enter="onSearch()">
+                        <button class="btn btn-success" @click="onSearch()" :disabled="isLoading">Search</button>
+                        <button class="btn btn-secondary" @click="onClear()" :disabled="isLoading">Clear</button>
                     </div>
                 </div>
             </div>
 
-            <!-- Results -->
+            <!-- Search Results -->
             <div class="row g-4" id="cards-row"
                 v-if="activeTab === 'search' || activeTab === 'watching' || activeTab === 'latest' || activeTab === 'popular'">
-                <div v-for="(item, index) in results" :key="index"
+                <div v-for="(item, index) in searchResults" :key="index"
                     class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 d-flex">
                     <div class="card h-100 w-100 d-flex flex-column" @click="handleGetDetails(item.pageUrl)">
                         <div class="card-body d-flex flex-column">
@@ -146,7 +146,7 @@
                             <input type="text" class="form-control" :id="config.key" v-model="config.value">
                             <div class="form-text" v-if="config.description">{{ config.description }}</div>
                         </div>
-                        <button class="btn btn-primary" @click="saveConfig">Save</button>
+                        <button class="btn btn-primary" @click="saveConfig()">Save</button>
                     </div>
                 </div>
             </div>
