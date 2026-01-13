@@ -4,11 +4,7 @@ import "video.js/dist/video.js";
 import { defineComponent } from "vue";
 import * as bootstrap from "bootstrap";
 
-import {
-  showWarningDialog,
-  showErrorDialog,
-  showSuccessDialog,
-} from "../utils/dialogs";
+import { showWarningDialog, showSuccessDialog } from "../utils/dialogs";
 
 import { StreamDropdown, SectionWithButtons, LoadingOverlay } from "./";
 
@@ -16,7 +12,7 @@ import { api } from "../api";
 
 export default defineComponent({
   name: "DetailsModal",
-  emits: ["get-details"],
+  emits: ["get-details", "add-to-watch-later"],
   components: {
     StreamDropdown,
     SectionWithButtons,
@@ -36,7 +32,9 @@ export default defineComponent({
     item: {
       immediate: true,
       handler(newItem) {
-        if (!newItem) return;
+        if (!newItem) {
+          return;
+        }
         this.resetPlayer();
         this.show();
       },
@@ -55,13 +53,13 @@ export default defineComponent({
         loaded: 0,
         total: 0,
         speed: 0,
-        controller: null as AbortController | null,
+        controller: new AbortController(),
         reset() {
           this.progress = 0;
           this.loaded = 0;
           this.total = 0;
           this.speed = 0;
-          this.controller = null as AbortController | null;
+          this.controller = new AbortController();
         },
       },
     };
@@ -83,6 +81,9 @@ export default defineComponent({
   methods: {
     getDetails(item: any) {
       this.$emit("get-details", item);
+    },
+    addToWatchLater(item: any) {
+      this.$emit("add-to-watch-later", item);
     },
     show() {
       this.instance?.show();
@@ -124,7 +125,7 @@ export default defineComponent({
       this.download.reset();
       try {
         const response = await fetch(url, {
-          signal: this.download.controller?.signal,
+          signal: this.download.controller.signal,
         });
         if (!response.ok) {
           throw new Error("HTTP error " + response.status);
@@ -183,7 +184,7 @@ export default defineComponent({
       }
     },
     cancelLocalDownload() {
-      this.download.controller?.abort();
+      this.download.controller.abort();
     },
     async downloadToServer(url: string, filename: string) {
       showWarningDialog(
@@ -197,7 +198,6 @@ export default defineComponent({
           } as object;
 
           await api.downloadToServer(payload);
-          // this.getServerDownloads(); // TODO:
 
           showSuccessDialog("Download started on server!");
         }
@@ -210,17 +210,14 @@ export default defineComponent({
       ).then(async (isConfirmed) => {
         if (isConfirmed) {
           await api.cancelServerDownload(id);
-          // this.getServerDownloads(); // TODO:
         }
       });
     },
     async pauseServerDownload(id: string) {
       await api.pauseServerDownload(id);
-      // this.getServerDownloads(); // TODO:
     },
     async resumeServerDownload(id: string) {
       await api.resumeServerDownload(id);
-      // this.getServerDownloads(); // TODO:
     },
     async deleteServerDownload(id: string) {
       showWarningDialog(
@@ -234,7 +231,6 @@ export default defineComponent({
           ).then(async (isConfirmed) => {
             if (isConfirmed) {
               await api.deleteServerDownload(id, isConfirmed);
-              //   this.getServerDownloads(); // TODO:
             }
           });
         }

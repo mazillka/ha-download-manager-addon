@@ -1,15 +1,16 @@
 import { app } from "./app";
-import { DbService, DownloadService } from "./services";
+import { DownloadService, ConfigService } from "./services";
+import { initDB } from "./db";
 
 const port = process.env.PORT || 3000;
 
-DbService.initDB();
+initDB();
 
 (async () => {
-  const tasks = await DownloadService.restoreDownloads();
+  const tasks = await DownloadService.Restore();
   console.info(`Loaded ${tasks.length} tasks`);
 
-  const configs = await DbService.getAllConfig();
+  const configs = await ConfigService.GetAll();
   console.info(`Loaded ${configs.length} configs`);
 
   app.listen(port, () => {

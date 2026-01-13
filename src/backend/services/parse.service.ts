@@ -1,9 +1,9 @@
-import { BrowserService } from "./";
+import { BrowserService } from ".";
 import type { SearchResult, ParseResult } from "../interfaces";
 import { SearchHelper, ParseHelper } from "../helpers";
 
-export const search = async (url: string): Promise<SearchResult[]> => {
-  return await BrowserService.parse(
+export const Search = async (url: string): Promise<SearchResult[]> => {
+  return await BrowserService.Parse(
     url,
     (evalArg: any) => {
       const func = new Function(`return (${evalArg.funcString})`)();
@@ -21,11 +21,11 @@ export const search = async (url: string): Promise<SearchResult[]> => {
   );
 };
 
-export const parse = async (
+export const GetDetails = async (
   url: string,
   data_translator_id?: string,
 ): Promise<ParseResult> => {
-  return await BrowserService.parse(
+  return await BrowserService.Parse(
     url,
     async (evalArg: any) => {
       const func = new Function(`return (${evalArg.funcString})`)();
@@ -44,4 +44,4 @@ export const parse = async (
   );
 };
 
-export default { search, parse };
+export default { Search, GetDetails };

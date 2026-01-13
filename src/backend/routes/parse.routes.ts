@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { search, parse } from "../controllers/parse.controller";
+import { Search, GetDetails } from "../controllers/parse.controller";
 
 const router = Router();
 
-router.post("/search", search);
-router.post("/parse", parse);
+router.post("/search", Search);
+router.post("/getDetails", GetDetails);
 
 export default router;

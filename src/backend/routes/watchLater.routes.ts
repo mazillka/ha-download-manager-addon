@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { getAll, Add, Delete } from "../controllers/watchLater.controller";
+import { GetAll, Add, Delete } from "../controllers/watchLater.controller";
 
 const router = Router();
 
-router.get("/", getAll);
+router.get("/", GetAll);
 router.post("/", Add);
 router.delete("/", Delete);
 

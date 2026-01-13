@@ -33,6 +33,7 @@ export async function showSuccessDialog(title: string): Promise<void> {
     title,
     icon: "success",
     showCloseButton: false,
+    showConfirmButton: false,
     customClass: {
       confirmButton: "btn btn-success",
       cancelButton: "btn btn-danger",

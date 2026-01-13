@@ -2,6 +2,8 @@ import { chromium } from "playwright";
 import type { Browser, BrowserContext, Page } from "playwright";
 import type { ParseOptions } from "../interfaces";
 
+const showConsoleMessages = false;
+
 let browser: Browser | null = null;
 let context: BrowserContext | null = null;
 let totalPages = 0;
@@ -156,7 +158,7 @@ export async function getPage(): Promise<Page> {
   return acquirePage();
 }
 
-export async function parse<T>(
+export async function Parse<T>(
   url: string,
   func: (arg: any) => T | Promise<T>,
   options: ParseOptions = {}
@@ -334,48 +336,47 @@ export async function parse<T>(
 }
 
 function SubscribeForLogs(page: Page) {
-  page.on("console", (msg) => {
-    if (msg.type() === "log") {
-      console.log(`[${new Date().toLocaleString()}] - console: ${msg.text()}`);
-    }
+  if (showConsoleMessages) {
+    page.on("console", (msg) => {
+      if (msg.type() === "log") {
+        console.log(
+          `[${new Date().toLocaleString()}] - console: ${msg.text()}`
+        );
+      }
 
-    if (msg.type() === "error") {
-      if (msg.text().includes("Failed to load resource: net::")) {
+      if (msg.type() === "error") {
+        if (msg.text().includes("Failed to load resource: net::")) {
+          return;
+        }
+
+        console.log(" - - - - - - - - - - - - - - ");
+        console.error(
+          `[${new Date().toLocaleString()}] - console error: ${msg.text()}`
+        );
+        console.log(" - - - - - - - - - - - - - - ");
+      }
+    });
+
+    page.on("pageerror", (error) => {
+      if (error.message.includes("Failed to fetch")) {
         return;
       }
 
       console.log(" - - - - - - - - - - - - - - ");
       console.error(
-        `[${new Date().toLocaleString()}] - console error: ${msg.text()}`
+        `[${new Date().toLocaleString()}] - exception name: ${error.name}`
+      );
+      console.error(
+        `[${new Date().toLocaleString()}] - exception message: ${error.message}`
+      );
+      console.error(
+        `[${new Date().toLocaleString()}] - exception stack: ${error.stack}`
       );
       console.log(" - - - - - - - - - - - - - - ");
-    }
-  });
-
-  page.on("pageerror", (error) => {
-    if (error.message.includes("Failed to fetch")) {
-      return;
-    }
-
-    console.log(" - - - - - - - - - - - - - - ");
-    console.error(
-      `[${new Date().toLocaleString()}] - exception name: ${error.name}`
-    );
-    console.error(
-      `[${new Date().toLocaleString()}] - exception message: ${error.message}`
-    );
-    console.error(
-      `[${new Date().toLocaleString()}] - exception stack: ${error.stack}`
-    );
-    console.log(" - - - - - - - - - - - - - - ");
-  });
+    });
+  }
 }
 
 export default {
-  getBrowser,
-  getContext,
-  acquirePage,
-  releasePage,
-  getPage,
-  parse,
+  Parse,
 };

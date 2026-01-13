@@ -1,12 +1,12 @@
 import type { Request, Response } from "express";
-import { DownloadService, DbService } from "../services";
+import { DownloadService } from "../services";
 
-export const getDownloads = async (req: Request, res: Response) => {
-  const list = await DbService.getAllTasks();
+export const GetAll = async (req: Request, res: Response) => {
+  const list = await DownloadService.GetAll();
   res.json({ list: list.sort((a, b) => b.startTime - a.startTime) });
 };
 
-export const createDownload = async (req: Request, res: Response) => {
+export const Create = async (req: Request, res: Response) => {
   const { url, filename } = req.body;
 
   if (!url || !filename) {
@@ -14,27 +14,27 @@ export const createDownload = async (req: Request, res: Response) => {
     return;
   }
 
-  const id = await DownloadService.createDownload(url, filename);
+  const id = await DownloadService.Create(url, filename);
   res.json({ status: "started", id });
 };
 
-export const pauseDownload = async (req: Request, res: Response) => {
-  await DownloadService.pauseDownload(req.params.id as string);
+export const Pause = async (req: Request, res: Response) => {
+  await DownloadService.Pause(req.params.id as string);
   res.status(200).send("OK");
 };
 
-export const resumeDownload = async (req: Request, res: Response) => {
-  await DownloadService.resumeDownload(req.params.id as string);
+export const Resume = async (req: Request, res: Response) => {
+  await DownloadService.Resume(req.params.id as string);
   res.status(200).send("OK");
 };
 
-export const cancelDownload = async (req: Request, res: Response) => {
-  await DownloadService.cancelDownload(req.params.id as string);
+export const Cancel = async (req: Request, res: Response) => {
+  await DownloadService.Cancel(req.params.id as string);
   res.status(200).send("OK");
 };
 
-export const deleteDownload = async (req: Request, res: Response) => {
+export const Delete = async (req: Request, res: Response) => {
   const removeFile = req.query.removeFile === "true";
-  await DownloadService.deleteDownload(req.params.id as string, removeFile);
+  await DownloadService.Delete(req.params.id as string, removeFile);
   res.status(200).send("OK");
 };

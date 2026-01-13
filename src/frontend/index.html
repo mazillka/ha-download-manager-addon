@@ -60,7 +60,7 @@
                                     <span v-if="item.category"
                                         class="badge bg-primary position-absolute top-0 end-0 rounded-0 opacity-75">
                                         {{ item.category.replace("Сериал", "Show").replace("Фильм",
-                                        "Movie").replace("Аниме", "Anime").replace("Мультфильм", "Cartoon")}}
+                                        "Movie").replace("Аниме", "Anime").replace("Мультфильм", "Cartoon") }}
                                     </span>
                                 </div>
                             </div>
@@ -87,7 +87,7 @@
                                 </div>
                             </div>
                             <button class="btn btn-outline-danger mt-2"
-                                @click="removeFromWatchLater(item.pageUrl)">Remove</button>
+                                @click.stop="removeFromWatchLater(item.pageUrl)">Remove</button>
                         </div>
                     </div>
                 </div>
@@ -152,7 +152,7 @@
             </div>
         </div>
 
-        <details-modal :url="modal.url" :item="modal.item" @get-details="handleGetDetails"></details-modal>
+        <details-modal :url="modal.url" :item="modal.item" @get-details="handleGetDetails" @add-to-watch-later="addToWatchLater"></details-modal>
 
     </div>
 </body>

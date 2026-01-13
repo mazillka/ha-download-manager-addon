@@ -1,12 +1,12 @@
 import { Router } from "express";
 import {
-  getAll,
-  addOrUpdate
+  GetAll,
+  AddOrUpdateAll
 } from "../controllers/config.controller";
 
 const router = Router();
 
-router.get("/", getAll);
-router.post("/", addOrUpdate);
+router.get("/", GetAll);
+router.post("/", AddOrUpdateAll);
 
 export default router;

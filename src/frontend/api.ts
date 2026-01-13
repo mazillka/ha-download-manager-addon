@@ -18,10 +18,11 @@ function setLoading(value: boolean) {
 
 type RequestOptions = RequestInit & {
   showLoading?: boolean;
+  controller?: AbortController;
 };
 
 async function request<T>(url: string, options?: RequestOptions): Promise<T> {
-  const showLoading = options?.showLoading !== false; // default = true
+  const showLoading = options?.showLoading !== false;
 
   try {
     if (showLoading) {
@@ -30,6 +31,7 @@ async function request<T>(url: string, options?: RequestOptions): Promise<T> {
 
     const res = await fetch(url, {
       headers: { "Content-Type": "application/json" },
+      signal: options?.controller?.signal,
       ...options,
     });
 
@@ -39,17 +41,19 @@ async function request<T>(url: string, options?: RequestOptions): Promise<T> {
 
     return await res.json();
   } finally {
-    if (showLoading) setLoading(false);
+    if (showLoading) {
+      setLoading(false);
+    }
   }
 }
 
 export const api = {
   getConfigs: () => request<{ list: any[] }>("api/configs"),
 
-  saveConfigs: (configs: any[]) =>
+  saveConfigs: (list: any[]) =>
     request("api/configs", {
       method: "POST",
-      body: JSON.stringify({ configs }),
+      body: JSON.stringify({ list }),
     }),
 
   getSearchResults: (url: string) =>
@@ -59,7 +63,7 @@ export const api = {
     }),
 
   getDetails: (payload: any) =>
-    request<{ details: any }>("api/parse", {
+    request<{ details: any }>("api/getDetails", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
@@ -112,5 +116,12 @@ export const api = {
   deleteServerDownload: (id: string, removeFile: boolean) =>
     request(`api/downloads/${id}?removeFile=${removeFile}`, {
       method: "DELETE",
+    }),
+
+  downloadToLocal: (url: string, options?: RequestOptions) =>
+    request("api/downloadLocal", {
+      method: "POST",
+      body: JSON.stringify({ url }),
+      ...options,
     }),
 };

@@ -1,19 +1,30 @@
 import fs from "fs";
 import path from "path";
 import fetch from "node-fetch";
-import * as dbService from "./dbService";
 import type { Task } from "../interfaces";
 import { ConfigKey } from "../../common/enums";
+import {
+  saveTask,
+  deleteTask,
+  getAllTasks,
+  getTask,
+  getConfig,
+  addHistory,
+} from "../db";
 
 const activeControllers: Record<string, AbortController> = {};
 
-export const startDownload = async (id: string): Promise<void> => {
-  const downloadPath = await dbService.getConfig(ConfigKey.DownloadPath);
+export const GetAll = async (): Promise<Task[]> => {
+  return await getAllTasks();
+};
+
+export const Start = async (id: string): Promise<void> => {
+  const downloadPath = await getConfig(ConfigKey.DownloadPath);
   if (!downloadPath) {
     return;
   }
 
-  const task = await dbService.getTask(id);
+  const task = await getTask(id);
   if (!task) {
     return;
   }
@@ -27,7 +38,7 @@ export const startDownload = async (id: string): Promise<void> => {
     task.status = "downloading";
     task.error = null;
     activeControllers[id] = new AbortController();
-    await dbService.saveTask(task);
+    await saveTask(task);
 
     let headers: Record<string, string> = {};
     let flags = "w";
@@ -52,7 +63,7 @@ export const startDownload = async (id: string): Promise<void> => {
         // Range Not Satisfiable (likely completed)
         task.status = "completed";
         task.progress = 100;
-        await dbService.saveTask(task);
+        await saveTask(task);
         delete activeControllers[id];
         return;
       }
@@ -72,54 +83,58 @@ export const startDownload = async (id: string): Promise<void> => {
       const contentRange = response.headers.get("content-range");
       if (contentRange) {
         const match = contentRange.match(/\/(\d+)$/);
-        if (match) task.total = parseInt(match[1], 10);
+        if (match) {
+          task.total = parseInt(match[1], 10);
+        }
       } else {
         task.total = task.loaded + contentLength;
       }
     } else {
       task.total = contentLength;
     }
-    await dbService.saveTask(task); // Save total size
+    await saveTask(task); // Save total size
 
     const fileStream = fs.createWriteStream(dest, { flags });
     let lastLoaded = task.loaded;
     let lastTime = Date.now();
 
     if (response.body) {
-      response.body.on("data", (chunk: Buffer) => {
+      response.body.on("data", async (chunk: Buffer) => {
         task.loaded += chunk.length;
-        if (task.total)
+        if (task.total) {
           task.progress = Math.round((task.loaded / task.total) * 100);
+        }
 
         const now = Date.now();
         if (now - lastTime >= 1000) {
           task.speed = (task.loaded - lastLoaded) / ((now - lastTime) / 1000);
           lastLoaded = task.loaded;
           lastTime = now;
-          dbService.saveTask(task).catch(console.error);
+          await saveTask(task).catch(console.error);
         }
       });
 
-      response.body.on("error", (error: Error) => {
-        if (error.name === "AbortError") return;
+      response.body.on("error", async (error: Error) => {
+        if (error.name === "AbortError") {
+          return;
+        }
         task.status = "error";
         task.error = error.message;
         task.speed = 0;
         delete activeControllers[id];
-        dbService.saveTask(task).catch(console.error);
+        await saveTask(task).catch(console.error);
       });
 
-      fileStream.on("finish", () => {
+      fileStream.on("finish", async () => {
         if (task.status === "downloading") {
           task.status = "completed";
           task.progress = 100;
           task.speed = 0;
           delete activeControllers[id];
-          dbService.saveTask(task).catch(console.error);
+          await saveTask(task);
 
           // Log to Database
-          dbService
-            .addHistory(task.filename, task.total)
+          await addHistory(task.filename, task.total)
             .then(() => console.info(`Saved ${task.filename} to history DB.`))
             .catch((error) =>
               console.error("Failed to save download to DB:", error)
@@ -141,11 +156,11 @@ export const startDownload = async (id: string): Promise<void> => {
     }
     task.speed = 0;
     delete activeControllers[id];
-    await dbService.saveTask(task);
+    await saveTask(task);
   }
 };
 
-export const createDownload = async (
+export const Create = async (
   url: string,
   filename: string
 ): Promise<string> => {
@@ -163,40 +178,40 @@ export const createDownload = async (
     error: null,
   };
 
-  await dbService.saveTask(task);
-  startDownload(id);
+  await saveTask(task);
+  Start(id);
   return id;
 };
 
-export const pauseDownload = async (id: string): Promise<void> => {
-  const task = await dbService.getTask(id);
+export const Pause = async (id: string): Promise<void> => {
+  const task = await getTask(id);
   if (task && task.status === "downloading") {
     task.status = "paused";
     if (activeControllers[id]) {
       activeControllers[id].abort();
       delete activeControllers[id];
     }
-    await dbService.saveTask(task);
+    await saveTask(task);
   }
 };
 
-export const resumeDownload = async (id: string): Promise<void> => {
-  const task = await dbService.getTask(id);
+export const Resume = async (id: string): Promise<void> => {
+  const task = await getTask(id);
   if (task && (task.status === "paused" || task.status === "error")) {
-    startDownload(id);
+    Start(id);
   }
 };
 
-export const deleteDownload = async (
+export const Delete = async (
   id: string,
   removeFile: boolean
 ): Promise<void> => {
-  const downloadPath = await dbService.getConfig(ConfigKey.DownloadPath);
+  const downloadPath = await getConfig(ConfigKey.DownloadPath);
   if (!downloadPath) {
     return;
   }
 
-  const task = await dbService.getTask(id);
+  const task = await getTask(id);
   if (!task) {
     return;
   }
@@ -215,22 +230,22 @@ export const deleteDownload = async (
       }
     }
   }
-  await dbService.deleteTask(id);
+  await deleteTask(id);
 };
 
-export const cancelDownload = async (id: string): Promise<void> => {
-  return deleteDownload(id, false);
+export const Cancel = async (id: string): Promise<void> => {
+  return Delete(id, false);
 };
 
-export const restoreDownloads = async (): Promise<Task[]> => {
-  const tasks = await dbService.getAllTasks();
+export const Restore = async (): Promise<Task[]> => {
+  const tasks = await getAllTasks();
   await Promise.all(
     tasks.map(async (t) => {
       // If it was downloading when killed, set to paused
       if (t.status === "downloading") {
         t.status = "paused";
         t.error = "Interrupted by server restart";
-        await dbService.saveTask(t);
+        await saveTask(t);
       }
     })
   );
@@ -238,11 +253,12 @@ export const restoreDownloads = async (): Promise<Task[]> => {
 };
 
 export default {
-  startDownload,
-  createDownload,
-  pauseDownload,
-  resumeDownload,
-  deleteDownload,
-  cancelDownload,
-  restoreDownloads,
+  GetAll,
+  Start,
+  Create,
+  Pause,
+  Resume,
+  Delete,
+  Cancel,
+  Restore,
 };
