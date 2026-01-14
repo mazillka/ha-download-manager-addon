@@ -1,5 +1,5 @@
-import type { DownloadTask } from "./interfaces/";
-import type { Config, ParseResult, SearchResult, WatchLater } from "../common/interfaces";
+
+import type { Config, DownloadTask, ParseResult, SearchResult, WatchLater } from "../common/interfaces";
 
 type LoadingListener = (value: boolean) => void;
 

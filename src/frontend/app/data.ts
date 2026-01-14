@@ -1,6 +1,6 @@
-import type { DownloadTask, Tab } from "../interfaces";
 import type {
   Config,
+  DownloadTask,
   ParseResult,
   SearchResult,
   WatchLater,

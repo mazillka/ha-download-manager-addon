@@ -1,0 +1,194 @@
+<script lang="ts">
+import { defineComponent } from "vue";
+import {
+    StreamDropdown,
+    SectionWithButtons,
+    LoadingOverlay,
+    DetailsModal,
+    AddToWatchLaterButton,
+} from "./components";
+import { data } from "./app/data";
+import { mounted } from "./app/mounted";
+import { computed } from "./app/computed";
+import { methods } from "./app/methods";
+
+export default defineComponent({
+    name: "App",
+    ...data,
+    ...mounted,
+    computed,
+    methods,
+    components: {
+        StreamDropdown,
+        SectionWithButtons,
+        LoadingOverlay,
+        DetailsModal,
+        AddToWatchLaterButton,
+    },
+});
+</script>
+
+<style>
+.card {
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: scale(1.02);
+}
+
+[v-cloak] {
+    display: none;
+}
+
+@import "bootstrap/dist/css/bootstrap.min.css";
+</style>
+
+<template>
+
+    <!-- Loading Overlay -->
+    <loading-overlay :loading="isLoading"></loading-overlay>
+
+    <!-- Navbar -->
+    <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <!-- Tabs -->
+            <ul class="nav nav-tabs mb-0">
+                <li class="nav-item" v-for="tab in tabs" :key="tab.id">
+                    <button class="nav-link" :class="{ active: activeTab === tab.id }" @click="onSelectTab(tab.id)">
+                        {{ tab.name }}
+                        <span v-if="tab.id === 'downloads' && activeServerDownloads > 0"
+                            class="badge bg-danger ms-1 rounded-pill">
+                            {{ activeServerDownloads }}
+                        </span>
+                        <span v-if="tab.id === 'watch_later' && watchLaterCount > 0"
+                            class="badge bg-danger ms-1 rounded-pill">
+                            {{ watchLaterCount }}
+                        </span>
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Search -->
+        <div class="row mb-4" v-if="activeTab === 'search'">
+            <div class="col-12">
+                <div class="input-group">
+                    <input type="text" class="form-control" placeholder="Search..." v-model="query"
+                        @keyup.enter="onSearch()">
+                    <button class="btn btn-success" @click="onSearch()" :disabled="isLoading">Search</button>
+                    <button class="btn btn-secondary" @click="onClear()" :disabled="isLoading">Clear</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Results -->
+        <div class="row g-4" id="cards-row"
+            v-if="activeTab === 'search' || activeTab === 'watching' || activeTab === 'latest' || activeTab === 'popular'">
+            <div v-for="(item, index) in searchResults" :key="index"
+                class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 d-flex">
+                <div class="card h-100 w-100 d-flex flex-column" @click="handleGetDetails(item.pageUrl)">
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title">{{ item.title }}</h5>
+                        <div class="mt-auto d-flex justify-content-center">
+                            <div style="max-height:150px; display:flex; align-items:flex-end; position: relative;">
+                                <img :src="item.posterUrl" :alt="item.title" class="img-fluid"
+                                    style="max-width:100%; max-height:100%;">
+                                <span v-if="item.category"
+                                    class="badge bg-primary position-absolute top-0 end-0 rounded-0 opacity-75">
+                                    {{ item.category.replace("Сериал", "Show").replace("Фильм",
+                                        "Movie").replace("Аниме", "Anime").replace("Мультфильм", "Cartoon") }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <add-to-watch-later-button :title="item.title" :page-url="item.pageUrl"
+                            :poster-url="item.posterUrl"></add-to-watch-later-button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Watch Later -->
+        <div class="row g-4" v-if="activeTab === 'watch_later'">
+            <div v-if="!watchLaterList || watchLaterList.length === 0" class="col-12 text-center text-muted mt-5">No
+                items in Watch Later</div>
+            <div v-for="(item, index) in watchLaterList" :key="index"
+                class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 d-flex">
+                <div class="card h-100 w-100 d-flex flex-column" @click="handleGetDetails(item.pageUrl)">
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title">{{ item.title }}</h5>
+                        <div class="mt-auto d-flex justify-content-center">
+                            <div style="max-height:150px; display:flex; align-items:flex-end; position: relative;">
+                                <img :src="item.posterUrl" :alt="item.title" class="img-fluid"
+                                    style="max-width:100%; max-height:100%;">
+                            </div>
+                        </div>
+                        <button class="btn btn-outline-danger mt-2"
+                            @click.stop="removeFromWatchLater(item.pageUrl)">Remove</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Server Downloads -->
+        <div v-if="activeTab === 'downloads'" class="mt-4">
+            <div v-if="serverDownloads.length === 0" class="text-center text-muted mt-5">No active downloads</div>
+            <div v-else class="card">
+                <div class="card-body">
+                    <div v-for="item in serverDownloads" :key="item.id" class="mb-3 border-bottom pb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div class="text-truncate me-2" :title="item.filename"><strong>{{ item.filename
+                                    }}</strong></div>
+                            <div>
+                                <span class="badge"
+                                    :class="{ 'bg-primary': item.status === 'downloading', 'bg-success': item.status === 'completed', 'bg-danger': item.status === 'error', 'bg-secondary': item.status === 'pending' }">{{
+                                        item.status }}</span>
+                            </div>
+                        </div>
+                        <div class="progress mb-1" style="height: 10px;">
+                            <div class="progress-bar" role="progressbar" :style="{ width: item.progress + '%' }">
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center small text-muted">
+                            <div>
+                                {{ formatBytes(item.loaded) }} / {{ item.total ? formatBytes(item.total) : '?' }}
+                                <span v-if="item.status === 'downloading'">({{ formatBytes(item.speed) }}/s)</span>
+                            </div>
+                            <div>
+                                <button v-if="item.status === 'downloading'" class="btn btn-sm btn-warning py-0 me-1"
+                                    @click="pauseServerDownload(item.id)">Pause</button>
+                                <button v-if="item.status === 'paused' || item.status === 'error'"
+                                    class="btn btn-sm btn-success py-0 me-1"
+                                    @click="resumeServerDownload(item.id)">Resume</button>
+                                <button v-if="item.status === 'downloading' || item.status === 'pending'"
+                                    class="btn btn-sm btn-secondary py-0 me-1"
+                                    @click="cancelServerDownload(item.id)">Cancel</button>
+                                <button class="btn btn-sm btn-danger py-0"
+                                    @click="deleteServerDownload(item.id)">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings -->
+        <div v-if="activeTab === 'settings'" class="mt-4">
+            <div class="card">
+                <div class="card-header">Settings</div>
+                <div class="card-body">
+                    <div class="mb-3" v-for="config in configs" :key="config.key">
+                        <label :for="config.key" class="form-label">{{ config.title }}</label>
+                        <input type="text" class="form-control" :id="config.key" v-model="config.value">
+                        <div class="form-text" v-if="config.description">{{ config.description }}</div>
+                    </div>
+                    <button class="btn btn-primary" @click="saveConfig()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <details-modal :url="modal.url" :item="modal.item" @get-details="handleGetDetails"></details-modal>
+</template>

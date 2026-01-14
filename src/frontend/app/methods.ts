@@ -74,6 +74,41 @@ export const methods: Record<string, any> = {
     }
   },
 
+  async cancelServerDownload(id: string) {
+    const isConfirmed = await showWarningDialog(
+      "Are you sure?",
+      "You won't be able to revert this!"
+    );
+    if (!isConfirmed) return;
+    await api.cancelServerDownload(id);
+  },
+
+  async pauseServerDownload(id: string) {
+    await api.pauseServerDownload(id);
+  },
+
+  async resumeServerDownload(id: string) {
+    await api.resumeServerDownload(id);
+  },
+
+  async deleteServerDownload(id: string) {
+    const isConfirmed1 = await showWarningDialog(
+      "Are you sure?",
+      "You want to delete this task?"
+    );
+
+    if (!isConfirmed1) return;
+
+    const isConfirmed2 = await showWarningDialog(
+      "Are you sure?",
+      "Also delete file from disk?"
+    );
+
+    if (!isConfirmed2) return;
+
+    await api.deleteServerDownload(id, isConfirmed2);
+  },
+
   async handleGetDetails(
     t: string | { url?: string; data_translator_id?: string }
   ) {

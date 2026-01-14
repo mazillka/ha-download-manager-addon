@@ -9,6 +9,8 @@ import type Stream from "./Stream";
 import type Translation from "./Translation";
 import type SearchResult from "./SearchResult";
 import type ParseResult from "./ParseResult";
+import type DownloadTask from "./DownloadTask";
+import type Tab from "./Tab";
 
 export type {
   Config,
@@ -22,4 +24,6 @@ export type {
   Translation,
   SearchResult,
   ParseResult,
+  DownloadTask,
+  Tab,
 };

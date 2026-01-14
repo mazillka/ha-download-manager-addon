@@ -3,14 +3,17 @@
     "target": "ES2020",
     "module": "ESNext",
     "lib": ["dom", "dom.iterable", "esnext"],
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "noEmit": false,
-    "types": ["bootstrap"]
+    "types": ["bootstrap"],
+    "jsx": "preserve",
+    "allowJs": true,
+    "isolatedModules": true
   },
-  "include": ["./**/*"],
-  "exclude": ["node_modules", "../dist"]
+  "include": ["./**/*", "../common/interfaces/DownloadTask.ts", "../common/interfaces/Tab.ts"],
+  "exclude": ["node_modules", "dist"]
 }

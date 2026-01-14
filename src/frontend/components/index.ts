@@ -1,8 +1,8 @@
-import StreamDropdown from "./StreamDropdown";
-import SectionWithButtons from "./SectionWithButtons";
-import LoadingOverlay from "./LoadingOverlay";
-import DetailsModal from "./DetailsModal";
-import AddToWatchLaterButton from "./AddToWatchLaterButton";
+import StreamDropdown from "./StreamDropdown.vue";
+import SectionWithButtons from "./SectionWithButtons.vue";
+import LoadingOverlay from "./LoadingOverlay.vue";
+import DetailsModal from "./DetailsModal.vue";
+import AddToWatchLaterButton from "./AddToWatchLaterButton.vue";
 
 export {
   StreamDropdown,
