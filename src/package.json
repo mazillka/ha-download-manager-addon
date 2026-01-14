@@ -5,7 +5,7 @@
   "description": "Home Assistant Download Manager Add-on",
   "main": "backend/server.ts",
   "scripts": {
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev": "concurrently -k -n backend,frontend -c cyan,magenta \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "nodemon --watch backend --ext ts,json --exec \"node ./backend/esbuild.config.ts && node ./dist/backend/server.js\"",
     "dev:frontend": "webpack --config ./frontend/webpack.config.ts --watch --mode development",
     "build:dev": "npm run build:backend && npm run build:frontend:dev",
