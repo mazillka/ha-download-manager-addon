@@ -14,6 +14,12 @@
     "allowJs": true,
     "isolatedModules": true
   },
+  "ts-node": {
+    "esm": true,
+    "compilerOptions": {
+      "module": "ESNext"
+    }
+  },
   "include": ["./**/*"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "../dist"]
 }
