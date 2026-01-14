@@ -64,8 +64,9 @@
                                     </span>
                                 </div>
                             </div>
-                            <button class="btn btn-outline-primary mt-2" @click.stop="addToWatchLater(item)"
-                                title="Add to Watch Later">Add to Watch Later</button>
+
+                            <add-to-watch-later-button :title="item.title" :page-url="item.pageUrl"
+                                :poster-url="item.posterUrl"></add-to-watch-later-button>
                         </div>
                     </div>
                 </div>
@@ -152,8 +153,7 @@
             </div>
         </div>
 
-        <details-modal :url="modal.url" :item="modal.item" @get-details="handleGetDetails" @add-to-watch-later="addToWatchLater"></details-modal>
-
+        <details-modal :url="modal.url" :item="modal.item" @get-details="handleGetDetails"></details-modal>
     </div>
 </body>
 

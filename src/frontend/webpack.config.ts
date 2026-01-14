@@ -8,7 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
   mode: "production",
-  entry: "./frontend/index.ts",
+  entry: "./frontend/main.ts",
   module: {
     rules: [
       {

@@ -8,12 +8,15 @@ import { showWarningDialog, showSuccessDialog } from "../utils/dialogs";
 
 import { StreamDropdown, SectionWithButtons, LoadingOverlay } from "./";
 
+import AddToWatchLaterButton from "./AddToWatchLaterButton";
+
 import { api } from "../api";
 
 export default defineComponent({
   name: "DetailsModal",
-  emits: ["get-details", "add-to-watch-later"],
+  emits: ["get-details"],
   components: {
+    AddToWatchLaterButton,
     StreamDropdown,
     SectionWithButtons,
     LoadingOverlay,
@@ -24,6 +27,7 @@ export default defineComponent({
       default: null,
     },
     url: {
+      // TODO: ADD TO item OBJECT
       type: String,
       default: null,
     },
@@ -81,9 +85,6 @@ export default defineComponent({
   methods: {
     getDetails(item: any) {
       this.$emit("get-details", item);
-    },
-    addToWatchLater(item: any) {
-      this.$emit("add-to-watch-later", item);
     },
     show() {
       this.instance?.show();
@@ -254,8 +255,9 @@ export default defineComponent({
                     <div class="row mb-3">
                         <div class="col-md-4 text-center" v-if="item.posterUrl">
                             <img class="img-fluid" style="max-height: 250px;" :src="item.posterUrl" :alt="item.title">
-                            <button class="btn btn-outline-primary mt-2" @click="addToWatchLater(item)">Add to Watch
-                                Later</button>
+
+                            <add-to-watch-later-button :title="item.titleOriginal || item.title" :page-url="url"
+                                :poster-url="item.posterUrl"></add-to-watch-later-button>
                         </div>
                         <div :class="item.posterUrl ? 'col-md-8' : 'col-12'">
                             <!-- Translations -->
