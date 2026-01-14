@@ -92,7 +92,7 @@ export const api = {
     }),
 
   downloadToServer: (payload: object) =>
-    request("api/download", {
+    request("api/downloads", {
       method: "POST",
       body: JSON.stringify(payload),
     }),

@@ -5,6 +5,7 @@ import DetailsModal from "./DetailsModal.vue";
 import AddToWatchLaterButton from "./AddToWatchLaterButton.vue";
 import RemoveFromWatchLaterButton from "./RemoveFromWatchLaterButton.vue";
 import App from "./App.vue";
+import VideoPlayer from "./VideoPlayer.vue";
 
 export {
   App,
@@ -14,4 +15,5 @@ export {
   DetailsModal,
   AddToWatchLaterButton,
   RemoveFromWatchLaterButton,
+  VideoPlayer,
 };

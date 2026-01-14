@@ -1,8 +1,6 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import {
-    StreamDropdown,
-    SectionWithButtons,
     LoadingOverlay,
     DetailsModal,
     AddToWatchLaterButton,
@@ -17,18 +15,16 @@ import {
 } from "../../common/interfaces";
 import { api, subscribeLoading } from "../api";
 import { formatBytes } from "../utils/format";
-import { showWarningDialog, showSuccessDialog } from "../utils/dialogs";
+import { showWarningDialog } from "../utils/dialogs";
 import { ConfigKey } from "../../common/enums";
 
 export default defineComponent({
     name: "App",
     components: {
-        StreamDropdown,
-        SectionWithButtons,
         LoadingOverlay,
         DetailsModal,
         AddToWatchLaterButton,
-        RemoveFromWatchLaterButton,
+        RemoveFromWatchLaterButton
     },
     data() {
         return {
@@ -256,9 +252,9 @@ export default defineComponent({
             <div class="col-12">
                 <div class="input-group">
                     <input type="text" class="form-control" placeholder="Search..." v-model="query"
-                        @keyup.enter="onSearch()">
-                    <button class="btn btn-success" @click="onSearch()" :disabled="isLoading">Search</button>
-                    <button class="btn btn-secondary" @click="onClear()" :disabled="isLoading">Clear</button>
+                        @keyup.enter="onSearch">
+                    <button class="btn btn-success" @click="onSearch" :disabled="isLoading">Search</button>
+                    <button class="btn btn-secondary" @click="onClear" :disabled="isLoading">Clear</button>
                 </div>
             </div>
         </div>
@@ -364,7 +360,7 @@ export default defineComponent({
                         <input type="text" class="form-control" :id="config.key || ''" v-model="config.value">
                         <div class="form-text" v-if="config.description">{{ config.description }}</div>
                     </div>
-                    <button class="btn btn-primary" @click="saveConfig()">Save</button>
+                    <button class="btn btn-primary" @click="saveConfig">Save</button>
                 </div>
             </div>
         </div>
