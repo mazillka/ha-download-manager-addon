@@ -6,6 +6,7 @@ import {
     LoadingOverlay,
     DetailsModal,
     AddToWatchLaterButton,
+    RemoveFromWatchLaterButton,
 } from ".";
 import {
     Config,
@@ -21,6 +22,14 @@ import { ConfigKey } from "../../common/enums";
 
 export default defineComponent({
     name: "App",
+    components: {
+        StreamDropdown,
+        SectionWithButtons,
+        LoadingOverlay,
+        DetailsModal,
+        AddToWatchLaterButton,
+        RemoveFromWatchLaterButton,
+    },
     data() {
         return {
             isLoading: false,
@@ -147,23 +156,14 @@ export default defineComponent({
             this.watchLaterList = list;
         },
 
-        async removeFromWatchLater(pageUrl: string) {
-            const ok = await showWarningDialog(
-                "Are you sure?",
-                "Remove from Watch Later?"
-            );
-            if (ok) {
-                await api.deleteWatchLater(pageUrl);
-                this.getWatchLaterList();
-            }
-        },
-
         async cancelServerDownload(id: string) {
             const isConfirmed = await showWarningDialog(
                 "Are you sure?",
                 "You won't be able to revert this!"
             );
+
             if (!isConfirmed) return;
+
             await api.cancelServerDownload(id);
         },
 
@@ -204,15 +204,6 @@ export default defineComponent({
                 await this.getDetails(this.modal.url!, t.data_translator_id);
             }
         },
-    },
-
-
-    components: {
-        StreamDropdown,
-        SectionWithButtons,
-        LoadingOverlay,
-        DetailsModal,
-        AddToWatchLaterButton,
     },
 });
 </script>
@@ -314,8 +305,8 @@ export default defineComponent({
                                     style="max-width:100%; max-height:100%;">
                             </div>
                         </div>
-                        <button class="btn btn-outline-danger mt-2"
-                            @click.stop="removeFromWatchLater(item.pageUrl)">Remove</button>
+
+                        <remove-from-watch-later-button :page-url="item.pageUrl"></remove-from-watch-later-button>
                     </div>
                 </div>
             </div>

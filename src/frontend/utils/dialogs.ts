@@ -34,6 +34,7 @@ export async function showSuccessDialog(title: string): Promise<void> {
     icon: "success",
     showCloseButton: false,
     showConfirmButton: false,
+    timer: 1000,
     customClass: {
       confirmButton: "btn btn-success",
       cancelButton: "btn btn-danger",

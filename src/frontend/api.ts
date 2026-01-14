@@ -1,5 +1,10 @@
-
-import type { Config, DownloadTask, ParseResult, SearchResult, WatchLater } from "../common/interfaces";
+import type {
+  Config,
+  DownloadTask,
+  ParseResult,
+  SearchResult,
+  WatchLater,
+} from "../common/interfaces";
 
 type LoadingListener = (value: boolean) => void;
 
@@ -25,9 +30,7 @@ async function request<T>(url: string, options?: RequestOptions): Promise<T> {
   const showLoading = options?.showLoading !== false;
 
   try {
-    if (showLoading) {
-      setLoading(true);
-    }
+    if (showLoading) setLoading(true);
 
     const res = await fetch(url, {
       headers: { "Content-Type": "application/json" },
@@ -35,15 +38,11 @@ async function request<T>(url: string, options?: RequestOptions): Promise<T> {
       ...options,
     });
 
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
-    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
     return await res.json();
   } finally {
-    if (showLoading) {
-      setLoading(false);
-    }
+    if (showLoading) setLoading(false);
   }
 }
 

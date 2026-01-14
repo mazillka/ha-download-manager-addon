@@ -100,8 +100,7 @@ function resetPlayer() {
 }
 
 function openStream(url: string | undefined | null) {
-  if (!url)
-    return;
+  if (!url) return;
 
   window.open(url, "_blank");
 }
@@ -120,10 +119,7 @@ function copyStreamUrl(url: string) {
 }
 
 async function downloadToLocal(url: string, filename: string | undefined | null) {
-  if (!url || !filename) {
-    return;
-  }
-
+  if (!url || !filename) return;
 
   loading.value = true;
   download.value.reset();
@@ -182,9 +178,7 @@ function cancelLocalDownload() {
 }
 
 async function downloadToServer(url: string, filename: string | undefined | null) {
-  if (!url || !filename) {
-    return;
-  }
+  if (!url || !filename) return;
 
   const isConfirmed = await showWarningDialog(
     "Download to Server",
@@ -216,8 +210,8 @@ async function downloadToServer(url: string, filename: string | undefined | null
           <div class="row mb-3">
             <div class="col-md-4 text-center" v-if="props.item.posterUrl">
               <img class="img-fluid" style="max-height: 250px;" :src="props.item.posterUrl" :alt="props.item.title" />
-              <add-to-watch-later-button :title="props.item.titleOriginal || props.item.title" :page-url="props.url || '#'"
-                :poster-url="props.item.posterUrl" />
+              <add-to-watch-later-button :title="props.item.titleOriginal || props.item.title"
+                :page-url="props.url || '#'" :poster-url="props.item.posterUrl" />
             </div>
             <div :class="props.item.posterUrl ? 'col-md-8' : 'col-12'">
               <section-with-buttons title="Translations" :items="props.item.translations" @get-details="getDetails" />
