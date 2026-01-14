@@ -18,8 +18,8 @@ export const app = express();
 app.use(express.json());
 
 app.use("/health", healthRoutes);
-app.use("/api/configs", configRoutes);
 app.use("/api", parseRoutes);
+app.use("/api/configs", configRoutes);
 app.use("/api/downloads", downloadRoutes);
 app.use("/api/watchLater", watchLaterRoutes);
 

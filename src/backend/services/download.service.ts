@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import fetch from "node-fetch";
-import type { Task } from "../interfaces";
+import type { Task } from "../../common/interfaces";
 import { ConfigKey } from "../../common/enums";
 import {
   saveTask,

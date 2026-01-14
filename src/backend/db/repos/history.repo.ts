@@ -1,5 +1,5 @@
 import { db } from "../connection";
-import type { HistoryItem } from "../../interfaces";
+import type { HistoryItem } from "../../../common/interfaces";
 
 export const addHistory = (filename: string, size: number): Promise<number> => {
   return new Promise((resolve, reject) => {

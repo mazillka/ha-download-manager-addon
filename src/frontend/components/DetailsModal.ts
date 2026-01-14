@@ -139,6 +139,7 @@ export default defineComponent({
         let lastTime = Date.now();
 
         const reader = response.body!.getReader();
+
         const chunks = [];
 
         while (true) {

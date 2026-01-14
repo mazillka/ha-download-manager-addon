@@ -1,4 +1,4 @@
-import type { Stream } from "../interfaces";
+import type { Stream } from "../../common/interfaces";
 
 export default async function ParseHelper(evalArg: any) {
   const TriggerAll = (el: Element | null): void => {

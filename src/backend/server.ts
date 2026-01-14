@@ -1,12 +1,12 @@
 import { app } from "./app";
-import { DownloadService, ConfigService } from "./services";
 import { initDB } from "./db";
+import { DownloadService, ConfigService } from "./services";
 
 const port = process.env.PORT || 3000;
 
-initDB();
-
 (async () => {
+  initDB();
+
   const tasks = await DownloadService.Restore();
   console.info(`Loaded ${tasks.length} tasks`);
 
@@ -14,6 +14,6 @@ initDB();
   console.info(`Loaded ${configs.length} configs`);
 
   app.listen(port, () => {
-    console.info(`🚀 Server running on http://localhost:${port}`);
+    console.info(`🚀 Server running on http://localhost:${port} 🚀`);
   });
 })();

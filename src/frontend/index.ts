@@ -1,7 +1,7 @@
 import "./index.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 
-import { createApp, defineComponent, ref, onMounted } from "vue";
+import { createApp, defineComponent } from "vue";
 import type { DownloadTask, Tab } from "./interfaces/";
 import {
   StreamDropdown,
@@ -9,7 +9,12 @@ import {
   LoadingOverlay,
   DetailsModal,
 } from "./components/";
-import type { Config, WatchLater } from "../common/interfaces";
+import type {
+  Config,
+  ParseResult,
+  SearchResult,
+  WatchLater,
+} from "../common/interfaces";
 import { ConfigKey } from "../common/enums";
 import { formatBytes } from "./utils/format";
 import { showWarningDialog, showSuccessDialog } from "./utils/dialogs";
@@ -20,10 +25,10 @@ const App = defineComponent({
     return {
       isLoading: false,
       query: "",
-      searchResults: [] as any[],
+      searchResults: [] as SearchResult[],
 
       modal: {
-        item: null as any,
+        item: null as ParseResult | null,
         url: null as string | null,
 
         init(data: any, url: string) {
@@ -83,14 +88,6 @@ const App = defineComponent({
   },
   methods: {
     formatBytes,
-    async getConfigs() {
-      const { list } = await api.getConfigs();
-
-      this.configs = list;
-    },
-    async saveConfig() {
-      await api.saveConfigs(this.configs);
-    },
     async onSelectTab(tabId: string) {
       this.activeTab = tabId;
       this.query = "";
@@ -115,11 +112,6 @@ const App = defineComponent({
         await this.getSearchResults(`${this.baseUrl}/${filter}`);
       }
     },
-    async getSearchResults(url: string) {
-      const { list } = await api.getSearchResults(url);
-
-      this.searchResults = list;
-    },
     async onSearch() {
       if (!this.query) {
         return;
@@ -133,6 +125,11 @@ const App = defineComponent({
       this.query = "";
       this.searchResults = [];
     },
+    async getSearchResults(url: string) {
+      const { list } = await api.getSearchResults(url);
+
+      this.searchResults = list;
+    },
     async getDetails(url: string, data_translator_id?: string | null) {
       const payload = {
         url: url,
@@ -142,6 +139,14 @@ const App = defineComponent({
       const { details } = await api.getDetails(payload);
 
       this.modal.init(details, url);
+    },
+    async getConfigs() {
+      const { list } = await api.getConfigs();
+
+      this.configs = list;
+    },
+    async saveConfig() {
+      await api.saveConfigs(this.configs);
     },
     async getServerDownloads() {
       const { list } = await api.getServerDownloads();
@@ -154,13 +159,13 @@ const App = defineComponent({
       this.watchLaterList = list;
     },
     async addToWatchLater(item: any) {
-      const watchLater: WatchLater = {
+      const payload = {
         title: item.title,
         pageUrl: item.pageUrl || this.modal.url || "",
         posterUrl: item.posterUrl,
-      };
+      } as object;
 
-      await api.addWatchLater(watchLater);
+      await api.addWatchLater(payload);
 
       showSuccessDialog("Added to Watch Later");
     },

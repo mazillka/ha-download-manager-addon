@@ -1,5 +1,5 @@
 import { db } from "../connection";
-import type { Task } from "../../interfaces";
+import type { Task } from "../../../common/interfaces";
 
 export const saveTask = (task: Task): Promise<void> => {
   return new Promise((resolve, reject) => {
