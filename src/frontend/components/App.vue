@@ -6,18 +6,207 @@ import {
     LoadingOverlay,
     DetailsModal,
     AddToWatchLaterButton,
-} from "./components";
-import { data } from "./app/data";
-import { mounted } from "./app/mounted";
-import { computed } from "./app/computed";
-import { methods } from "./app/methods";
+} from ".";
+import {
+    Config,
+    DownloadTask,
+    ParseResult,
+    SearchResult,
+    WatchLater,
+} from "../../common/interfaces";
+import { api, subscribeLoading } from "../api";
+import { formatBytes } from "../utils/format";
+import { showWarningDialog, showSuccessDialog } from "../utils/dialogs";
+import { ConfigKey } from "../../common/enums";
 
 export default defineComponent({
     name: "App",
-    ...data,
-    ...mounted,
-    computed,
-    methods,
+    data() {
+        return {
+            isLoading: false,
+            query: "",
+            searchResults: [] as SearchResult[],
+
+            modal: {
+                item: null as ParseResult | null,
+                url: null as string | null,
+                init(data: ParseResult, url: string) {
+                    this.item = data;
+                    this.url = url;
+                },
+            },
+
+            serverPollInterval: null as number | null,
+            activeTab: "search",
+
+            tabs: [
+                { id: "search", name: "Search" },
+                { id: "watching", name: "Watching Now" },
+                { id: "latest", name: "Latest arrivals" },
+                { id: "popular", name: "Popular" },
+                { id: "downloads", name: "Downloads" },
+                { id: "watch_later", name: "Watch Later" },
+                { id: "settings", name: "Settings" },
+            ],
+            tabUrls: {
+                watching: "?filter=watching",
+                popular: "?filter=popular",
+                latest: "?filter=last",
+            } as Record<string, string>,
+
+            configs: [] as Config[],
+            serverDownloads: [] as any[],
+            watchLaterList: [] as WatchLater[],
+        };
+    },
+    mounted() {
+        subscribeLoading((v) => (this.isLoading = v));
+
+        this.getConfigs();
+        this.getServerDownloads();
+        this.getWatchLaterList();
+
+        this.serverPollInterval = window.setInterval(async () => {
+            await Promise.all([this.getServerDownloads(), this.getWatchLaterList()]);
+        }, 3000);
+    },
+    computed: {
+        activeServerDownloads(): number {
+            return this.serverDownloads.filter(
+                (x: any) => x.status === "downloading" || x.status === "pending"
+            ).length;
+        },
+
+        watchLaterCount(): number {
+            return this.watchLaterList.length;
+        },
+
+        baseUrl(): string {
+            return (
+                this.configs.find((x: any) => x.key === ConfigKey.BaseUrl)?.value || ""
+            );
+        },
+    },
+    methods: {
+        formatBytes,
+
+        async onSelectTab(tabId: string) {
+            this.activeTab = tabId;
+            this.query = "";
+            this.searchResults = [];
+
+            if (tabId === "search") return;
+            if (tabId === "settings") return this.getConfigs();
+            if (tabId === "watch_later") return this.getWatchLaterList();
+
+            const filter = this.tabUrls[tabId];
+            if (filter) {
+                await this.getSearchResults(`${this.baseUrl}/${filter}`);
+            }
+        },
+
+        async onSearch() {
+            if (!this.query) return;
+
+            const searchUrl = `${this.baseUrl
+                }/search/?do=search&subaction=search&q=${encodeURIComponent(this.query)}`;
+            await this.getSearchResults(searchUrl);
+        },
+
+        async onClear() {
+            this.query = "";
+            this.searchResults = [];
+        },
+
+        async getSearchResults(url: string) {
+            const { list } = await api.getSearchResults(url);
+            this.searchResults = list;
+        },
+
+        async getDetails(url: string, data_translator_id?: string | null) {
+            const { details } = await api.getDetails({ url, data_translator_id });
+            this.modal.init(details, url);
+        },
+
+        async getConfigs() {
+            const { list } = await api.getConfigs();
+            this.configs = list;
+        },
+
+        async saveConfig() {
+            await api.saveConfigs(this.configs);
+        },
+
+        async getServerDownloads() {
+            const { list } = await api.getServerDownloads();
+            this.serverDownloads = list;
+        },
+
+        async getWatchLaterList() {
+            const { list } = await api.getWatchLater();
+            this.watchLaterList = list;
+        },
+
+        async removeFromWatchLater(pageUrl: string) {
+            const ok = await showWarningDialog(
+                "Are you sure?",
+                "Remove from Watch Later?"
+            );
+            if (ok) {
+                await api.deleteWatchLater(pageUrl);
+                this.getWatchLaterList();
+            }
+        },
+
+        async cancelServerDownload(id: string) {
+            const isConfirmed = await showWarningDialog(
+                "Are you sure?",
+                "You won't be able to revert this!"
+            );
+            if (!isConfirmed) return;
+            await api.cancelServerDownload(id);
+        },
+
+        async pauseServerDownload(id: string) {
+            await api.pauseServerDownload(id);
+        },
+
+        async resumeServerDownload(id: string) {
+            await api.resumeServerDownload(id);
+        },
+
+        async deleteServerDownload(id: string) {
+            const isConfirmed1 = await showWarningDialog(
+                "Are you sure?",
+                "You want to delete this task?"
+            );
+
+            if (!isConfirmed1) return;
+
+            const isConfirmed2 = await showWarningDialog(
+                "Are you sure?",
+                "Also delete file from disk?"
+            );
+
+            if (!isConfirmed2) return;
+
+            await api.deleteServerDownload(id, isConfirmed2);
+        },
+
+        async handleGetDetails(
+            t: string | { url?: string; data_translator_id?: string }
+        ) {
+            if (typeof t === "string") {
+                await this.getDetails(t);
+            } else if (t.url) {
+                await this.getDetails(t.url);
+            } else {
+                await this.getDetails(this.modal.url!, t.data_translator_id);
+            }
+        },
+    },
+
+
     components: {
         StreamDropdown,
         SectionWithButtons,
@@ -140,7 +329,7 @@ export default defineComponent({
                     <div v-for="item in serverDownloads" :key="item.id" class="mb-3 border-bottom pb-2">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <div class="text-truncate me-2" :title="item.filename"><strong>{{ item.filename
-                                    }}</strong></div>
+                            }}</strong></div>
                             <div>
                                 <span class="badge"
                                     :class="{ 'bg-primary': item.status === 'downloading', 'bg-success': item.status === 'completed', 'bg-danger': item.status === 'error', 'bg-secondary': item.status === 'pending' }">{{
@@ -180,8 +369,8 @@ export default defineComponent({
                 <div class="card-header">Settings</div>
                 <div class="card-body">
                     <div class="mb-3" v-for="config in configs" :key="config.key">
-                        <label :for="config.key" class="form-label">{{ config.title }}</label>
-                        <input type="text" class="form-control" :id="config.key" v-model="config.value">
+                        <label :for="config.key || ''" class="form-label">{{ config.value }}</label>
+                        <input type="text" class="form-control" :id="config.key || ''" v-model="config.value">
                         <div class="form-text" v-if="config.description">{{ config.description }}</div>
                     </div>
                     <button class="btn btn-primary" @click="saveConfig()">Save</button>

@@ -17,7 +17,7 @@ import { StreamDropdown, SectionWithButtons, LoadingOverlay, AddToWatchLaterButt
 // -------------------- Props & Emits --------------------
 const props = defineProps<{
   item: ParseResult | null;
-  url: string | undefined;
+  url: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -207,7 +207,7 @@ async function downloadToServer(url: string, filename: string | undefined | null
       <div class="modal-content" v-if="props.item">
         <div class="modal-header">
           <h5 class="modal-title">
-            <a :href="props.url" target="_blank">{{ props.item.titleOriginal || props.item.title }}</a>
+            <a :href="props.url || '#'" target="_blank">{{ props.item.titleOriginal || props.item.title }}</a>
           </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
@@ -216,7 +216,7 @@ async function downloadToServer(url: string, filename: string | undefined | null
           <div class="row mb-3">
             <div class="col-md-4 text-center" v-if="props.item.posterUrl">
               <img class="img-fluid" style="max-height: 250px;" :src="props.item.posterUrl" :alt="props.item.title" />
-              <add-to-watch-later-button :title="props.item.titleOriginal || props.item.title" :page-url="props.url"
+              <add-to-watch-later-button :title="props.item.titleOriginal || props.item.title" :page-url="props.url || '#'"
                 :poster-url="props.item.posterUrl" />
             </div>
             <div :class="props.item.posterUrl ? 'col-md-8' : 'col-12'">
