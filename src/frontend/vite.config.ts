@@ -4,7 +4,7 @@ import path from "path";
 
 export default defineConfig({
   root: "frontend",
-
+  base: "./",
   plugins: [vue()],
 
   resolve: {
