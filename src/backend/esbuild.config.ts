@@ -6,15 +6,16 @@ import fs from "fs";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Plugin to resolve .js imports to .ts files
+const isWatch = process.argv.includes("--watch");
+
+// Plugin: resolve .js → .ts
 const resolveExtensions = {
   name: "resolve-extensions",
   setup(build: any) {
-    build.onResolve({ filter: /.*/ }, async (args: any) => {
-      if (
-        args.importer &&
-        (args.path.startsWith(".") || args.path.startsWith("/"))
-      ) {
+    build.onResolve({ filter: /.*/ }, (args: any) => {
+      if (!args.importer) return;
+
+      if (args.path.startsWith(".") || args.path.startsWith("/")) {
         const resolveDir = args.resolveDir || path.dirname(args.importer);
         const absolutePath = path.resolve(resolveDir, args.path);
 
@@ -29,14 +30,24 @@ const resolveExtensions = {
   },
 };
 
-await esbuild.build({
+const config: esbuild.BuildOptions = {
   entryPoints: [path.join(__dirname, "server.ts")],
   bundle: true,
   platform: "node",
   format: "esm",
+  target: "node20",
   outfile: path.join(__dirname, "../dist/backend/server.js"),
   packages: "external",
   plugins: [resolveExtensions],
   sourcemap: true,
   logLevel: "info",
-});
+  minify: !isWatch,
+};
+
+if (isWatch) {
+  const ctx = await esbuild.context(config);
+  await ctx.watch();
+  console.log("👀 esbuild watching backend...");
+} else {
+  await esbuild.build(config);
+}

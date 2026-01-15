@@ -1,22 +1,33 @@
+# =========================
+# 1️⃣ Build stage
+# =========================
 FROM node:20-bookworm-slim AS builder
 
 WORKDIR /src
 
+# ======== Install all deps (cached layer) =======
 COPY src/package.json src/package-lock.json ./
 RUN npm ci
 
+# Source code
 COPY src/common ./common/
 COPY src/backend ./backend/
 COPY src/frontend ./frontend/
+
+# Build backend + frontend
 RUN npm run build:prod
 
+
+# =========================
+# 2️⃣ Runtime stage
+# =========================
 FROM node:20-bookworm-slim
 
 # ========= Home Assistant / Node =========
 ENV NODE_ENV=production
 ENV TZ=UTC
 
-# Playwright / Chromium оптимізація
+# Playwright / Chromium optimizations
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
@@ -25,15 +36,16 @@ ENV NPM_CONFIG_LOGLEVEL=warn
 
 WORKDIR /src/dist
 
-# ======= Install deps (cached layer) =======
+# ======= Install prod deps (cached layer) =======
 COPY src/package.json src/package-lock.json ./
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm ci --omit=dev \
+ && npm cache clean --force
 
-# Playwright deps
+# ======= Playwright deps =======
 RUN npx -y playwright install-deps chromium \
-    && npx -y playwright install chromium
+ && npx -y playwright install chromium
 
-# ======= App source =======
+# ======= App build output =======
 COPY --from=builder /src/dist/backend ./backend/
 COPY --from=builder /src/dist/frontend ./frontend/
 

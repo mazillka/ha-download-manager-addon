@@ -205,6 +205,8 @@ export default defineComponent({
 </script>
 
 <style>
+@import "bootstrap";
+
 .card {
     cursor: pointer;
     transition: transform 0.2s;
@@ -217,8 +219,6 @@ export default defineComponent({
 [v-cloak] {
     display: none;
 }
-
-@import "bootstrap/dist/css/bootstrap.min.css";
 </style>
 
 <template>
