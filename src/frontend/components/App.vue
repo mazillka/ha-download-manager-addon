@@ -288,6 +288,8 @@ export default defineComponent({
 
         <!-- Watch Later -->
         <div class="row g-4" v-if="activeTab === 'watch_later'">
+            <!-- TODO: add import and export to local file or google drive -->
+             
             <div v-if="!watchLaterList || watchLaterList.length === 0" class="col-12 text-center text-muted mt-5">No
                 items in Watch Later</div>
             <div v-for="(item, index) in watchLaterList" :key="index"
@@ -356,7 +358,6 @@ export default defineComponent({
                 <div class="card-header">Settings</div>
                 <div class="card-body">
                     <div class="mb-3" v-for="config in configs" :key="config.key">
-                        <label :for="config.key || ''" class="form-label">{{ config.value }}</label>
                         <input type="text" class="form-control" :id="config.key || ''" v-model="config.value">
                         <div class="form-text" v-if="config.description">{{ config.description }}</div>
                     </div>
