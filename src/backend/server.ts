@@ -1,11 +1,10 @@
 import { app } from "./app";
-import { initDB } from "./db";
-import { DownloadService, ConfigService } from "./services";
+import { DownloadService, ConfigService, DatabaseService } from "./services";
 
 const port = process.env.PORT || 3000;
 
 (async () => {
-  initDB();
+  await DatabaseService.Initialize();
 
   const tasks = await DownloadService.Restore();
   console.info(`Loaded ${tasks.length} tasks`);

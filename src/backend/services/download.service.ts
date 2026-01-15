@@ -10,7 +10,7 @@ import {
   getTask,
   getConfig,
   addHistory,
-} from "../db";
+} from "../database";
 
 const activeControllers: Record<string, AbortController> = {};
 

@@ -1,4 +1,4 @@
-import { deleteWatchLater, addWatchLater, getAllWatchLater } from "../db/";
+import { deleteWatchLater, addWatchLater, getAllWatchLater } from "../database";
 import type { WatchLater } from "../../common/interfaces";
 
 export const GetAll = async (): Promise<WatchLater[]> => {

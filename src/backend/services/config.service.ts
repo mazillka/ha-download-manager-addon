@@ -1,4 +1,4 @@
-import { addOrUpdateConfigs, getAllConfigs } from "../db/";
+import { addOrUpdateConfigs, getAllConfigs } from "../database/";
 import type { Config } from "../../common/interfaces";
 
 export const GetAll = async (): Promise<Config[]> => {
