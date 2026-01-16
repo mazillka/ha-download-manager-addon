@@ -116,4 +116,11 @@ export const api = {
     request(`api/downloads/${id}?removeFile=${removeFile}`, {
       method: "DELETE",
     }),
+
+  syncWatchLater: (list: WatchLater[]) =>
+    request("api/watchLater/sync", {
+      method: "POST",
+      body: JSON.stringify({ list }),
+      showLoading: false,
+    }),
 };

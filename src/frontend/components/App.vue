@@ -70,9 +70,10 @@ export default defineComponent({
         this.getConfigs();
         this.getServerDownloads();
         this.getWatchLaterList();
+        this.syncWatchLater();
 
         this.serverPollInterval = window.setInterval(async () => {
-            await Promise.all([this.getServerDownloads(), this.getWatchLaterList()]);
+            await Promise.all([this.getServerDownloads(), this.getWatchLaterList(), this.syncWatchLater()]);
         }, 3000);
     },
     computed: {
@@ -189,6 +190,10 @@ export default defineComponent({
             await api.deleteServerDownload(id, isConfirmed2);
         },
 
+        async syncWatchLater() {
+            await api.syncWatchLater(this.watchLaterList);
+        },
+
         async handleGetDetails(
             t: string | { url?: string; data_translator_id?: string }
         ) {
@@ -288,8 +293,6 @@ export default defineComponent({
 
         <!-- Watch Later -->
         <div class="row g-4" v-if="activeTab === 'watch_later'">
-            <!-- TODO: add import and export to local file or google drive -->
-             
             <div v-if="!watchLaterList || watchLaterList.length === 0" class="col-12 text-center text-muted mt-5">No
                 items in Watch Later</div>
             <div v-for="(item, index) in watchLaterList" :key="index"
@@ -318,7 +321,7 @@ export default defineComponent({
                     <div v-for="item in serverDownloads" :key="item.id" class="mb-3 border-bottom pb-2">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <div class="text-truncate me-2" :title="item.filename"><strong>{{ item.filename
-                            }}</strong></div>
+                                    }}</strong></div>
                             <div>
                                 <span class="badge"
                                     :class="{ 'bg-primary': item.status === 'downloading', 'bg-success': item.status === 'completed', 'bg-danger': item.status === 'error', 'bg-secondary': item.status === 'pending' }">{{
