@@ -104,29 +104,13 @@ export default async function ParseHelper(evalArg: any) {
     return res;
   };
 
-  if (
-    evalArg !== null &&
-    evalArg !== undefined &&
-    evalArg.data_translator_id !== null &&
-    evalArg.data_translator_id !== undefined &&
-    typeof evalArg.data_translator_id !== "undefined"
-  ) {
-    for (let i = 0; i < 20; i++) {
-      const translation = document.querySelector(
-        `[data-translator_id="${evalArg.data_translator_id}"]`
-      );
+  if (evalArg && evalArg.data_translator_id) {
+    const translation = document.querySelector(
+      `[data-translator_id="${evalArg.data_translator_id}"]`
+    );
 
-      if (translation) {
-        TriggerAll(translation);
-
-        await new Promise((r) => setTimeout(r, 250));
-
-        if (translation.classList.contains("active")) {
-          break;
-        }
-      } else {
-        break;
-      }
+    if (translation) {
+      TriggerAll(translation);
     }
   }
 
@@ -202,8 +186,6 @@ export default async function ParseHelper(evalArg: any) {
   if (!isShow) {
     yearStr = ` (${year}) `;
   }
-
-  await new Promise((r) => setTimeout(r, 2000));
 
   return {
     isShow: isShow,
