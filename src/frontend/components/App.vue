@@ -284,8 +284,12 @@ export default defineComponent({
                             </div>
                         </div>
 
-                        <add-to-watch-later-button :title="item.title" :page-url="item.pageUrl"
+                        <add-to-watch-later-button v-if="!watchLaterList.find(x => x.pageUrl == item.pageUrl)"
+                            :title="item.title" :page-url="item.pageUrl"
                             :poster-url="item.posterUrl"></add-to-watch-later-button>
+
+                        <remove-from-watch-later-button v-if="watchLaterList.find(x => x.pageUrl == item.pageUrl)"
+                            :page-url="item.pageUrl"></remove-from-watch-later-button>
                     </div>
                 </div>
             </div>
@@ -321,7 +325,7 @@ export default defineComponent({
                     <div v-for="item in serverDownloads" :key="item.id" class="mb-3 border-bottom pb-2">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <div class="text-truncate me-2" :title="item.filename"><strong>{{ item.filename
-                                    }}</strong></div>
+                            }}</strong></div>
                             <div>
                                 <span class="badge"
                                     :class="{ 'bg-primary': item.status === 'downloading', 'bg-success': item.status === 'completed', 'bg-danger': item.status === 'error', 'bg-secondary': item.status === 'pending' }">{{
