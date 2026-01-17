@@ -10,7 +10,7 @@ export const Create = async (req: Request, res: Response) => {
   const { url, filename } = req.body;
 
   if (!url || !filename) {
-    res.status(400).send("Missing url or filename");
+    res.status(400).send({ message: "Missing url or filename" });
     return;
   }
 
@@ -20,21 +20,21 @@ export const Create = async (req: Request, res: Response) => {
 
 export const Pause = async (req: Request, res: Response) => {
   await DownloadService.Pause(req.params.id as string);
-  res.status(200).send("OK");
+  res.json({ success: true });
 };
 
 export const Resume = async (req: Request, res: Response) => {
   await DownloadService.Resume(req.params.id as string);
-  res.status(200).send("OK");
+  res.json({ success: true });
 };
 
 export const Cancel = async (req: Request, res: Response) => {
   await DownloadService.Cancel(req.params.id as string);
-  res.status(200).send("OK");
+  res.json({ success: true });
 };
 
 export const Delete = async (req: Request, res: Response) => {
   const removeFile = req.query.removeFile === "true";
   await DownloadService.Delete(req.params.id as string, removeFile);
-  res.status(200).send("OK");
+  res.json({ success: true });
 };

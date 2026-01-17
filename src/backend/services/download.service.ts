@@ -3,6 +3,7 @@ import path from "path";
 import fetch from "node-fetch";
 import type { Task } from "../../common/interfaces";
 import { ConfigKey } from "../../common/enums";
+import { SanitizeFileName } from "../../common/utils";
 import {
   saveTask,
   deleteTask,
@@ -164,6 +165,8 @@ export const Create = async (
   url: string,
   filename: string
 ): Promise<string> => {
+  filename = SanitizeFileName(filename);
+
   const id = Date.now().toString();
   const task: Task = {
     id,

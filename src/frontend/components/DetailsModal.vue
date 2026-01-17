@@ -3,6 +3,8 @@ import * as bootstrap from "bootstrap";
 
 import { ref, watch, computed, onMounted } from "vue";
 
+import { SanitizeFileName } from "../../common/utils";
+
 import { showWarningDialog, showSuccessDialog } from "../utils/dialogs";
 import { api } from "../api";
 
@@ -159,6 +161,8 @@ function cancelLocalDownload() {
 
 async function downloadToServer(url: string, filename: string | undefined | null) {
   if (!url || !filename) return;
+
+  filename = SanitizeFileName(filename);
 
   const isConfirmed = await showWarningDialog(
     "Download to Server",
