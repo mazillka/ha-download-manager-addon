@@ -25,7 +25,7 @@ export default defineConfig({
         entryFileNames: "bundle.js",
         manualChunks: {
           vue: ["vue"],
-          vendor: ["video.js", "sweetalert2", "bootstrap"],
+          vendor: ["video.js"],
         },
       },
     },
@@ -40,9 +40,10 @@ export default defineConfig({
   server: {
     port: 3001,
     strictPort: true,
-
+    open: true,
     proxy: {
-      "/": "http://localhost:3000",
+      "/api/": "http://localhost:3000",
+      "/health/": "http://localhost:3000",
     },
   },
 });
