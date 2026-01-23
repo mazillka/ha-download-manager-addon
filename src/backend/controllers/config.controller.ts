@@ -1,14 +1,19 @@
 import type { Request, Response } from "express";
 import { ConfigService } from "../services";
+import { asyncHandler } from "../utils";
 
-export const GetAll = async (req: Request, res: Response) => {
-  const list = await ConfigService.GetAll();
-  res.json({ list });
-};
+export const GetAll = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const list = await ConfigService.GetAll();
+    res.json({ list });
+  },
+);
 
-export const AddOrUpdateAll = async (req: Request, res: Response) => {
-  const { list } = req.body;
+export const AddOrUpdateAll = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { list } = req.body;
 
-  await ConfigService.AddOrUpdateAll(list);
-  res.json({ list });
-};
+    await ConfigService.AddOrUpdateAll(list);
+    res.json({ list });
+  },
+);

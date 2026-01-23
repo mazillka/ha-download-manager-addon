@@ -13,6 +13,6 @@ const port = process.env.PORT || 3000;
   console.info(`Loaded ${configs.length} configs`);
 
   app.listen(port, () => {
-    console.info(`🚀 Server running on http://localhost:${port} 🚀`);
+    console.info(`🚀 Backend running on http://localhost:${port} 🚀`);
   });
 })();
