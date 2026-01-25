@@ -187,7 +187,7 @@ async function downloadToServer(url: string, filename: string | undefined | null
             @select="downloadToServer($event.mp4, $event.mp4FileName)" />
         </div>
 
-        <video-player :video-url="videoUrl"></video-player>
+        <video-player v-model:video-url="videoUrl"></video-player>
 
         <v-expansion-panels class="mt-4">
           <v-expansion-panel>

@@ -64,6 +64,7 @@ onMounted(() => {
     getWatchLaterList();
     syncWatchLater();
 
+    // MAKE REQUESTS ON DEMAND
     serverPollInterval = window.setInterval(async () => {
         await Promise.all([getServerDownloads(), getWatchLaterList(), syncWatchLater()]);
     }, 3000);
