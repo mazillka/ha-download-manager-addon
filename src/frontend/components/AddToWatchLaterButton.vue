@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { showSuccessDialog } from "../utils/dialogs";
 import { api } from "../api";
+import { showSuccess } from "../utils/alerts";
 
 const props = defineProps<{
   title: string;
@@ -17,12 +17,12 @@ async function addToWatchLater() {
 
   await api.addWatchLater(payload);
 
-  showSuccessDialog("Added to Watch Later");
+  showSuccess({ title: "Added to Watch Later" });
 }
 </script>
 
 <template>
-  <button class="btn btn-outline-primary mt-2" @click.stop="addToWatchLater" title="Add to Watch Later">
+  <v-btn variant="outlined" color="primary" class="mt-2" @click.stop="addToWatchLater" title="Add to Watch Later" block>
     Add to Watch Later
-  </button>
+  </v-btn>
 </template>

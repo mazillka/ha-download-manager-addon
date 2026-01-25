@@ -6,7 +6,8 @@
   "main": "backend/server.ts",
   "scripts": {
     "dev": "concurrently -k -n backend,frontend -c cyan,magenta \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:backend": "concurrently \"tsx ./backend/esbuild.config.ts --watch\" \"node --watch dist/backend/server.js\"",
+    "dev:backend": "concurrently -k \"tsx watch ./backend/esbuild.config.ts\" \"tsx watch ./backend/server.ts\"",
+    "_dev:backend": "concurrently \"tsx ./backend/esbuild.config.ts --watch\" \"node --watch ./dist/backend/server.js\"",
     "dev:frontend": "vite --config ./frontend/vite.config.ts",
     "build:backend": "tsx ./backend/esbuild.config.ts",
     "build:frontend:dev": "vite build --mode development --config ./frontend/vite.config.ts",
@@ -16,28 +17,29 @@
     "preview": "vite preview --config ./frontend/vite.config.ts"
   },
   "dependencies": {
-    "bootstrap": "^5.3.8",
+    "@mdi/font": "^7.4.47",
     "express": "^5.2.1",
     "node-fetch": "^3.3.2",
-    "playwright": "^1.57.0",
+    "playwright": "^1.58.0",
     "sqlite3": "^5.1.7",
     "sweetalert2": "^11.26.17",
     "video.js": "^8.23.4",
-    "vue": "^3.5.26"
+    "vue": "^3.5.27",
+    "vue-sweetalert2": "^5.0.11",
+    "vuetify": "^3.11.7"
   },
   "devDependencies": {
-    "@types/bootstrap": "^5.2.10",
     "@types/express": "^5.0.6",
-    "@types/node": "^25.0.9",
+    "@types/node": "^25.0.10",
     "@types/sqlite3": "^5.1.0",
     "@vitejs/plugin-vue": "^6.0.3",
-    "@vue/compiler-sfc": "^3.5.26",
-    "@vue/runtime-dom": "^3.5.26",
+    "@vue/compiler-sfc": "^3.5.27",
+    "@vue/runtime-dom": "^3.5.27",
     "concurrently": "^9.2.1",
     "esbuild": "^0.27.2",
     "eslint": "^9.39.2",
-    "tsx": "^4.21.0",
     "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vite": "^7.3.1"
   }

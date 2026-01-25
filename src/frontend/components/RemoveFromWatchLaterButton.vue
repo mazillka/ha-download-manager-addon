@@ -1,24 +1,24 @@
 <script setup lang="ts">
-import { showWarningDialog } from "../utils/dialogs";
 import { api } from "../api";
+import { showConfirm } from "../utils/alerts";
 
 const props = defineProps<{
     pageUrl: string;
 }>();
 
 async function removeFromWatchLater() {
-    const isConfirmed = await showWarningDialog(
-        "Are you sure?",
-        "Remove from Watch Later?"
-    );
+    const ok = await showConfirm({
+        title: "Remove from Watch Later",
+        text: "Are you sure you want to remove from Watch Later?",
+    });
 
-    if (!isConfirmed) return;
+    if (!ok) return;
 
     await api.deleteWatchLater(props.pageUrl);
 }
 </script>
 
 <template>
-    <button class="btn btn-outline-danger mt-2" @click.stop="removeFromWatchLater"
-        title="Remove from Watch Later">Remove from Watch Later</button>
+    <v-btn variant="outlined" color="error" class="mt-2" @click.stop="removeFromWatchLater"
+        title="Remove from Watch Later" block>Remove from Watch Later</v-btn>
 </template>

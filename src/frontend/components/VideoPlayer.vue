@@ -30,21 +30,19 @@ function hidePlayer() {
 
 <template>
     <div v-if="videoUrl" class="mb-3">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <h6 class="mb-0">Video</h6>
-            <button class="btn btn-sm btn-danger" @click="hidePlayer" aria-label="Close Player">
-                Close Player
-            </button>
-        </div>
-        <div class="ratio bg-dark rounded overflow-hidden">
-            <video id="my-video" class="video-js vjs-default-skin" controls preload="auto" width="640" height="264"
-                poster="" data-setup="{}">
+        <v-toolbar density="compact">
+            <v-toolbar-title>Video</v-toolbar-title>
+            <v-spacer></v-spacer>
+            <v-btn icon="mdi-close" @click="hidePlayer"></v-btn>
+        </v-toolbar>
+        <v-responsive :aspect-ratio="640/264">
+            <video id="my-video" class="video-js vjs-default-skin" controls preload="auto" data-setup='{"fluid": true}'>
                 <source :src="videoUrl" type="video/mp4" />
                 <p class="vjs-no-js">
                     To view this video please enable JavaScript, and consider upgrading to a
-                    <a href="https://videojs.com" target="_blank">supports HTML5 video</a>
+                    <a href="https://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>
                 </p>
             </video>
-        </div>
+        </v-responsive>
     </div>
 </template>

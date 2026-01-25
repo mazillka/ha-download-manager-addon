@@ -1,5 +1,5 @@
 import { createApp } from "vue";
-import {App} from "./components";
+import { App } from "./components";
+import vuetify from "./plugins/vuetify";
 
-const app = createApp(App);
-app.mount("#app");
+createApp(App).use(vuetify).mount("#app");

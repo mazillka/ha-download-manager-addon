@@ -12,12 +12,10 @@
     "types": [],
     "jsx": "preserve",
     "allowJs": true,
-    "isolatedModules": true
-  },
-  "ts-node": {
-    "esm": true,
-    "compilerOptions": {
-      "module": "ESNext"
+    "isolatedModules": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
     }
   },
   "include": ["./**/*"],

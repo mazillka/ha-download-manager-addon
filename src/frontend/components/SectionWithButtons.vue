@@ -28,13 +28,21 @@ function formatName(name: string) {
 
 <template>
   <div v-if="props.items && props.items.length">
-    <h6>{{ props.title }}</h6>
+    <div class="text-h6">{{ props.title }}</div>
 
     <div class="d-flex flex-wrap mb-3">
-      <button v-for="(item, index) in props.items" :key="index + '-' + item.url" class="btn btn-sm me-2 mb-2"
-        :class="item.active ? 'btn-success' : 'btn-outline-primary'" :disabled="item.active" @click="getDetails(item)">
+      <v-btn
+        v-for="(item, index) in props.items"
+        :key="index + '-' + item.url"
+        size="small"
+        class="me-2 mb-2"
+        :variant="'outlined'"
+        :color="'primary'"
+        :disabled="item.active"
+        @click="getDetails(item)"
+      >
         {{ formatName(item.name) }}
-      </button>
+      </v-btn>
     </div>
   </div>
 </template>
