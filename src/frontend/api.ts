@@ -47,78 +47,78 @@ async function request<T>(url: string, options?: RequestOptions): Promise<T> {
 }
 
 export const api = {
-  getConfigs: () => request<{ list: Config[] }>("/api/configs"),
+  getConfigs: () => request<{ list: Config[] }>("api/configs"),
 
   saveConfigs: (list: Config[]) =>
-    request("/api/configs", {
+    request("api/configs", {
       method: "POST",
       body: JSON.stringify({ list }),
     }),
 
   getSearchResults: (url: string) =>
-    request<{ list: SearchResult[] }>("/api/search", {
+    request<{ list: SearchResult[] }>("api/search", {
       method: "POST",
       body: JSON.stringify({ url }),
     }),
 
   getDetails: (payload: object) =>
-    request<{ details: ParseResult }>("/api/get-details", {
+    request<{ details: ParseResult }>("api/get-details", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
 
   addWatchLater: (payload: object) =>
-    request("/api/watch-later", {
+    request("api/watch-later", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
 
   deleteWatchLater: (pageUrl: string) =>
-    request("/api/watch-later", {
+    request("api/watch-later", {
       method: "DELETE",
       body: JSON.stringify({ pageUrl: pageUrl }),
     }),
 
   getWatchLater: () =>
-    request<{ list: WatchLater[] }>("/api/watch-later", {
+    request<{ list: WatchLater[] }>("api/watch-later", {
       method: "GET",
       showLoading: false,
     }),
 
   getServerDownloads: () =>
-    request<{ list: DownloadTask[] }>("/api/downloads", {
+    request<{ list: DownloadTask[] }>("api/downloads", {
       method: "GET",
       showLoading: false,
     }),
 
   downloadToServer: (payload: object) =>
-    request("/api/downloads", {
+    request("api/downloads", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
 
   cancelServerDownload: (id: string) =>
-    request(`/api/downloads/${id}/cancel`, {
+    request(`api/downloads/${id}/cancel`, {
       method: "POST",
     }),
 
   pauseServerDownload: (id: string) =>
-    request(`/api/downloads/${id}/pause`, {
+    request(`api/downloads/${id}/pause`, {
       method: "POST",
     }),
 
   resumeServerDownload: (id: string) =>
-    request(`/api/downloads/${id}/resume`, {
+    request(`api/downloads/${id}/resume`, {
       method: "POST",
     }),
 
   deleteServerDownload: (id: string, removeFile: boolean) =>
-    request(`/api/downloads/${id}?removeFile=${removeFile}`, {
+    request(`api/downloads/${id}?removeFile=${removeFile}`, {
       method: "DELETE",
     }),
 
   syncWatchLater: (list: WatchLater[]) =>
-    request("/api/watch-later/sync", {
+    request("api/watch-later/sync", {
       method: "POST",
       body: JSON.stringify({ list }),
       showLoading: false,
