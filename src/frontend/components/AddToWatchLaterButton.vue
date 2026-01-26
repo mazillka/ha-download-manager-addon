@@ -4,6 +4,7 @@ import { showSuccess } from "../utils/alerts";
 
 const props = defineProps<{
   title: string;
+  year: number | string;
   pageUrl: string | undefined;
   posterUrl: string;
 }>();
@@ -11,6 +12,7 @@ const props = defineProps<{
 async function addToWatchLater() {
   const payload = {
     title: props.title,
+    year: props.year,
     pageUrl: props.pageUrl,
     posterUrl: props.posterUrl,
   };

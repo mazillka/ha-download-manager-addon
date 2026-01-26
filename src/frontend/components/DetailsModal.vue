@@ -160,7 +160,7 @@ async function downloadToServer(url: string, filename: string | undefined | null
         <v-row>
           <v-col md="4" class="text-center" v-if="props.item.posterUrl">
             <v-img class="rounded" max-height="250" :src="props.item.posterUrl" :alt="props.item.title" />
-            <add-to-watch-later-button :title="props.item.titleOriginal || props.item.title"
+            <add-to-watch-later-button :title="props.item.titleOriginal || props.item.title" :year="props.item.year"
               :page-url="props.url || '#'" :poster-url="props.item.posterUrl" />
           </v-col>
           <v-col :md="props.item.posterUrl ? 8 : 12">

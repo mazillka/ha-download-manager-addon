@@ -227,20 +227,33 @@ async function handleGetDetails(
 
             <v-window v-model="activeTab">
                 <v-window-item value="search">
-                    <v-row class="mb-4">
+                    <v-row class="mb-4" align="center">
+                        <!-- Input -->
                         <v-col cols="12">
                             <v-text-field v-model="query" placeholder="Search..." density="comfortable"
                                 variant="outlined" hide-details :disabled="isLoading" @keyup.enter="onSearch">
+                                <!-- Desktop inline buttons -->
                                 <template #append>
-                                    <v-btn color="success" :loading="isLoading" @click="onSearch">
-                                        Search
-                                    </v-btn>
-
-                                    <v-btn variant="outlined" :disabled="isLoading" @click="onClear">
-                                        Clear
-                                    </v-btn>
+                                    <div class="d-none d-md-flex gap-2">
+                                        <v-btn class="mr-1" color="success" :loading="isLoading" @click="onSearch">
+                                            Search
+                                        </v-btn>
+                                        <v-btn variant="outlined" :disabled="isLoading || !query" @click="onClear">
+                                            Clear
+                                        </v-btn>
+                                    </div>
                                 </template>
                             </v-text-field>
+                        </v-col>
+
+                        <!-- Mobile stacked buttons -->
+                        <v-col cols="12" class="d-flex d-md-none flex-column gap-2 mt-2">
+                            <v-btn class="mb-1" block color="success" :loading="isLoading" @click="onSearch">
+                                Search
+                            </v-btn>
+                            <v-btn block variant="outlined" :disabled="isLoading || !query" @click="onClear">
+                                Clear
+                            </v-btn>
                         </v-col>
                     </v-row>
 
@@ -253,10 +266,10 @@ async function handleGetDetails(
                                         {{ translateCategory(item.category) }}
                                     </v-chip>
                                 </v-img>
-                                <v-card-title>{{ item.title }}</v-card-title>
+                                <v-card-title>{{ item.title }} ({{ item.year }})</v-card-title>
                                 <v-card-actions>
                                     <add-to-watch-later-button v-if="!isInWatchLater(item.pageUrl)" :title="item.title"
-                                        :page-url="item.pageUrl"
+                                        :year="item.year" :page-url="item.pageUrl"
                                         :poster-url="item.posterUrl"></add-to-watch-later-button>
                                     <remove-from-watch-later-button v-if="isInWatchLater(item.pageUrl)"
                                         :page-url="item.pageUrl"></remove-from-watch-later-button>
@@ -279,7 +292,7 @@ async function handleGetDetails(
                                 <v-card-title>{{ item.title }}</v-card-title>
                                 <v-card-actions>
                                     <add-to-watch-later-button v-if="!isInWatchLater(item.pageUrl)" :title="item.title"
-                                        :page-url="item.pageUrl"
+                                        :year="item.year" :page-url="item.pageUrl"
                                         :poster-url="item.posterUrl"></add-to-watch-later-button>
                                     <remove-from-watch-later-button v-if="isInWatchLater(item.pageUrl)"
                                         :page-url="item.pageUrl"></remove-from-watch-later-button>
@@ -298,7 +311,7 @@ async function handleGetDetails(
                             xl="2">
                             <v-card height="100%" @click="handleGetDetails(item.pageUrl)">
                                 <v-img :src="item.posterUrl" :alt="item.title" height="150px" contain></v-img>
-                                <v-card-title>{{ item.title }}</v-card-title>
+                                <v-card-title>{{ item.title }} ({{ item.year }})</v-card-title>
                                 <v-card-actions>
                                     <remove-from-watch-later-button
                                         :page-url="item.pageUrl"></remove-from-watch-later-button>
@@ -319,7 +332,7 @@ async function handleGetDetails(
                                     <v-progress-linear :model-value="item.progress" class="my-1"></v-progress-linear>
                                     {{ formatBytes(item.loaded) }} / {{ item.total ? formatBytes(item.total) : '?' }}
                                     <span v-if="item.status === 'downloading'">({{ formatBytes(item.speed)
-                                        }}/s)</span>
+                                    }}/s)</span>
                                 </template>
 
                                 <template v-slot:append>

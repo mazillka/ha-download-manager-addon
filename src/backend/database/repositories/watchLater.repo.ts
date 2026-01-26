@@ -4,15 +4,20 @@ import type { WatchLater } from "../../../common/interfaces";
 export const addWatchLater = (watchLater: WatchLater): Promise<void> => {
   return new Promise((resolve, reject) => {
     db.run(
-      "INSERT INTO watch_later (pageUrl, title, posterUrl) VALUES (?, ?, ?)",
-      [watchLater.pageUrl, watchLater.title, watchLater.posterUrl],
+      "INSERT INTO watch_later (pageUrl, title, year, posterUrl) VALUES (?, ?, ?, ?)",
+      [
+        watchLater.pageUrl,
+        watchLater.title,
+        watchLater.year,
+        watchLater.posterUrl,
+      ],
       (err) => {
         if (err) {
           reject(err);
         } else {
           resolve();
         }
-      }
+      },
     );
   });
 };

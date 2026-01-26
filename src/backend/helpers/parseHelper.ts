@@ -1,6 +1,6 @@
 import type { Stream } from "../../common/interfaces";
 
-export default function ParseHelper(evalArg: any) {
+export default async function ParseHelper(evalArg: any) {
   const TRASH_CHARS = ["@", "#", "!", "^", "$"];
   const TRASH_REGEX = (() => {
     const codes: string[] = [];
@@ -148,7 +148,7 @@ export default function ParseHelper(evalArg: any) {
       ? parseStreams(CDNPlayerInfo.streams)
       : [];
 
-  return {
+  return await {
     isShow,
     year,
     title,

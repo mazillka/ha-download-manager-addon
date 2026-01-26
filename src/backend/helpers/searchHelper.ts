@@ -1,10 +1,13 @@
-export default function SearchHelper() {
-  return [...document.querySelectorAll(".b-content__inline_item")].map(
+export default async function SearchHelper() {
+  return await [...document.querySelectorAll(".b-content__inline_item")].map(
     (item) => {
-      const title =
-        item
-          .querySelector(".b-content__inline_item-link")
-          ?.textContent?.trim() || "No title";
+      const info = item.querySelector(".b-content__inline_item-link");
+
+      const title = info.querySelector("a").textContent.trim();
+
+      const year = info
+        .querySelector("div")
+        .textContent?.match(/\b\d{4}\b/)?.[0];
 
       const element = item.querySelector(".b-content__inline_item-cover");
 
@@ -18,10 +21,11 @@ export default function SearchHelper() {
 
       return {
         title,
+        year,
         pageUrl,
         posterUrl,
         category,
       };
-    }
+    },
   );
 }
