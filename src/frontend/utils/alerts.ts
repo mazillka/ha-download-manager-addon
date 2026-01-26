@@ -1,5 +1,4 @@
-import "sweetalert2/themes/material-ui.css";
-import Swal from "sweetalert2";
+import SwalBuilder from "./swalBuilder";
 
 export async function showConfirm({
   title,
@@ -8,15 +7,13 @@ export async function showConfirm({
   title: string;
   text: string;
 }): Promise<boolean> {
-  const result = await Swal.fire({
-    title,
-    text,
-    icon: "question",
-    showCancelButton: true,
-    confirmButtonText: "Yes",
-    cancelButtonText: "No",
-    theme: "material-ui",
-  });
+  const result = await SwalBuilder.create()
+    .title(title)
+    .text(text)
+    .icon("question")
+    .confirm("Yes")
+    .cancel("No")
+    .fire();
 
   return result.isConfirmed;
 }
@@ -28,25 +25,21 @@ export async function showError({
   title: string;
   text?: string;
 }): Promise<void> {
-  await Swal.fire({
-    title: title,
-    text: text,
-    icon: "error",
-    theme: "material-ui",
-  });
+  await SwalBuilder.create()
+    .title(title)
+    .text(text)
+    .icon("error")
+    .confirm()
+    .fire();
 }
 
 export async function showSuccess({ title }: { title: string }): Promise<void> {
-  await Swal.fire({
-    title,
-    icon: "success",
-    showCloseButton: false,
-    showConfirmButton: false,
-    timer: 1000,
-    theme: "material-ui",
-  });
+  await SwalBuilder.create()
+    .title(title)
+    .icon("success")
+    .autoClose(1000)
+    .fire();
 }
-
 export default {
   showConfirm,
   showError,
