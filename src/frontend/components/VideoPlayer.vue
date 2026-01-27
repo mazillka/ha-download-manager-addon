@@ -11,6 +11,10 @@ const emit = defineEmits<{
     (e: "update:videoUrl", url: string | null): void;
 }>();
 
+function updateVideoUrl(url: string | null) {
+    emit("update:videoUrl", url);
+}
+
 const videoRef = ref<HTMLVideoElement | null>(null);
 let player: VideoJsPlayer | null = null;
 
@@ -63,7 +67,7 @@ onUnmounted(() => {
         <v-toolbar density="compact">
             <v-toolbar-title>Video</v-toolbar-title>
             <v-spacer />
-            <v-btn icon="mdi-close" @click="emit('update:videoUrl', null)" />
+            <v-btn icon="mdi-close" @click="updateVideoUrl(null)" />
         </v-toolbar>
 
         <v-responsive aspect-ratio="16/9">
