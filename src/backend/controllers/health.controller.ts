@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { asyncHandler } from "../utils";
 
 export const HealthCheck = asyncHandler(

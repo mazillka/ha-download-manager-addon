@@ -34,7 +34,6 @@ function initModal(data: ParseResult, url: string) {
     modal.value.url = url;
 }
 
-let serverPollInterval: number | null = null;
 const activeTab = ref("search");
 
 const tabs = [
@@ -56,28 +55,12 @@ const configs = ref<Config[]>([]);
 const serverDownloads = ref<any[]>([]);
 const watchLaterList = ref<WatchLater[]>([]);
 
-onMounted(() => {
+onMounted(async () => {
     subscribeLoading((v) => (isLoading.value = v));
 
-    getConfigs();
-    getServerDownloads();
-    getWatchLaterList();
-    syncWatchLater();
-
-    // MAKE REQUESTS ON DEMAND
-    serverPollInterval = window.setInterval(async () => {
-        await Promise.all([getServerDownloads(), getWatchLaterList(), syncWatchLater()]);
-    }, 3000);
-});
-
-const activeServerDownloads = computed(() => {
-    return serverDownloads.value.filter(
-        (x: any) => x.status === "downloading" || x.status === "pending"
-    ).length;
-});
-
-const watchLaterCount = computed(() => {
-    return watchLaterList.value.length;
+    await getConfigs();
+    await getWatchLaterList();
+    await getServerDownloads();
 });
 
 const baseUrl = computed(() => {
@@ -88,7 +71,15 @@ const baseUrl = computed(() => {
 
 function translateCategory(category: string): string {
     if (!category) return '';
-    return category.replace("Сериал", "Show").replace("Фильм", "Movie").replace("Аниме", "Anime").replace("Мультфильм", "Cartoon");
+
+    const categoryMap: Record<string, string> = {
+        "Сериал": "Show",
+        "Фильм": "Movie",
+        "Аниме": "Anime",
+        "Мультфильм": "Cartoon",
+    };
+
+    return categoryMap[category] ?? category;
 }
 
 function isInWatchLater(pageUrl: string): boolean {
@@ -103,6 +94,7 @@ async function onSelectTab(tabId: string) {
     if (tabId === "search") return;
     if (tabId === "settings") return getConfigs();
     if (tabId === "watch_later") return getWatchLaterList();
+    if (tabId === "downloads") return getServerDownloads();
 
     const filter = tabUrls[tabId];
     if (filter) {
@@ -139,7 +131,8 @@ async function getConfigs() {
 }
 
 async function saveConfig() {
-    await api.saveConfigs(configs.value);
+    const { list } = await api.saveConfigs(configs.value);
+    configs.value = list;
 }
 
 async function getServerDownloads() {
@@ -218,10 +211,6 @@ async function handleGetDetails(
             <v-tabs align-tabs="center" class="mb-4" v-model="activeTab" @update:model-value="onSelectTab">
                 <v-tab v-for="tab in tabs" :key="tab.id" :value="tab.id">
                     {{ tab.name }}
-                    <v-badge v-if="tab.id === 'downloads' && activeServerDownloads > 0" color="red"
-                        :content="activeServerDownloads" inline></v-badge>
-                    <v-badge v-if="tab.id === 'watch_later' && watchLaterCount > 0" color="red"
-                        :content="watchLaterCount" inline></v-badge>
                 </v-tab>
             </v-tabs>
 
@@ -270,9 +259,9 @@ async function handleGetDetails(
                                 <v-card-actions>
                                     <add-to-watch-later-button v-if="!isInWatchLater(item.pageUrl)" :title="item.title"
                                         :year="item.year" :page-url="item.pageUrl"
-                                        :poster-url="item.posterUrl"></add-to-watch-later-button>
+                                        :poster-url="item.posterUrl" @get-watch-later-list="getWatchLaterList"></add-to-watch-later-button>
                                     <remove-from-watch-later-button v-if="isInWatchLater(item.pageUrl)"
-                                        :page-url="item.pageUrl"></remove-from-watch-later-button>
+                                        :page-url="item.pageUrl" @get-watch-later-list="getWatchLaterList"></remove-from-watch-later-button>
                                 </v-card-actions>
                             </v-card>
                         </v-col>
@@ -293,9 +282,9 @@ async function handleGetDetails(
                                 <v-card-actions>
                                     <add-to-watch-later-button v-if="!isInWatchLater(item.pageUrl)" :title="item.title"
                                         :year="item.year" :page-url="item.pageUrl"
-                                        :poster-url="item.posterUrl"></add-to-watch-later-button>
+                                        :poster-url="item.posterUrl" @get-watch-later-list="getWatchLaterList"></add-to-watch-later-button>
                                     <remove-from-watch-later-button v-if="isInWatchLater(item.pageUrl)"
-                                        :page-url="item.pageUrl"></remove-from-watch-later-button>
+                                        :page-url="item.pageUrl" @get-watch-later-list="getWatchLaterList"></remove-from-watch-later-button>
                                 </v-card-actions>
                             </v-card>
                         </v-col>
@@ -314,7 +303,7 @@ async function handleGetDetails(
                                 <v-card-title>{{ item.title }} ({{ item.year }})</v-card-title>
                                 <v-card-actions>
                                     <remove-from-watch-later-button
-                                        :page-url="item.pageUrl"></remove-from-watch-later-button>
+                                        :page-url="item.pageUrl" @get-watch-later-list="getWatchLaterList"></remove-from-watch-later-button>
                                 </v-card-actions>
                             </v-card>
                         </v-col>
@@ -332,7 +321,7 @@ async function handleGetDetails(
                                     <v-progress-linear :model-value="item.progress" class="my-1"></v-progress-linear>
                                     {{ formatBytes(item.loaded) }} / {{ item.total ? formatBytes(item.total) : '?' }}
                                     <span v-if="item.status === 'downloading'">({{ formatBytes(item.speed)
-                                    }}/s)</span>
+                                        }}/s)</span>
                                 </template>
 
                                 <template v-slot:append>
@@ -368,6 +357,6 @@ async function handleGetDetails(
                 </v-window-item>
             </v-window>
         </v-container>
-        <details-modal :url="modal.url" :item="modal.item" @get-details="handleGetDetails"></details-modal>
+        <details-modal :url="modal.url" :item="modal.item" :watchLaterList="watchLaterList" @get-details="handleGetDetails" @get-watch-later-list="getWatchLaterList"></details-modal>
     </v-app>
 </template>

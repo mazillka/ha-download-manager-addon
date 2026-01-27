@@ -50,7 +50,7 @@ export const api = {
   getConfigs: () => request<{ list: Config[] }>("api/configs"),
 
   saveConfigs: (list: Config[]) =>
-    request("api/configs", {
+    request<{ list: Config[] }>("api/configs", {
       method: "POST",
       body: JSON.stringify({ list }),
     }),
@@ -82,13 +82,11 @@ export const api = {
   getWatchLater: () =>
     request<{ list: WatchLater[] }>("api/watch-later", {
       method: "GET",
-      showLoading: false,
     }),
 
   getServerDownloads: () =>
     request<{ list: DownloadTask[] }>("api/downloads", {
       method: "GET",
-      showLoading: false,
     }),
 
   downloadToServer: (payload: object) =>
@@ -121,6 +119,5 @@ export const api = {
     request("api/watch-later/sync", {
       method: "POST",
       body: JSON.stringify({ list }),
-      showLoading: false,
     }),
 };

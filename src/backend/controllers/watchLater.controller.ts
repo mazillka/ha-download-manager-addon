@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { WatchLaterService } from "../services";
 import { asyncHandler } from "../utils";
 
@@ -14,6 +14,9 @@ export const Add = asyncHandler(
     const watchLater = req.body;
 
     await WatchLaterService.Add(watchLater);
+
+    await WatchLaterService.Sync();
+
     res.json({ watchLater });
   },
 );
@@ -23,6 +26,9 @@ export const Delete = asyncHandler(
     const { pageUrl } = req.body;
 
     await WatchLaterService.Delete(pageUrl);
+
+    await WatchLaterService.Sync();
+
     res.json({ success: true });
   },
 );

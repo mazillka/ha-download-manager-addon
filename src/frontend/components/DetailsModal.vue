@@ -2,17 +2,19 @@
 import { ref, watch, computed } from "vue";
 import { SanitizeFileName } from "../../common/utils";
 import { api } from "../api";
-import type { ParseResult } from "../../common/interfaces";
-import { StreamDropdown, SectionWithButtons, LoadingOverlay, AddToWatchLaterButton, VideoPlayer } from "./";
+import type { ParseResult, WatchLater } from "../../common/interfaces";
+import { StreamDropdown, SectionWithButtons, LoadingOverlay, AddToWatchLaterButton, VideoPlayer, RemoveFromWatchLaterButton } from "./";
 import { showConfirm, showSuccess } from "../utils/alerts";
 
 const props = defineProps<{
   item: ParseResult | null;
   url: string | null;
+  watchLaterList: WatchLater[];
 }>();
 
 const emit = defineEmits<{
   (e: "get-details", item: any): void;
+  (e: "get-watch-later-list"): void;
 }>();
 
 const dialog = ref(false);
@@ -43,8 +45,16 @@ watch(() => props.item, (newItem) => {
 
 const isAndroid = computed(() => /android/i.test(navigator.userAgent));
 
-function getDetails(item: any) {
+async function getDetails(item: any) {
   emit("get-details", item);
+}
+
+async function getWatchLaterList() {
+  emit("get-watch-later-list");
+}
+
+function isInWatchLater(pageUrl: string | null): boolean {
+  return props.watchLaterList.some((x: WatchLater) => x.pageUrl === pageUrl);
 }
 
 function showPlayer(url: string) {
@@ -160,8 +170,14 @@ async function downloadToServer(url: string, filename: string | undefined | null
         <v-row>
           <v-col md="4" class="text-center" v-if="props.item.posterUrl">
             <v-img class="rounded" max-height="250" :src="props.item.posterUrl" :alt="props.item.title" />
-            <add-to-watch-later-button :title="props.item.titleOriginal || props.item.title" :year="props.item.year"
-              :page-url="props.url || '#'" :poster-url="props.item.posterUrl" />
+
+            <add-to-watch-later-button v-if="!isInWatchLater(props.url)"
+              :title="props.item.titleOriginal || props.item.title" :year="props.item.year" :page-url="props.url || '#'"
+              :poster-url="props.item.posterUrl" @get-watch-later-list="getWatchLaterList" />
+
+            <remove-from-watch-later-button v-if="isInWatchLater(props.url)" :page-url="props.url || '#'"
+              @get-watch-later-list="getWatchLaterList"></remove-from-watch-later-button>
+
           </v-col>
           <v-col :md="props.item.posterUrl ? 8 : 12">
             <section-with-buttons title="Translations" :items="props.item.translations" @get-details="getDetails" />

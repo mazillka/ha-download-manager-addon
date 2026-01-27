@@ -6,6 +6,14 @@ const props = defineProps<{
     pageUrl: string;
 }>();
 
+const emit = defineEmits<{
+    (e: "get-watch-later-list"): void;
+}>();
+
+async function getWatchLaterList() {
+    emit("get-watch-later-list");
+}
+
 async function removeFromWatchLater() {
     const ok = await showConfirm({
         title: "Remove from Watch Later",
@@ -15,6 +23,7 @@ async function removeFromWatchLater() {
     if (!ok) return;
 
     await api.deleteWatchLater(props.pageUrl);
+    await getWatchLaterList();
 }
 </script>
 

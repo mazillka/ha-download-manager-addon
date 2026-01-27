@@ -9,6 +9,14 @@ const props = defineProps<{
   posterUrl: string;
 }>();
 
+const emit = defineEmits<{
+  (e: "get-watch-later-list"): void;
+}>();
+
+async function getWatchLaterList() {
+  emit("get-watch-later-list");
+}
+
 async function addToWatchLater() {
   const payload = {
     title: props.title,
@@ -18,6 +26,8 @@ async function addToWatchLater() {
   };
 
   await api.addWatchLater(payload);
+
+  await getWatchLaterList();
 
   showSuccess({ title: "Added to Watch Later" });
 }
