@@ -179,8 +179,13 @@ async function downloadToServer(url: string, filename: string | undefined | null
           <stream-dropdown label="Watch" :streams="props.item.streams" @select="showPlayer($event.mp4)" />
           <stream-dropdown v-if="isAndroid" label="Watch External" :streams="props.item.streams"
             @select="openStream($event.mp4Android)" />
-          <stream-dropdown label="Open in Tab" :streams="props.item.streams" @select="openStream($event.mp4)" />
-          <stream-dropdown label="Copy Url" :streams="props.item.streams" @select="copyStreamUrl($event.mp4)" />
+
+          <!-- TODO: hiden -->
+          <div class="d-none">
+            <stream-dropdown label="Open in Tab" :streams="props.item.streams" @select="openStream($event.mp4)" />
+            <stream-dropdown label="Copy Url" :streams="props.item.streams" @select="copyStreamUrl($event.mp4)" />
+          </div>
+
           <stream-dropdown label="Download" :streams="props.item.streams"
             @select="downloadToLocal($event.mp4, $event.mp4FileName)" />
           <stream-dropdown label="Download To Server" :streams="props.item.streams"
@@ -189,7 +194,8 @@ async function downloadToServer(url: string, filename: string | undefined | null
 
         <video-player v-model:video-url="videoUrl"></video-player>
 
-        <v-expansion-panels class="mt-4">
+        <!-- TODO: hiden -->
+        <v-expansion-panels class="mt-4 d-none">
           <v-expansion-panel>
             <v-expansion-panel-title>RAW JSON</v-expansion-panel-title>
             <v-expansion-panel-text>

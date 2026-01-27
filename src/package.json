@@ -1,13 +1,13 @@
 {
   "name": "ha-download-manager",
-  "version": "1.0.37",
+  "version": "1.0.38",
   "type": "module",
   "description": "Home Assistant Download Manager Add-on",
   "main": "backend/server.ts",
   "scripts": {
     "dev": "concurrently -k -n backend,frontend -c cyan,magenta \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:backend": "concurrently -k \"tsx watch ./backend/esbuild.config.ts\" \"tsx watch ./backend/server.ts\"",
-    "_dev:backend": "concurrently \"tsx ./backend/esbuild.config.ts --watch\" \"node --watch ./dist/backend/server.js\"",
+    "_dev:backend": "concurrently -k \"tsx watch ./backend/esbuild.config.ts\" \"tsx watch ./backend/server.ts\"",
+    "dev:backend": "concurrently \"tsx ./backend/esbuild.config.ts --watch\" \"node --watch ./dist/backend/server.js\"",
     "dev:frontend": "vite --config ./frontend/vite.config.ts",
     "build:backend": "tsx ./backend/esbuild.config.ts",
     "build:frontend:dev": "vite build --mode development --config ./frontend/vite.config.ts",
