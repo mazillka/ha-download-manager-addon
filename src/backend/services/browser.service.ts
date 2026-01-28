@@ -1,6 +1,11 @@
 import { chromium } from "playwright";
 import type { Browser, BrowserContext, Page } from "playwright";
 import type { ParseOptions } from "../../common/interfaces";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const showConsoleMessages = false;
 
@@ -158,11 +163,17 @@ export async function getPage(): Promise<Page> {
   return acquirePage();
 }
 
-export async function Parse<T>(
-  url: string,
-  func: (arg: any) => T | Promise<T>,
-  options: ParseOptions = {}
-): Promise<T> {
+export async function Parse<T>({
+  pageUrl,
+  evaluate,
+  options,
+  initScripts,
+}: {
+  pageUrl: string;
+  evaluate: (arg: any) => T | Promise<T>;
+  options: ParseOptions;
+  initScripts?: string[] | null;
+}): Promise<T> {
   // If headers or cookies are provided, or caller requests isolation, create a fresh context
   const needsIsolation =
     options.headers || options.cookies || options.forceNewContext;
@@ -198,7 +209,7 @@ export async function Parse<T>(
     if (options.cookies) {
       try {
         const cookies: any[] = [];
-        const u = new URL(url);
+        const u = new URL(pageUrl);
         const domain = u.hostname;
         if (Array.isArray(options.cookies)) {
           for (const c of options.cookies) {
@@ -244,7 +255,7 @@ export async function Parse<T>(
             waitUntil: strat,
             timeout: options.timeout || timeout,
           };
-          await page.goto(url, gotoOptions);
+          await page.goto(pageUrl, gotoOptions);
 
           if (options.waitForSelector) {
             await page.waitForSelector(options.waitForSelector, {
@@ -265,7 +276,9 @@ export async function Parse<T>(
 
           SubscribeForLogs(page);
 
-          return await page.evaluate(func, options.evalArg);
+          await addInitScripts(page, initScripts);
+
+          return await page.evaluate(evaluate, options.evalArg);
         } catch (err) {
           lastErr = err;
         }
@@ -302,7 +315,7 @@ export async function Parse<T>(
           waitUntil: strat,
           timeout: options.timeout || timeout,
         };
-        await page.goto(url, gotoOptions);
+        await page.goto(pageUrl, gotoOptions);
 
         if (options.waitForSelector) {
           await page.waitForSelector(options.waitForSelector, {
@@ -323,7 +336,9 @@ export async function Parse<T>(
 
         SubscribeForLogs(page);
 
-        return await page.evaluate(func, options.evalArg);
+        await addInitScripts(page, initScripts);
+
+        return await page.evaluate(evaluate, options.evalArg);
       } catch (err) {
         lastErr = err;
       }
@@ -335,12 +350,24 @@ export async function Parse<T>(
   }
 }
 
+async function addInitScripts(page: Page, initScripts?: string[] | null) {
+  if (initScripts) {
+    for (const scriptPath of initScripts) {
+
+
+
+
+      await page.addInitScript({ path: path.resolve(__dirname, scriptPath) });
+    }
+  }
+}
+
 function SubscribeForLogs(page: Page) {
   if (showConsoleMessages) {
     page.on("console", (msg) => {
       if (msg.type() === "log") {
         console.log(
-          `[${new Date().toLocaleString()}] - console: ${msg.text()}`
+          `[${new Date().toLocaleString()}] - console: ${msg.text()}`,
         );
       }
 
@@ -351,7 +378,7 @@ function SubscribeForLogs(page: Page) {
 
         console.log(" - - - - - - - - - - - - - - ");
         console.error(
-          `[${new Date().toLocaleString()}] - console error: ${msg.text()}`
+          `[${new Date().toLocaleString()}] - console error: ${msg.text()}`,
         );
         console.log(" - - - - - - - - - - - - - - ");
       }
@@ -364,13 +391,13 @@ function SubscribeForLogs(page: Page) {
 
       console.log(" - - - - - - - - - - - - - - ");
       console.error(
-        `[${new Date().toLocaleString()}] - exception name: ${error.name}`
+        `[${new Date().toLocaleString()}] - exception name: ${error.name}`,
       );
       console.error(
-        `[${new Date().toLocaleString()}] - exception message: ${error.message}`
+        `[${new Date().toLocaleString()}] - exception message: ${error.message}`,
       );
       console.error(
-        `[${new Date().toLocaleString()}] - exception stack: ${error.stack}`
+        `[${new Date().toLocaleString()}] - exception stack: ${error.stack}`,
       );
       console.log(" - - - - - - - - - - - - - - ");
     });

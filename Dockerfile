@@ -49,6 +49,9 @@ RUN npx -y playwright install-deps chromium \
 COPY --from=builder /src/dist/backend ./backend/
 COPY --from=builder /src/dist/frontend ./frontend/
 
+# playwright scripts (plain JS, not bundled)
+COPY --from=builder /src/backend/playwrightScrtips ./playwrightScrtips
+
 # Home Assistant ingress
 EXPOSE 3000
 
