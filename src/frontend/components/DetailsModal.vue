@@ -344,7 +344,7 @@ async function downloadToServer(url: string, filename: string | undefined | null
           </v-col>
         </v-row>
 
-        <v-row>
+        <v-row v-if="item?.isTVSeries">
           <v-col md="12">
             <div>
               <div class="text-h6">Seasons</div>
@@ -358,7 +358,7 @@ async function downloadToServer(url: string, filename: string | undefined | null
           </v-col>
         </v-row>
 
-        <v-row>
+        <v-row v-if="item?.isTVSeries">
           <v-col md="12">
             <div>
               <div class="text-h6">Episodes</div>
