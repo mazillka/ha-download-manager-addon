@@ -47,18 +47,18 @@ async function request<T>(url: string, options?: RequestOptions): Promise<T> {
 }
 
 export const api = {
-  getConfigs: () => request<{ list: Config[] }>("api/configs"),
+  getConfigs: () => request<{ list: Config[] }>("api/configs/get-all"),
 
   saveConfigs: (list: Config[]) =>
-    request<{ list: Config[] }>("api/configs", {
+    request<{ list: Config[] }>("api/configs/add-or-update-all", {
       method: "POST",
       body: JSON.stringify({ list }),
     }),
 
-  getSearchResults: (url: string) =>
+  getSearchResults: (payload: object) =>
     request<{ list: SearchResult[] }>("api/search", {
       method: "POST",
-      body: JSON.stringify({ url }),
+      body: JSON.stringify(payload),
     }),
 
   getDetails: (payload: object) =>
@@ -67,30 +67,36 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
-  addWatchLater: (payload: object) =>
-    request("api/watch-later", {
+  getStreams: (payload: object) =>
+    request<{ streams: any }>("api/get-streams", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
 
-  deleteWatchLater: (pageUrl: string) =>
-    request("api/watch-later", {
+  addWatchLater: (payload: object) =>
+    request("api/watch-later/add", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  deleteWatchLater: (url: string) =>
+    request("api/watch-later/delete", {
       method: "DELETE",
-      body: JSON.stringify({ pageUrl: pageUrl }),
+      body: JSON.stringify({ url: url }),
     }),
 
   getWatchLater: () =>
-    request<{ list: WatchLater[] }>("api/watch-later", {
+    request<{ list: WatchLater[] }>("api/watch-later/get-all", {
       method: "GET",
     }),
 
   getServerDownloads: () =>
-    request<{ list: DownloadTask[] }>("api/downloads", {
+    request<{ list: DownloadTask[] }>("api/downloads/get-all", {
       method: "GET",
     }),
 
   downloadToServer: (payload: object) =>
-    request("api/downloads", {
+    request("api/downloads/add", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
@@ -111,7 +117,7 @@ export const api = {
     }),
 
   deleteServerDownload: (id: string, removeFile: boolean) =>
-    request(`api/downloads/${id}?removeFile=${removeFile}`, {
+    request(`api/downloads/${id}/delete?removeFile=${removeFile}`, {
       method: "DELETE",
     }),
 

@@ -31,6 +31,8 @@ export const Sync = async (): Promise<void> => {
   const dbList = await GetAll();
   const localList = getData(dest);
 
+  // TOOD: fix bug when can't delete last item because it still exist in file and restores every time
+
   if (dbList.length == 0) {
     localList.forEach(async (watchLater: WatchLater) => {
       await Add(watchLater);

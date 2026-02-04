@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted } from "vue";
 import {
     LoadingOverlay,
     DetailsModal,
@@ -14,7 +14,6 @@ import {
 } from "../../common/interfaces";
 import { api, subscribeLoading } from "../api";
 import { formatBytes } from "../utils/format";
-import { ConfigKey } from "../../common/enums";
 import { showConfirm } from "../utils/alerts";
 
 const isLoading = ref(false);
@@ -23,32 +22,29 @@ const searchResults = ref<SearchResult[]>([]);
 
 const modal = ref<{
     item: ParseResult | null;
-    url: string | null;
 }>({
     item: null,
-    url: null,
 });
 
-function initModal(data: ParseResult, url: string) {
+function initModal(data: ParseResult) {
     modal.value.item = data;
-    modal.value.url = url;
 }
 
 const activeTab = ref("search");
 
 const tabs = [
-    { id: "search", name: "Search" },
-    { id: "watching", name: "Watching Now" },
-    { id: "latest", name: "Latest arrivals" },
-    { id: "popular", name: "Popular" },
-    { id: "downloads", name: "Downloads" },
-    { id: "watch_later", name: "Watch Later" },
-    { id: "settings", name: "Settings" },
+    { id: "search", name: "Search", icon: "mdi-magnify" },
+    { id: "watching", name: "Watching Now", icon: "mdi-movie-roll" },
+    { id: "latest", name: "Latest arrivals", icon: "mdi-trending-up" },
+    { id: "popular", name: "Popular", icon: "mdi-fire" },
+    { id: "downloads", name: "Downloads", icon: "mdi-download" },
+    { id: "watch_later", name: "Watch Later", icon: "mdi-sync" },
+    { id: "settings", name: "Settings", icon: "mdi-cogs" },
 ];
-const tabUrls = {
-    watching: "?filter=watching",
-    popular: "?filter=popular",
-    latest: "?filter=last",
+const tabQueries = {
+    watching: "watching",
+    popular: "popular",
+    latest: "last",
 } as Record<string, string>;
 
 const configs = ref<Config[]>([]);
@@ -58,32 +54,12 @@ const watchLaterList = ref<WatchLater[]>([]);
 onMounted(async () => {
     subscribeLoading((v) => (isLoading.value = v));
 
-    await getConfigs();
     await getWatchLaterList();
     await getServerDownloads();
 });
 
-const baseUrl = computed(() => {
-    return (
-        configs.value.find((x: any) => x.key === ConfigKey.BaseUrl)?.value || ""
-    );
-});
-
-function translateCategory(category: string): string {
-    if (!category) return '';
-
-    const categoryMap: Record<string, string> = {
-        "Сериал": "Show",
-        "Фильм": "Movie",
-        "Аниме": "Anime",
-        "Мультфильм": "Cartoon",
-    };
-
-    return categoryMap[category] ?? category;
-}
-
-function isInWatchLater(pageUrl: string): boolean {
-    return watchLaterList.value.some((x: WatchLater) => x.pageUrl === pageUrl);
+function isInWatchLater(url: string): boolean {
+    return watchLaterList.value.some((x: WatchLater) => x.url === url);
 }
 
 async function onSelectTab(tabId: string) {
@@ -96,18 +72,26 @@ async function onSelectTab(tabId: string) {
     if (tabId === "watch_later") return getWatchLaterList();
     if (tabId === "downloads") return getServerDownloads();
 
-    const filter = tabUrls[tabId];
+    const filter = tabQueries[tabId];
     if (filter) {
-        await getSearchResults(`${baseUrl.value}/${filter}`);
+        const payload = {
+            query: undefined,
+            filter,
+        };
+
+        await getSearchResults(payload);
     }
 }
 
 async function onSearch() {
     if (!query.value) return;
 
-    const searchUrl = `${baseUrl.value
-        }/search/?do=search&subaction=search&q=${encodeURIComponent(query.value)}`;
-    await getSearchResults(searchUrl);
+    const payload = {
+        query: query.value,
+        filter: undefined,
+    };
+
+    await getSearchResults(payload);
 }
 
 async function onClear() {
@@ -115,14 +99,14 @@ async function onClear() {
     searchResults.value = [];
 }
 
-async function getSearchResults(url: string) {
-    const { list } = await api.getSearchResults(url);
+async function getSearchResults(payload: object) {
+    const { list } = await api.getSearchResults(payload);
     searchResults.value = list;
 }
 
 async function getDetails(url: string, data_translator_id?: string | null) {
     const { details } = await api.getDetails({ url, data_translator_id });
-    initModal(details, url);
+    initModal(details);
 }
 
 async function getConfigs() {
@@ -185,14 +169,14 @@ async function syncWatchLater() {
 }
 
 async function handleGetDetails(
-    t: string | { url?: string; data_translator_id?: string }
+    t: string | { url: string; data_translator_id?: string }
 ) {
     if (typeof t === "string") {
         await getDetails(t);
     } else if (t.url) {
         await getDetails(t.url);
     } else {
-        await getDetails(modal.value.url!, t.data_translator_id);
+        await getDetails(t.url, t.data_translator_id);
     }
 }
 </script>
@@ -200,6 +184,14 @@ async function handleGetDetails(
 <style>
 .swal2-container {
     z-index: 99999 !important;
+}
+
+.card-text {
+    min-height: 64px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 </style>
 
@@ -210,7 +202,13 @@ async function handleGetDetails(
         <v-container>
             <v-tabs align-tabs="center" class="mb-4" v-model="activeTab" @update:model-value="onSelectTab">
                 <v-tab v-for="tab in tabs" :key="tab.id" :value="tab.id">
+                    |
+                    &nbsp;
                     {{ tab.name }}
+                    &nbsp;
+                    <v-icon :icon="tab.icon"></v-icon>
+                    &nbsp;
+                    |
                 </v-tab>
             </v-tabs>
 
@@ -249,19 +247,20 @@ async function handleGetDetails(
                     <v-row>
                         <v-col v-for="(item, index) in searchResults" :key="index" cols="12" sm="6" md="4" lg="3"
                             xl="2">
-                            <v-card height="100%" @click="handleGetDetails(item.pageUrl)">
-                                <v-img :src="item.posterUrl" :alt="item.title" height="150px" contain>
+                            <v-card class="d-flex flex-column" height="100%" @click="handleGetDetails(item.url)">
+                                <v-img :src="item.image" :alt="item.name" height="150px" contain>
                                     <v-chip v-if="item.category" class="ma-2" color="primary" label>
-                                        {{ translateCategory(item.category) }}
+                                        {{ item.category.name }}
                                     </v-chip>
                                 </v-img>
-                                <v-card-title>{{ item.title }} ({{ item.year }})</v-card-title>
+                                <v-card-text class="flex-grow-1 card-text">{{ item.name }}<br>{{ item.year
+                                    }}</v-card-text>
                                 <v-card-actions>
-                                    <add-to-watch-later-button v-if="!isInWatchLater(item.pageUrl)" :title="item.title"
-                                        :year="item.year" :page-url="item.pageUrl"
-                                        :poster-url="item.posterUrl" @get-watch-later-list="getWatchLaterList"></add-to-watch-later-button>
-                                    <remove-from-watch-later-button v-if="isInWatchLater(item.pageUrl)"
-                                        :page-url="item.pageUrl" @get-watch-later-list="getWatchLaterList"></remove-from-watch-later-button>
+                                    <remove-from-watch-later-button v-if="isInWatchLater(item.url)" :url="item.url"
+                                        @get-watch-later-list="getWatchLaterList"></remove-from-watch-later-button>
+                                    <add-to-watch-later-button v-else :name="item.name" :year="item.year"
+                                        :url="item.url" :image="item.image"
+                                        @get-watch-later-list="getWatchLaterList"></add-to-watch-later-button>
                                 </v-card-actions>
                             </v-card>
                         </v-col>
@@ -272,19 +271,20 @@ async function handleGetDetails(
                     <v-row>
                         <v-col v-for="(item, index) in searchResults" :key="index" cols="12" sm="6" md="4" lg="3"
                             xl="2">
-                            <v-card height="100%" @click="handleGetDetails(item.pageUrl)">
-                                <v-img :src="item.posterUrl" :alt="item.title" height="150px" contain>
+                            <v-card class="d-flex flex-column" height="100%" @click="handleGetDetails(item.url)">
+                                <v-img :src="item.image" :alt="item.name" height="150px" contain>
                                     <v-chip v-if="item.category" class="ma-2" color="primary" label>
-                                        {{ translateCategory(item.category) }}
+                                        {{ item.category.name }}
                                     </v-chip>
                                 </v-img>
-                                <v-card-title>{{ item.title }}</v-card-title>
+                                <v-card-text class="flex-grow-1 card-text">{{ item.name }}<br>{{ item.year
+                                    }}</v-card-text>
                                 <v-card-actions>
-                                    <add-to-watch-later-button v-if="!isInWatchLater(item.pageUrl)" :title="item.title"
-                                        :year="item.year" :page-url="item.pageUrl"
-                                        :poster-url="item.posterUrl" @get-watch-later-list="getWatchLaterList"></add-to-watch-later-button>
-                                    <remove-from-watch-later-button v-if="isInWatchLater(item.pageUrl)"
-                                        :page-url="item.pageUrl" @get-watch-later-list="getWatchLaterList"></remove-from-watch-later-button>
+                                    <remove-from-watch-later-button v-if="isInWatchLater(item.url)" :url="item.url"
+                                        @get-watch-later-list="getWatchLaterList"></remove-from-watch-later-button>
+                                    <add-to-watch-later-button v-else :name="item.name" :year="item.year"
+                                        :url="item.url" :image="item.image"
+                                        @get-watch-later-list="getWatchLaterList"></add-to-watch-later-button>
                                 </v-card-actions>
                             </v-card>
                         </v-col>
@@ -298,12 +298,12 @@ async function handleGetDetails(
                     <v-row v-else>
                         <v-col v-for="(item, index) in watchLaterList" :key="index" cols="12" sm="6" md="4" lg="3"
                             xl="2">
-                            <v-card height="100%" @click="handleGetDetails(item.pageUrl)">
-                                <v-img :src="item.posterUrl" :alt="item.title" height="150px" contain></v-img>
-                                <v-card-title>{{ item.title }} ({{ item.year }})</v-card-title>
+                            <v-card class="d-flex flex-column" height="100%" @click="handleGetDetails(item.url)">
+                                <v-img :src="item.image" :alt="item.name" height="150px" contain></v-img>
+                                <v-card-text class="card-text">{{ item.name }} <br> {{ item.year }}</v-card-text>
                                 <v-card-actions>
-                                    <remove-from-watch-later-button
-                                        :page-url="item.pageUrl" @get-watch-later-list="getWatchLaterList"></remove-from-watch-later-button>
+                                    <remove-from-watch-later-button :url="item.url"
+                                        @get-watch-later-list="getWatchLaterList"></remove-from-watch-later-button>
                                 </v-card-actions>
                             </v-card>
                         </v-col>
@@ -321,7 +321,7 @@ async function handleGetDetails(
                                     <v-progress-linear :model-value="item.progress" class="my-1"></v-progress-linear>
                                     {{ formatBytes(item.loaded) }} / {{ item.total ? formatBytes(item.total) : '?' }}
                                     <span v-if="item.status === 'downloading'">({{ formatBytes(item.speed)
-                                        }}/s)</span>
+                                    }}/s)</span>
                                 </template>
 
                                 <template v-slot:append>
@@ -347,7 +347,7 @@ async function handleGetDetails(
                         <v-card-title>Settings</v-card-title>
                         <v-card-text>
                             <v-text-field v-for="config in configs" :key="config.key" v-model="config.value"
-                                :label="config.key || 'N/A'" :hint="config.description" persistent-hint></v-text-field>
+                                :label="config.description"></v-text-field>
                         </v-card-text>
                         <v-card-actions>
                             <v-spacer></v-spacer>
@@ -357,6 +357,7 @@ async function handleGetDetails(
                 </v-window-item>
             </v-window>
         </v-container>
-        <details-modal :url="modal.url" :item="modal.item" :watchLaterList="watchLaterList" @get-details="handleGetDetails" @get-watch-later-list="getWatchLaterList"></details-modal>
+        <details-modal :item="modal.item" :watchLaterList="watchLaterList"
+            @get-watch-later-list="getWatchLaterList"></details-modal>
     </v-app>
 </template>

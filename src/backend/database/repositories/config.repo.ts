@@ -1,5 +1,6 @@
 import { db } from "../connection";
 import type { Config } from "../../../common/interfaces";
+import { ConfigKey } from "../../../common/enums";
 
 export const getAllConfigs = (): Promise<Config[]> => {
   return new Promise((resolve, reject) => {
@@ -31,7 +32,7 @@ export const addOrUpdateConfigs = (configs: Config[]): Promise<void> => {
   });
 };
 
-export const getConfig = (key: string): Promise<string | null> => {
+export const getConfig = (key: ConfigKey): Promise<string | null> => {
   return new Promise((resolve, reject) => {
     db.get("SELECT value FROM config WHERE key = ?", [key], (err, row: any) => {
       if (err) {

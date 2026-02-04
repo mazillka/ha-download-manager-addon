@@ -1,13 +1,26 @@
-import type { Episode, Season, Stream, Translation } from "./";
-
 export default interface ParseResult {
-  isShow: boolean;
-  year: number | string;
-  title: string;
-  titleOriginal: string;
-  posterUrl: string;
-  streams: Stream[];
-  translations: Translation[];
-  seasons: Season[];
-  episodes: Episode[];
+  url: string;
+  isTVSeries: boolean;
+  isMovie: boolean;
+  category: any;
+  releaseYear: string;
+  name: string;
+  originalName: string | null;
+  description: string;
+  image: string | undefined;
+
+  names: string[];
+  originalNames: string[];
+
+  otherParts: any[];
+
+  translations: any[];
+
+  seasonsInfo: any[] | undefined;
+
+  activeTranslation: any;
+  activeSeason: any | undefined;
+  activeEpisode: any | undefined;
+
+  streams: any;
 }

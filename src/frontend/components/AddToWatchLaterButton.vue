@@ -3,10 +3,10 @@ import { api } from "../api";
 import { showSuccess } from "../utils/alerts";
 
 const props = defineProps<{
-  title: string;
-  year: number | string;
-  pageUrl: string | undefined;
-  posterUrl: string;
+  name: string;
+  year: string;
+  url: string;
+  image: string;
 }>();
 
 const emit = defineEmits<{
@@ -19,10 +19,10 @@ async function getWatchLaterList() {
 
 async function addToWatchLater() {
   const payload = {
-    title: props.title,
+    name: props.name,
     year: props.year,
-    pageUrl: props.pageUrl,
-    posterUrl: props.posterUrl,
+    url: props.url,
+    image: props.image,
   };
 
   await api.addWatchLater(payload);
@@ -34,7 +34,8 @@ async function addToWatchLater() {
 </script>
 
 <template>
-  <v-btn variant="outlined" color="primary" class="mt-2" @click.stop="addToWatchLater" title="Add to Watch Later" block>
-    Add to Watch Later
+ <v-btn prepend-icon="mdi-bookmark-plus-outline" variant="outlined" color="primary" class="mt-2"
+    @click.stop="addToWatchLater" title="Watch Later" block>
+    Watch Later
   </v-btn>
 </template>

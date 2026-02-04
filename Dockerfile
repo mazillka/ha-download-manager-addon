@@ -17,7 +17,6 @@ COPY src/frontend ./frontend/
 # Build backend + frontend
 RUN npm run build:prod
 
-
 # =========================
 # 2️⃣ Runtime stage
 # =========================
@@ -26,10 +25,6 @@ FROM node:20-bookworm-slim
 # ========= Home Assistant / Node =========
 ENV NODE_ENV=production
 ENV TZ=UTC
-
-# Playwright / Chromium optimizations
-ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 # Less logs
 ENV NPM_CONFIG_LOGLEVEL=warn
@@ -41,16 +36,9 @@ COPY src/package.json src/package-lock.json ./
 RUN npm ci --omit=dev \
  && npm cache clean --force
 
-# ======= Playwright deps =======
-RUN npx -y playwright install-deps chromium \
- && npx -y playwright install chromium
-
 # ======= App build output =======
 COPY --from=builder /src/dist/backend ./backend/
 COPY --from=builder /src/dist/frontend ./frontend/
-
-# playwright scripts (plain JS, not bundled)
-COPY --from=builder /src/backend/playwrightScrtips ./playwrightScrtips
 
 # Home Assistant ingress
 EXPOSE 3000

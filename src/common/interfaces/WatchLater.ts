@@ -1,6 +1,6 @@
 export default interface WatchLater {
-  title: string;
+  name: string;
   year: string;
-  pageUrl: string;
-  posterUrl: string;
+  url: string;
+  image: string;
 }

@@ -1,7 +1,10 @@
 export default interface SearchResult {
-  title: string;
+  name: string;
+  url: string;
+  image: string;
   year: string;
-  pageUrl: string;
-  posterUrl: string;
-  category: string;
+  category: {
+    name: string;
+    category: string;
+  };
 }

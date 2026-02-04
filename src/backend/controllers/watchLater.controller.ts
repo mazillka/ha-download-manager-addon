@@ -23,9 +23,9 @@ export const Add = asyncHandler(
 
 export const Delete = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    const { pageUrl } = req.body;
+    const { url } = req.body;
 
-    await WatchLaterService.Delete(pageUrl);
+    await WatchLaterService.Delete(url);
 
     await WatchLaterService.Sync();
 

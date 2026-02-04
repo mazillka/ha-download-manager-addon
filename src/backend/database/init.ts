@@ -29,7 +29,7 @@ export const initDB = (): void => {
 
     // create watch_later table
     db.run(
-      "CREATE TABLE IF NOT EXISTS watch_later (pageUrl TEXT PRIMARY KEY, title TEXT, year TEXT, posterUrl TEXT)"
+      "CREATE TABLE IF NOT EXISTS watch_later (url TEXT PRIMARY KEY, name TEXT, year TEXT, image TEXT)"
     );
 
     insertDefaultConfig();

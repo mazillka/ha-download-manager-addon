@@ -3,7 +3,7 @@ import { api } from "../api";
 import { showConfirm } from "../utils/alerts";
 
 const props = defineProps<{
-    pageUrl: string;
+    url: string;
 }>();
 
 const emit = defineEmits<{
@@ -22,12 +22,12 @@ async function removeFromWatchLater() {
 
     if (!ok) return;
 
-    await api.deleteWatchLater(props.pageUrl);
+    await api.deleteWatchLater(props.url);
     await getWatchLaterList();
 }
 </script>
 
 <template>
-    <v-btn variant="outlined" color="error" class="mt-2" @click.stop="removeFromWatchLater"
-        title="Remove from Watch Later" block>Remove from Watch Later</v-btn>
+    <v-btn prepend-icon="mdi-bookmark-minus-outline" variant="outlined" color="error" class="mt-2"
+        @click.stop="removeFromWatchLater" title="Watch Later" block>Watch Later</v-btn>
 </template>

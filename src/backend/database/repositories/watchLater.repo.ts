@@ -4,12 +4,12 @@ import type { WatchLater } from "../../../common/interfaces";
 export const addWatchLater = (watchLater: WatchLater): Promise<void> => {
   return new Promise((resolve, reject) => {
     db.run(
-      "INSERT INTO watch_later (pageUrl, title, year, posterUrl) VALUES (?, ?, ?, ?)",
+      "INSERT INTO watch_later (url, name, year, image) VALUES (?, ?, ?, ?)",
       [
-        watchLater.pageUrl,
-        watchLater.title,
+        watchLater.url,
+        watchLater.name,
         watchLater.year,
-        watchLater.posterUrl,
+        watchLater.image,
       ],
       (err) => {
         if (err) {
@@ -22,9 +22,9 @@ export const addWatchLater = (watchLater: WatchLater): Promise<void> => {
   });
 };
 
-export const deleteWatchLater = (pageUrl: string): Promise<void> => {
+export const deleteWatchLater = (url: string): Promise<void> => {
   return new Promise((resolve, reject) => {
-    db.run("DELETE FROM watch_later WHERE pageUrl = ?", [pageUrl], (err) => {
+    db.run("DELETE FROM watch_later WHERE url = ?", [url], (err) => {
       if (err) {
         reject(err);
       } else {

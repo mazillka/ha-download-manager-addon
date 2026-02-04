@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed } from "vue";
+import { ref, watch, computed, onMounted, watchEffect } from "vue";
 import { SanitizeFileName } from "../../common/utils";
 import { api } from "../api";
 import type { ParseResult, WatchLater } from "../../common/interfaces";
@@ -8,12 +8,10 @@ import { showConfirm, showSuccess } from "../utils/alerts";
 
 const props = defineProps<{
   item: ParseResult | null;
-  url: string | null;
   watchLaterList: WatchLater[];
 }>();
 
 const emit = defineEmits<{
-  (e: "get-details", item: any): void;
   (e: "get-watch-later-list"): void;
 }>();
 
@@ -36,25 +34,167 @@ const download = ref({
   },
 });
 
-watch(() => props.item, (newItem) => {
-  if (newItem) {
-    videoUrl.value = null;
-    dialog.value = true;
+let activeTranslation = ref<any>(null);
+let activeSeason = ref<any>(null);
+let activeEpisode = ref<any>(null);
+
+let streamsObj = ref<any>(null);
+
+const translations = computed(() => {
+  if (!props.item || !props.item?.translations) return [];
+
+  return Object.entries(props.item?.translations).map(
+    ([id, value]) => ({
+      translator_id: parseInt(id),
+      translator_name: value.name,
+      premium: value.premium,
+    })
+  );
+});
+
+const seasons = computed(() => {
+  if (!props.item || !props.item?.seasonsInfo) return [];
+
+  const translationId =
+    activeTranslation.value?.translator_id ??
+    props.item.activeTranslation?.translator_id;
+
+  if (!translationId) return [];
+
+  return props.item?.seasonsInfo
+    .map(season => {
+      const episodes = season.episodes.filter((e: any) =>
+        e.translations.some((t: any) => t.translator_id === translationId)
+      );
+      return episodes.length ? { ...season, episodes } : null;
+    })
+    .filter(Boolean);
+});
+
+const episodes = computed(() => {
+  if (!activeSeason.value) return [];
+
+  const season = seasons.value.find(
+    s => s.season === activeSeason.value.season
+  );
+
+  return season?.episodes ?? [];
+});
+
+watch(seasons, (list) => {
+  if (!list.length) return;
+
+  if (!activeSeason.value || !list.some(s => s.season === activeSeason.value.season)) {
+    activeSeason.value = list[0];
   }
 });
 
-const isAndroid = computed(() => /android/i.test(navigator.userAgent));
+watch(activeSeason, (season) => {
+  if (!season?.episodes?.length) return;
+  activeEpisode.value = season.episodes[0];
+});
 
-async function getDetails(item: any) {
-  emit("get-details", item);
+watch(
+  () => props.item,
+  (item) => {
+    if (!item) return;
+
+    videoUrl.value = null;
+    dialog.value = true;
+
+    activeTranslation.value = item.activeTranslation || translations.value[0] || null;
+
+    if (item.isTVSeries) {
+      activeSeason.value = item.activeSeason || null;
+      activeEpisode.value = item.activeEpisode || null;
+    }
+
+    streamsObj.value = item.streams;
+  },
+  { immediate: true }
+);
+
+async function getStreams() {
+  if (!props.item) return;
+
+  const payload = {
+    url: props.item.url,
+    translator_id: activeTranslation?.value.translator_id,
+    season: activeSeason.value?.season,
+    episode: activeEpisode.value?.episode,
+  };
+
+  setStreams(null);
+
+  const { streams } = await api.getStreams(payload) || { streams: null };
+
+  setStreams(streams);
 }
+
+function androidUrl(url: string) {
+  return `intent:${url}#Intent;action=android.intent.action.VIEW;type=video/mp4;end`;
+};
+
+function fileName(quality: string) {
+  const season = activeSeason.value?.season;
+  const episode = activeEpisode.value?.episode;
+  const isTVSeries = props.item?.isTVSeries;
+
+  const title = props.item?.originalName || props.item?.name;
+
+  const year = props.item?.releaseYear;
+
+  const seasonEpisode = isTVSeries
+    ? `S${season}E${episode} `
+    : "";
+
+  const yearStr = isTVSeries ? " " : ` (${year}) `;
+
+  return `${title}${yearStr}${seasonEpisode}[${quality}].mp4`;
+};
+
+function setStreams(streams: any) {
+  streamsObj.value = streams;
+}
+
+async function setActiveTranslation(translation: any) {
+  activeTranslation.value = translation;
+
+  await getStreams();
+}
+
+function isActiveTranslation(translation: any): boolean {
+  return activeTranslation.value?.translator_id == translation.translator_id || false;
+}
+
+async function setActiveSeason(season: any) {
+  activeSeason.value = season;
+
+    await getStreams();
+}
+
+function isActiveSeason(season: any): boolean {
+  return activeSeason.value?.season == season.season || false;
+}
+
+async function setActiveEpisode(episode: any) {
+  activeEpisode.value = episode;
+
+    await getStreams();
+}
+
+function isActiveEpisode(episode: any): boolean {
+  return activeEpisode.value?.episode == episode.episode || false;
+}
+
+const isAndroid = computed(() => /android/i.test(navigator.userAgent));
 
 async function getWatchLaterList() {
   emit("get-watch-later-list");
 }
 
-function isInWatchLater(pageUrl: string | null): boolean {
-  return props.watchLaterList.some((x: WatchLater) => x.pageUrl === pageUrl);
+function isInWatchLater(url: string | null): boolean {
+  return props.watchLaterList.some((x: WatchLater) => x.url === url);
 }
 
 function showPlayer(url: string) {
@@ -163,49 +303,96 @@ async function downloadToServer(url: string, filename: string | undefined | null
   <v-dialog v-model="dialog" max-width="800px">
     <v-card v-if="props.item">
       <v-card-title class="d-flex align-center">
-        <a :href="props.url || '#'" target="_blank">{{ props.item.titleOriginal || props.item.title }}</a>
+        <a :href="props.item.url" target="_blank">{{ props.item.originalName || props.item.name }}</a>
         <v-btn icon="mdi-close" variant="text" class="ml-auto" @click="dialog = false"></v-btn>
       </v-card-title>
       <v-card-text>
         <v-row>
-          <v-col md="4" class="text-center" v-if="props.item.posterUrl">
-            <v-img class="rounded" max-height="250" :src="props.item.posterUrl" :alt="props.item.title" />
+          <v-col md="4" class="text-center" v-if="props.item.image">
+            <v-img class="rounded" max-height="250" :src="props.item.image" :alt="props.item.name" />
 
-            <add-to-watch-later-button v-if="!isInWatchLater(props.url)"
-              :title="props.item.titleOriginal || props.item.title" :year="props.item.year" :page-url="props.url || '#'"
-              :poster-url="props.item.posterUrl" @get-watch-later-list="getWatchLaterList" />
+            <add-to-watch-later-button v-if="!isInWatchLater(props.item.url)"
+              :name="props.item.originalName || props.item.name" :year="props.item.releaseYear" :url="props.item.url"
+              :image="props.item.image" @get-watch-later-list="getWatchLaterList" />
 
-            <remove-from-watch-later-button v-if="isInWatchLater(props.url)" :page-url="props.url || '#'"
+            <remove-from-watch-later-button v-if="isInWatchLater(props.item.url)" :url="props.item.url"
               @get-watch-later-list="getWatchLaterList"></remove-from-watch-later-button>
 
           </v-col>
-          <v-col :md="props.item.posterUrl ? 8 : 12">
-            <section-with-buttons title="Translations" :items="props.item.translations" @get-details="getDetails" />
+
+          <v-col :md="props.item.image ? 8 : 12">
+            <v-expansion-panels>
+              <v-expansion-panel>
+                <v-expansion-panel-title>
+                  <div class="text-h6">Description</div>
+                </v-expansion-panel-title>
+                <v-expansion-panel-text>
+                  {{ props.item.description }}
+                </v-expansion-panel-text>
+              </v-expansion-panel>
+            </v-expansion-panels>
+            <div v-if="translations">
+              <div class="text-h6">Translations</div>
+              <div class="d-flex flex-wrap mb-3">
+                <v-btn v-for="translation in translations" size="small" class="me-2 mb-2" variant="outlined"
+                  color="primary" @click="setActiveTranslation(translation)"
+                  :disabled="isActiveTranslation(translation)">
+                  {{ translation.translator_name }}
+                </v-btn>
+              </div>
+            </div>
           </v-col>
         </v-row>
 
-        <section-with-buttons title="Seasons" :items="props.item.seasons" replace-from="Сезон" replace-to="Season"
-          @get-details="getDetails" />
+        <v-row>
+          <v-col md="12">
+            <div>
+              <div class="text-h6">Seasons</div>
+              <div class="d-flex flex-wrap mb-3">
+                <v-btn v-for="season in seasons" size="small" class="me-2 mb-2" variant="outlined" color="primary"
+                  @click="setActiveSeason(season)" :disabled="isActiveSeason(season)">
+                  {{ season.season_text }}
+                </v-btn>
+              </div>
+            </div>
+          </v-col>
+        </v-row>
 
-        <section-with-buttons title="Episodes" :items="props.item.episodes" replace-from="Серия" replace-to="Episode"
-          @get-details="getDetails" />
+        <v-row>
+          <v-col md="12">
+            <div>
+              <div class="text-h6">Episodes</div>
+              <div class="d-flex flex-wrap mb-3">
+                <v-btn v-for="episode in episodes" size="small" class="me-2 mb-2" variant="outlined" color="primary"
+                  @click="setActiveEpisode(episode)" :disabled="isActiveEpisode(episode)">
+                  {{ episode.episode_text }}
+                </v-btn>
+              </div>
+            </div>
+          </v-col>
+        </v-row>
 
-        <div v-if="props.item.streams && props.item.streams.length" class="mt-4">
-          <div class="text-h6">Actions</div>
-          <stream-dropdown label="Watch" :streams="props.item.streams" @select="showPlayer($event.mp4)" />
-          <stream-dropdown v-if="isAndroid" label="Watch External" :streams="props.item.streams"
-            @select="openStream($event.mp4Android)" />
-
-          <!-- TODO: hiden -->
-          <div class="d-none">
-            <stream-dropdown label="Open in Tab" :streams="props.item.streams" @select="openStream($event.mp4)" />
-            <stream-dropdown label="Copy Url" :streams="props.item.streams" @select="copyStreamUrl($event.mp4)" />
+        <div class="mt-4">
+          <div class="text-h6">
+            <span class="cursor-pointer" :class="streamsObj ? 'text-black' : 'text-red'" @click="getStreams()">
+              Actions
+            </span>
           </div>
+          <div v-if="streamsObj">
+            <stream-dropdown label="Watch" :streams="streamsObj" @select="showPlayer($event.url)" />
+            <stream-dropdown v-if="isAndroid" label="Watch External" :streams="streamsObj"
+              @select="openStream(androidUrl($event.url))" />
 
-          <stream-dropdown label="Download" :streams="props.item.streams"
-            @select="downloadToLocal($event.mp4, $event.mp4FileName)" />
-          <stream-dropdown label="Download To Server" :streams="props.item.streams"
-            @select="downloadToServer($event.mp4, $event.mp4FileName)" />
+            <div class="d-none">
+              <stream-dropdown label="Open in Tab" :streams="streamsObj" @select="openStream($event.url)" />
+              <stream-dropdown label="Copy Url" :streams="streamsObj" @select="copyStreamUrl($event.url)" />
+            </div>
+
+            <stream-dropdown label="Download" :streams="streamsObj"
+              @select="downloadToLocal($event.url, fileName($event.quality))" />
+            <stream-dropdown label="Download To Server" :streams="streamsObj"
+              @select="downloadToServer($event.url, fileName($event.quality))" />
+          </div>
         </div>
 
         <video-player v-model:video-url="videoUrl"></video-player>
