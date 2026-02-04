@@ -311,12 +311,12 @@ async function downloadToServer(url: string, filename: string | undefined | null
           <v-col md="4" class="text-center" v-if="props.item.image">
             <v-img class="rounded" max-height="250" :src="props.item.image" :alt="props.item.name" />
 
-            <add-to-watch-later-button v-if="!isInWatchLater(props.item.url)"
-              :name="props.item.originalName || props.item.name" :year="props.item.releaseYear" :url="props.item.url"
-              :image="props.item.image" @get-watch-later-list="getWatchLaterList" />
-
             <remove-from-watch-later-button v-if="isInWatchLater(props.item.url)" :url="props.item.url"
               @get-watch-later-list="getWatchLaterList"></remove-from-watch-later-button>
+
+            <add-to-watch-later-button v-else
+              :name="props.item.originalName || props.item.name" :year="props.item.releaseYear" :url="props.item.url"
+              :image="props.item.image" @get-watch-later-list="getWatchLaterList" />
 
           </v-col>
 

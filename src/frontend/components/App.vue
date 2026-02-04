@@ -258,6 +258,7 @@ async function handleGetDetails(
                                 <v-card-actions>
                                     <remove-from-watch-later-button v-if="isInWatchLater(item.url)" :url="item.url"
                                         @get-watch-later-list="getWatchLaterList"></remove-from-watch-later-button>
+
                                     <add-to-watch-later-button v-else :name="item.name" :year="item.year"
                                         :url="item.url" :image="item.image"
                                         @get-watch-later-list="getWatchLaterList"></add-to-watch-later-button>
@@ -282,6 +283,7 @@ async function handleGetDetails(
                                 <v-card-actions>
                                     <remove-from-watch-later-button v-if="isInWatchLater(item.url)" :url="item.url"
                                         @get-watch-later-list="getWatchLaterList"></remove-from-watch-later-button>
+                                        
                                     <add-to-watch-later-button v-else :name="item.name" :year="item.year"
                                         :url="item.url" :image="item.image"
                                         @get-watch-later-list="getWatchLaterList"></add-to-watch-later-button>
