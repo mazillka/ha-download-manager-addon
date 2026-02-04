@@ -1,8 +1,6 @@
 import fetch from "node-fetch";
-import { JSDOM } from "jsdom";
+import * as cheerio from "cheerio";
 import { URLSearchParams } from "url";
-// import { Category, Film, Series, Cartoon, Anime } from "./types";
-// import { HTTP, LoginRequiredError, CaptchaError } from "./errors";
 
 /* -------------------- DEFAULTS -------------------- */
 
@@ -18,7 +16,7 @@ export const defaultHeaders: Record<string, string> = {
 export const defaultTranslatorsPriority: number[] = [56, 105, 111];
 export const defaultTranslatorsNonPriority: number[] = [238];
 
-/* --------------------  Types -------------------- */
+/* -------------------- Types -------------------- */
 
 export class Type {
   name: string;
@@ -53,6 +51,7 @@ export class Category extends Type {
 }
 
 /* -------------------- Formats -------------------- */
+
 export class TVSeries extends Format {
   constructor() {
     super("tv_series");
@@ -66,6 +65,7 @@ export class Movie extends Format {
 }
 
 /* -------------------- Categories -------------------- */
+
 export class Film extends Category {
   constructor() {
     super("film");
@@ -91,6 +91,7 @@ export class Anime extends Category {
 }
 
 /* -------------------- Ratings -------------------- */
+
 export class Rating {
   value: number;
   votes: number;
@@ -138,10 +139,6 @@ export class EmptyRating extends Rating {
     return false;
   }
 
-  // lt(other?: Rating): boolean {
-  //   return other?.value ? true : false;
-  // }
-
   ge(other?: Rating): boolean {
     return other?.value ? false : true;
   }
@@ -155,6 +152,7 @@ export class EmptyRating extends Rating {
   }
 }
 
+/* -------------------- Errors -------------------- */
 
 export class LoginRequiredError extends Error {
   constructor() {
@@ -186,6 +184,7 @@ export class CaptchaError extends Error {
 
 export class HTTP extends Error {
   code: number;
+
   constructor(code: number, message = "") {
     super(`${code}: ${message}`);
     this.name = "HTTP";
@@ -193,6 +192,7 @@ export class HTTP extends Error {
   }
 }
 
+/* -------------------- Search Types -------------------- */
 
 export interface SearchItem {
   name: string;
@@ -205,10 +205,12 @@ export interface SearchItem {
 
 export interface SearchOptions {
   origin: string;
-  proxy?: Record<string, string>; // unused for fetch, for future axios support
+  proxy?: Record<string, string>;
   headers?: Record<string, string>;
   cookies?: Record<string, string>;
 }
+
+/* -------------------- Search -------------------- */
 
 export class Search {
   origin: string;
@@ -231,28 +233,24 @@ export class Search {
     return findAll ? this.advancedSearch(query) : this.fastSearch(query);
   }
 
-  async filter(filter: string) {
+  async filter(filter: string): Promise<SearchItem[]> {
     const url = `${this.origin}/?filter=${filter}`;
-
-    const res = await fetch(url, {
-      headers: { ...this.headers },
-    });
+    const res = await fetch(url, { headers: this.headers });
 
     if (!res.ok) throw new HTTP(res.status, res.statusText);
 
     const html = await res.text();
-    const dom = new JSDOM(html);
-    const document = dom.window.document;
+    const $ = cheerio.load(html);
 
-    if (document.title === "Sign In") throw new LoginRequiredError();
-    if (document.title === "Verify") throw new CaptchaError();
+    const title = $("title").text();
+    if (title === "Sign In") throw new LoginRequiredError();
+    if (title === "Verify") throw new CaptchaError();
 
-    const items = document.querySelectorAll(".b-content__inline_item");
     const result: SearchItem[] = [];
 
-    items.forEach((item) => {
-      const processed = SearchResult.processItem(item);
-      if (processed) result.push(processed);
+    $(".b-content__inline_item").each((_, el) => {
+      const item = SearchResult.processItemCheerio($, el);
+      if (item) result.push(item);
     });
 
     return result;
@@ -271,24 +269,20 @@ export class Search {
     if (!res.ok) throw new HTTP(res.status, res.statusText);
 
     const html = await res.text();
-    const dom = new JSDOM(html);
-    const document = dom.window.document;
+    const $ = cheerio.load(html);
 
     const results: SearchItem[] = [];
-    const items = document.querySelectorAll(".b-search__section_list li");
 
-    items.forEach((item) => {
-      const titleEl = item.querySelector("span.enty");
-      const linkEl = item.querySelector("a");
-      const ratingEl = item.querySelector("span.rating");
+    $(".b-search__section_list li").each((_, el) => {
+      const title = $(el).find("span.enty").text().trim();
+      const link = $(el).find("a").attr("href");
+      const ratingText = $(el).find("span.rating").text();
 
-      if (titleEl && linkEl) {
+      if (title && link) {
         results.push({
-          name: titleEl.textContent?.trim() || "",
-          url: (linkEl as HTMLAnchorElement).href,
-          rating: ratingEl
-            ? parseFloat(ratingEl.textContent || "0")
-            : undefined,
+          name: title,
+          url: link,
+          rating: ratingText ? parseFloat(ratingText) : undefined,
         });
       }
     });
@@ -296,7 +290,7 @@ export class Search {
     return results;
   }
 
-  advancedSearch(query: string, filter?: boolean): SearchResult {
+  advancedSearch(query: string): SearchResult {
     return new SearchResult(
       this.origin,
       query,
@@ -338,8 +332,8 @@ export class SearchResult implements AsyncIterable<SearchItem[]> {
     return {
       next: async (): Promise<IteratorResult<SearchItem[]>> => {
         const page = await this.getPage(this._currentPage);
-        if (page && page.length > 0) {
-          this._currentPage += 1;
+        if (page.length) {
+          this._currentPage++;
           return { value: page, done: false };
         }
         return { value: [], done: true };
@@ -359,7 +353,7 @@ export class SearchResult implements AsyncIterable<SearchItem[]> {
   }
 
   async all(): Promise<SearchItem[]> {
-    const pages = await this.all();
+    const pages = await this.allPages();
     return pages.flat();
   }
 
@@ -377,52 +371,51 @@ export class SearchResult implements AsyncIterable<SearchItem[]> {
     if (!res.ok) throw new HTTP(res.status, res.statusText);
 
     const html = await res.text();
-    const dom = new JSDOM(html);
-    const document = dom.window.document;
+    const $ = cheerio.load(html);
 
-    if (document.title === "Sign In") throw new LoginRequiredError();
-    if (document.title === "Verify") throw new CaptchaError();
+    const title = $("title").text();
+    if (title === "Sign In") throw new LoginRequiredError();
+    if (title === "Verify") throw new CaptchaError();
 
-    const items = document.querySelectorAll(".b-content__inline_item");
     const result: SearchItem[] = [];
 
-    items.forEach((item) => {
-      const processed = SearchResult.processItem(item);
-      if (processed) result.push(processed);
+    $(".b-content__inline_item").each((_, el) => {
+      const item = SearchResult.processItemCheerio($, el);
+      if (item) result.push(item);
     });
 
     return result;
   }
 
-  static processItem(item: Element): SearchItem | null {
-    const linkEl = item.querySelector(
-      ".b-content__inline_item-link a",
-    ) as HTMLAnchorElement;
-    const divEl = item.querySelector(
-      ".b-content__inline_item-link div",
-    );
-    const coverEl = item.querySelector(
-      ".b-content__inline_item-cover img",
-    ) as HTMLImageElement;
-    const catEl = item.querySelector(".cat");
+  static processItemCheerio(
+    $: cheerio.CheerioAPI,
+    el: cheerio.Element,
+  ): SearchItem | null {
+    const linkEl = $(el).find(".b-content__inline_item-link a");
+    const textDiv = $(el).find(".b-content__inline_item-link div");
+    const cover = $(el).find(".b-content__inline_item-cover img");
+    const catEl = $(el).find(".cat");
 
-    if (!linkEl || !coverEl || !divEl) return null;
+    if (!linkEl.length || !textDiv.length || !cover.length) return null;
 
-    const typeClasses = catEl
-      ? Array.from(catEl.classList).filter((c) => c !== "cat")
-      : [];
-    const type = typeClasses.length
-      ? SearchResult.detectType(typeClasses)
+    const classes =
+      catEl
+        .attr("class")
+        ?.split(" ")
+        .filter((c) => c !== "cat") ?? [];
+
+    const category = classes.length
+      ? SearchResult.detectType(classes)
       : undefined;
 
-    const year = SearchResult.parseYearString(divEl.textContent);
+    const year = SearchResult.parseYearString(textDiv.text());
 
     return {
-      name: linkEl.textContent?.trim() || "",
-      url: linkEl.href,
-      image: coverEl.src,
-      category: type,
-      year: year
+      name: linkEl.text().trim(),
+      url: linkEl.attr("href")!,
+      image: cover.attr("src"),
+      category,
+      year,
     };
   }
 
@@ -435,26 +428,17 @@ export class SearchResult implements AsyncIterable<SearchItem[]> {
   }
 
   static parseYearString(input: string): string {
-    const yearPart = input.split(',')[0].trim();
+    const yearPart = input.split(",")[0].trim();
 
-    // 2024 – ... / 2024 - ...
     const openRange = yearPart.match(/(\d{4})\s*[–-]\s*(\.\.\.)/);
-    if (openRange) {
-      return `${openRange[1]} – ...`;
-    }
+    if (openRange) return `${openRange[1]} – ...`;
 
-    // 2016–2026 / 2016-2026
     const closedRange = yearPart.match(/(\d{4})\s*[–-]\s*(\d{4})/);
-    if (closedRange) {
-      return `${closedRange[1]} – ${closedRange[2]}`;
-    }
+    if (closedRange) return `${closedRange[1]} – ${closedRange[2]}`;
 
-    // 2026
     const singleYear = yearPart.match(/\d{4}/);
-    if (singleYear) {
-      return singleYear[0];
-    }
+    if (singleYear) return singleYear[0];
 
-    return 'N/A';
+    return "N/A";
   }
 }
