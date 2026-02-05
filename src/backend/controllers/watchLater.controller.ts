@@ -15,8 +15,6 @@ export const Add = asyncHandler(
 
     await WatchLaterService.Add(watchLater);
 
-    await WatchLaterService.Sync();
-
     res.json({ watchLater });
   },
 );
@@ -27,15 +25,6 @@ export const Delete = asyncHandler(
 
     await WatchLaterService.Delete(url);
 
-    await WatchLaterService.Sync();
-
-    res.json({ success: true });
-  },
-);
-
-export const Sync = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
-    await WatchLaterService.Sync();
     res.json({ success: true });
   },
 );

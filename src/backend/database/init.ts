@@ -6,7 +6,7 @@ export const initDB = (): void => {
   db.serialize(() => {
     // create history table
     db.run(
-      "CREATE TABLE IF NOT EXISTS history (id INTEGER PRIMARY KEY AUTOINCREMENT, filename TEXT, size INTEGER, completed_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
+      "CREATE TABLE IF NOT EXISTS history (id INTEGER PRIMARY KEY AUTOINCREMENT, filename TEXT, size INTEGER, completed_at DATETIME DEFAULT CURRENT_TIMESTAMP)",
     );
 
     // create tasks table
@@ -24,12 +24,12 @@ export const initDB = (): void => {
 
     // create config table
     db.run(
-      "CREATE TABLE IF NOT EXISTS config (key TEXT PRIMARY KEY, value TEXT, description TEXT)"
+      "CREATE TABLE IF NOT EXISTS config (key TEXT PRIMARY KEY, value TEXT, description TEXT)",
     );
 
     // create watch_later table
     db.run(
-      "CREATE TABLE IF NOT EXISTS watch_later (url TEXT PRIMARY KEY, name TEXT, year TEXT, image TEXT)"
+      "CREATE TABLE IF NOT EXISTS watch_later (url TEXT PRIMARY KEY, name TEXT, year TEXT, image TEXT)",
     );
 
     insertDefaultConfig();
@@ -42,16 +42,11 @@ const defaultConfigs: Config[] = [
     value: "",
     description: "Base Site URL",
   },
-  {
-    key: ConfigKey.DownloadPath,
-    value: "/media/DOWNLOADS",
-    description: "Server Download Path",
-  },
 ];
 
 const insertDefaultConfig = (): void => {
   const stmt = db.prepare(
-    `INSERT OR IGNORE INTO config (key, value, description) VALUES (?, ?, ?)`
+    `INSERT OR IGNORE INTO config (key, value, description) VALUES (?, ?, ?)`,
   );
 
   defaultConfigs.forEach((c) => {

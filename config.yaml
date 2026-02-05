@@ -18,3 +18,4 @@ host_network: false
 
 map:
   - media:rw
+  - share:rw

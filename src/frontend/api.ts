@@ -119,11 +119,5 @@ export const api = {
   deleteServerDownload: (id: string, removeFile: boolean) =>
     request(`api/downloads/${id}/delete?removeFile=${removeFile}`, {
       method: "DELETE",
-    }),
-
-  syncWatchLater: (list: WatchLater[]) =>
-    request("api/watch-later/sync", {
-      method: "POST",
-      body: JSON.stringify({ list }),
-    }),
+    })
 };
