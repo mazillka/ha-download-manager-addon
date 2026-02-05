@@ -139,5 +139,6 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 app/backend/ha-download-manager.db
 src/backend/services/ha-download-manager.db
-/src/media/downloads
+/src/media
 /.vs
+/src/share

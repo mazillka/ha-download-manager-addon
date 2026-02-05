@@ -39,9 +39,20 @@ const config: esbuild.BuildOptions = {
   outfile: path.join(__dirname, "../dist/backend/server.js"),
   packages: "external",
   plugins: [resolveExtensions],
-  sourcemap: true,
+  sourcemap: isWatch ? "inline" : false,
   logLevel: "info",
   minify: !isWatch,
+  treeShaking: true,
+  // Additional minification options for production
+  ...(!isWatch && {
+    minifyWhitespace: true,
+    minifyIdentifiers: true,
+    minifySyntax: true,
+    keepNames: false,
+  }),
+  // Optimize output
+  legalComments: "none",
+  charset: "utf8",
 };
 
 if (isWatch) {

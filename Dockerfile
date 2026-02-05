@@ -3,13 +3,21 @@
 # =========================
 FROM node:20-bookworm-slim AS builder
 
+# Install build dependencies for native modules (sqlite3)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /src
 
-# ======== Install all deps (cached layer) =======
+# ======== Install deps (cached layer) =======
+# Copy only package files first for better layer caching
 COPY src/package.json src/package-lock.json ./
-RUN npm ci
+RUN npm ci --prefer-offline --no-audit
 
-# Source code
+# ======== Copy source and build =======
 COPY src/common ./common/
 COPY src/backend ./backend/
 COPY src/frontend ./frontend/
@@ -22,23 +30,49 @@ RUN npm run build:prod
 # =========================
 FROM node:20-bookworm-slim
 
-# ========= Home Assistant / Node =========
-ENV NODE_ENV=production
-ENV TZ=UTC
+# ========= Metadata =========
+LABEL maintainer="HA Download Manager"
+LABEL description="Home Assistant Download Manager Add-on"
 
-# Less logs
-ENV NPM_CONFIG_LOGLEVEL=warn
+# ========= Environment =========
+ENV NODE_ENV=production \
+    TZ=UTC \
+    NPM_CONFIG_LOGLEVEL=warn \
+    NODE_OPTIONS="--max-old-space-size=512"
+
+# ========= Security: Create non-root user =========
+RUN groupadd -r nodejs && useradd -r -g nodejs nodejs
+
+# ========= Install runtime dependencies =========
+# Only install what's needed for sqlite3 at runtime
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /src/dist
 
 # ======= Install prod deps (cached layer) =======
 COPY src/package.json src/package-lock.json ./
-RUN npm ci --omit=dev \
- && npm cache clean --force
+RUN npm ci --omit=dev --prefer-offline --no-audit \
+    && npm cache clean --force
 
-# ======= App build output =======
+# ======= Copy build output =======
 COPY --from=builder /src/dist/backend ./backend/
 COPY --from=builder /src/dist/frontend ./frontend/
+
+# ======= Copy and prepare run script =======
+COPY run.sh /run.sh
+RUN chmod +x /run.sh
+
+# ========= Create required directories with proper permissions =========
+RUN mkdir -p /share/ha-download-manager /media/DOWNLOADS \
+    && chown -R nodejs:nodejs /share /media
+
+# ========= Security: Change ownership =========
+RUN chown -R nodejs:nodejs /src/dist
+
+# ========= Switch to non-root user =========
+USER nodejs
 
 # Home Assistant ingress
 EXPOSE 3000
@@ -46,7 +80,8 @@ EXPOSE 3000
 # Graceful shutdown
 STOPSIGNAL SIGTERM
 
-COPY run.sh /run.sh
-RUN chmod +x /run.sh
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3000/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
 
 CMD ["/run.sh"]
