@@ -202,13 +202,13 @@ async function handleGetDetails(
         <v-container>
             <v-tabs align-tabs="center" class="mb-4" v-model="activeTab" @update:model-value="onSelectTab">
                 <v-tab v-for="tab in tabs" :key="tab.id" :value="tab.id">
-                    |
+                    <span :style="{ color: activeTab === tab.id ? 'red' : 'black' }">|</span>
                     &nbsp;
                     {{ tab.name }}
                     &nbsp;
                     <v-icon :icon="tab.icon"></v-icon>
                     &nbsp;
-                    |
+                    <span :style="{ color: activeTab === tab.id ? 'red' : 'black' }">|</span>
                 </v-tab>
             </v-tabs>
 
@@ -283,7 +283,7 @@ async function handleGetDetails(
                                 <v-card-actions>
                                     <remove-from-watch-later-button v-if="isInWatchLater(item.url)" :url="item.url"
                                         @get-watch-later-list="getWatchLaterList"></remove-from-watch-later-button>
-                                        
+
                                     <add-to-watch-later-button v-else :name="item.name" :year="item.year"
                                         :url="item.url" :image="item.image"
                                         @get-watch-later-list="getWatchLaterList"></add-to-watch-later-button>
