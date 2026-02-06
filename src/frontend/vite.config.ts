@@ -1,11 +1,22 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import path from "path";
+import viteCompression from "vite-plugin-compression";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   root: "frontend",
   base: "./",
-  plugins: [vue()],
+  plugins: [
+    vue(),
+    // Gzip compression for production builds
+    viteCompression({
+      verbose: true,
+      disable: mode === "development",
+      threshold: 10240, // Only compress files > 10KB
+      algorithm: "gzip",
+      ext: ".gz",
+    }),
+  ],
 
   resolve: {
     alias: {
@@ -17,18 +28,34 @@ export default defineConfig({
   build: {
     outDir: "../dist/frontend",
     emptyOutDir: true,
-    minify: true,
-    sourcemap: true,
+    minify: mode === "production" ? "esbuild" : false,
+    sourcemap: mode === "development",
+    cssCodeSplit: true,
     rollupOptions: {
       input: path.resolve(__dirname, "./index.html"),
       output: {
-        entryFileNames: "bundle.js",
-        manualChunks: {
-          vue: ["vue"],
-          vendor: ["video.js"],
+        entryFileNames: "assets/[name]-[hash].js",
+        chunkFileNames: "assets/[name]-[hash].js",
+        assetFileNames: "assets/[name]-[hash].[ext]",
+        manualChunks: (id) => {
+          // Vendor chunk for node_modules
+          if (id.includes("node_modules")) {
+            // Separate Vue ecosystem
+            if (id.includes("vue") || id.includes("vuetify")) {
+              return "vue-vendor";
+            }
+            // Separate video.js (large library)
+            if (id.includes("video.js")) {
+              return "video-vendor";
+            }
+            // Other vendors
+            return "vendor";
+          }
         },
       },
     },
+    // Optimize chunk size
+    chunkSizeWarningLimit: 1000,
   },
 
   define: {
@@ -46,4 +73,10 @@ export default defineConfig({
       "/health/": "http://localhost:3000",
     },
   },
-});
+
+  // Optimize dependency pre-bundling
+  optimizeDeps: {
+    include: ["vue", "vuetify", "video.js"],
+    exclude: [],
+  },
+}));

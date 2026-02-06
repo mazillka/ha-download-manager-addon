@@ -1,6 +1,7 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
+import compression from "compression";
 
 import {
   healthRoutes,
@@ -9,10 +10,22 @@ import {
   downloadRoutes,
   watchLaterRoutes,
 } from "./routes";
+import { createRateLimiter } from "./middleware/rateLimit";
 
 const isProduction = process.env.NODE_ENV === "production";
 
 export const app = express();
+
+// Compression middleware (gzip/deflate responses)
+app.use(
+  compression({
+    threshold: 1024, // Only compress responses > 1KB
+    level: 6, // Compression level (0-9)
+  }),
+);
+
+// Rate limiting: 100 requests per minute per IP
+app.use(createRateLimiter(60000, 100));
 
 app.use(express.json());
 

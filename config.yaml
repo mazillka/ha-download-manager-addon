@@ -1,6 +1,6 @@
 name: "HA Download Manager"
 slug: ha-download-manager
-version: "1.0.40"
+version: "1.0.41"
 description: "Home Assistant Download Manager"
 
 arch:
@@ -18,3 +18,4 @@ host_network: false
 
 map:
   - media:rw
+  - share:rw

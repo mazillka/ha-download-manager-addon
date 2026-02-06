@@ -2,39 +2,39 @@ import fs from "fs";
 import path from "path";
 import fetch from "node-fetch";
 import type { Task } from "../../common/interfaces";
-import { ConfigKey } from "../../common/enums";
 import { SanitizeFileName } from "../../common/utils";
 import {
   saveTask,
   deleteTask,
   getAllTasks,
   getTask,
-  getConfig,
   addHistory,
 } from "../database";
 
+import { config } from "../config";
+
 const activeControllers: Record<string, AbortController> = {};
 
-export const GetAll = async (): Promise<Task[]> => {
-  return await getAllTasks();
+export const GetAll = async (
+  page: number = 1,
+  limit: number = 20,
+): Promise<Task[]> => {
+  const offset = (page - 1) * limit;
+  return await getAllTasks(limit, offset);
 };
 
 export const Start = async (id: string): Promise<void> => {
-  const downloadPath = await getConfig(ConfigKey.DownloadPath);
-  if (!downloadPath) {
-    return;
-  }
-
   const task = await getTask(id);
   if (!task) {
     return;
   }
 
   try {
-    if (!fs.existsSync(downloadPath)) {
-      fs.mkdirSync(downloadPath, { recursive: true });
+    // TODO: move to fsService
+    if (!fs.existsSync(config.donwloadFolderPath)) {
+      fs.mkdirSync(config.donwloadFolderPath, { recursive: true });
     }
-    const dest = path.join(downloadPath, task.filename);
+    const dest = path.join(config.donwloadFolderPath, task.filename);
 
     task.status = "downloading";
     task.error = null;
@@ -78,7 +78,7 @@ export const Start = async (id: string): Promise<void> => {
 
     const contentLength = parseInt(
       response.headers.get("content-length") || "0",
-      10
+      10,
     );
     if (response.status === 206) {
       const contentRange = response.headers.get("content-range");
@@ -138,7 +138,7 @@ export const Start = async (id: string): Promise<void> => {
           await addHistory(task.filename, task.total)
             .then(() => console.info(`Saved ${task.filename} to history DB.`))
             .catch((error) =>
-              console.error("Failed to save download to DB:", error)
+              console.error("Failed to save download to DB:", error),
             );
         }
       });
@@ -163,7 +163,7 @@ export const Start = async (id: string): Promise<void> => {
 
 export const Create = async (
   url: string,
-  filename: string
+  filename: string,
 ): Promise<string> => {
   filename = SanitizeFileName(filename);
 
@@ -207,13 +207,8 @@ export const Resume = async (id: string): Promise<void> => {
 
 export const Delete = async (
   id: string,
-  removeFile: boolean
+  removeFile: boolean,
 ): Promise<void> => {
-  const downloadPath = await getConfig(ConfigKey.DownloadPath);
-  if (!downloadPath) {
-    return;
-  }
-
   const task = await getTask(id);
   if (!task) {
     return;
@@ -224,7 +219,8 @@ export const Delete = async (
     delete activeControllers[id];
   }
   if (removeFile) {
-    const dest = path.join(downloadPath, task.filename);
+    const dest = path.join(config.donwloadFolderPath, task.filename);
+    // TODO: move to fsService
     if (fs.existsSync(dest)) {
       try {
         fs.unlinkSync(dest);
@@ -250,7 +246,7 @@ export const Restore = async (): Promise<Task[]> => {
         t.error = "Interrupted by server restart";
         await saveTask(t);
       }
-    })
+    }),
   );
   return tasks;
 };

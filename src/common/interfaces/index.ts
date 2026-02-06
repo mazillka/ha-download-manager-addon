@@ -5,7 +5,7 @@ import type Task from "./Task";
 import type HistoryItem from "./HistoryItem";
 import type Episode from "./Episode";
 import type Season from "./Season";
-import type Stream from "./Stream";
+import type Streams from "./Stream";
 import type Translation from "./Translation";
 import type SearchResult from "./SearchResult";
 import type ParseResult from "./ParseResult";
@@ -20,7 +20,7 @@ export type {
   HistoryItem,
   Episode,
   Season,
-  Stream,
+  Streams,
   Translation,
   SearchResult,
   ParseResult,

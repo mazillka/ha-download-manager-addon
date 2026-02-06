@@ -4,7 +4,9 @@ import { asyncHandler } from "../utils";
 
 export const GetAll = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    const list = await DownloadService.GetAll();
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const list = await DownloadService.GetAll(page, limit);
     res.json({ list: list.sort((a, b) => b.startTime - a.startTime) });
   },
 );
