@@ -40,9 +40,6 @@ ENV NODE_ENV=production \
     NPM_CONFIG_LOGLEVEL=warn \
     NODE_OPTIONS="--max-old-space-size=512"
 
-# ========= Security: Create non-root user =========
-RUN groupadd -r nodejs && useradd -r -g nodejs nodejs
-
 # ========= Install runtime dependencies =========
 # Only install what's needed for sqlite3 at runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -63,16 +60,6 @@ COPY --from=builder /src/dist/frontend ./frontend/
 # ======= Copy and prepare run script =======
 COPY run.sh /run.sh
 RUN chmod +x /run.sh
-
-# ========= Create required directories with proper permissions =========
-RUN mkdir -p /data/ha-download-manager /media/DOWNLOADS \
-    && chown -R nodejs:nodejs /data /media
-
-# ========= Security: Change ownership =========
-RUN chown -R nodejs:nodejs /src/dist
-
-# ========= Switch to non-root user =========
-USER nodejs
 
 # Home Assistant ingress
 EXPOSE 3000
