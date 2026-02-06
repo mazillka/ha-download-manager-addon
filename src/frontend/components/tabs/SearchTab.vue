@@ -62,29 +62,13 @@ function onClear() {
             <!-- Input -->
             <v-col cols="12">
                 <v-text-field v-model="query" placeholder="Search..." density="comfortable" variant="outlined"
-                    hide-details :disabled="isLoading" @keyup.enter="onSearch(true)">
-                    <!-- Desktop inline buttons -->
-                    <template #append>
-                        <div class="d-none d-md-flex gap-2">
-                            <v-btn class="mr-1" color="success" :loading="isLoading" @click="onSearch(true)">
-                                Search
-                            </v-btn>
-                            <v-btn variant="outlined" :disabled="isLoading || !query" @click="onClear">
-                                Clear
-                            </v-btn>
-                        </div>
+                    hide-details :disabled="isLoading" @keyup.enter="onSearch(true)" @keyup.esc="onClear">
+                    <template #append-inner>
+                        <v-btn icon="mdi-magnify" variant="text" :loading="isLoading" @click="onSearch(true)" />
+                        <v-btn icon="mdi-close" variant="text" :disabled="isLoading || !query" v-if="query"
+                            @click="onClear" />
                     </template>
                 </v-text-field>
-            </v-col>
-
-            <!-- Mobile stacked buttons -->
-            <v-col cols="12" class="d-flex d-md-none flex-column gap-2 mt-2">
-                <v-btn class="mb-1" block color="success" :loading="isLoading" @click="onSearch(true)">
-                    Search
-                </v-btn>
-                <v-btn block variant="outlined" :disabled="isLoading || !query" @click="onClear">
-                    Clear
-                </v-btn>
             </v-col>
         </v-row>
 
