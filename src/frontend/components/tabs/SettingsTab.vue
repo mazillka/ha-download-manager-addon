@@ -34,7 +34,6 @@ onMounted(() => {
 
 <template>
     <v-card>
-        <v-card-title>Settings</v-card-title>
         <v-card-text>
             <v-text-field v-for="config in configs" :key="config.key" v-model="config.value"
                 :label="config.description"></v-text-field>
