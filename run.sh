@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -e
 
+mkdir -p /data/ha-download-manager
+chown -R node:node /data/ha-download-manager
+chmod -R 775 /data/ha-download-manager
+
 echo "[INFO] Starting Download Manager"
 
 # ===== Start backend =====
