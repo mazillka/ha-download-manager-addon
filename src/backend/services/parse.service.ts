@@ -2,14 +2,17 @@ import { ConfigService } from ".";
 import { ConfigKey } from "../../common/enums";
 import { SearchApi, DetailsApi } from "../api";
 
-export const Search = async (query: string): Promise<any[]> => {
+export const Search = async (
+  query: string,
+  page: number = 1,
+): Promise<any[]> => {
   // TODO: specify proper TYPE for return
   const baseUrl = (await ConfigService.Get(ConfigKey.BaseUrl)) || "";
   const search = new SearchApi({ origin: baseUrl });
 
   const list = search.advancedSearch(query);
 
-  return await list.allPages().then((pages) => pages.flat()); // TODO: GET ALL????
+  return await list.getPage(page);
 };
 
 export const Filter = async (filter: string): Promise<any[]> => {
@@ -24,7 +27,7 @@ export const Filter = async (filter: string): Promise<any[]> => {
 
 export const GetDetails = async (url: string): Promise<any | null> => {
   // TODO: specify proper TYPE for return
-  const api = new DetailsApi({ url: url });
+  const api = new DetailsApi({ url: url, options: {} });
 
   const type = await api.getType();
 
@@ -113,7 +116,7 @@ export const GetStreams = async (
   translation?: number,
 ): Promise<any | null> => {
   // TODO: specify proper TYPE for return
-  const api = new DetailsApi({ url: url });
+  const api = new DetailsApi({ url: url, options: {} });
 
   let streams = api.getStream({
     season: season,

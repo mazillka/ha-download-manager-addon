@@ -1,18 +1,13 @@
 <script setup lang="ts">
-import { ref, watch, computed, onMounted, watchEffect } from "vue";
+import { ref, watch, computed } from "vue";
 import { SanitizeFileName } from "../../common/utils";
 import { api } from "../api";
-import type { ParseResult, WatchLater } from "../../common/interfaces";
-import { StreamDropdown, SectionWithButtons, LoadingOverlay, AddToWatchLaterButton, VideoPlayer, RemoveFromWatchLaterButton } from "./";
+import type { ParseResult } from "../../common/interfaces";
+import { StreamDropdown, LoadingOverlay, WatchLaterButton, VideoPlayer } from "./";
 import { showConfirm, showSuccess } from "../utils/alerts";
 
 const props = defineProps<{
   item: ParseResult | null;
-  watchLaterList: WatchLater[];
-}>();
-
-const emit = defineEmits<{
-  (e: "get-watch-later-list"): void;
 }>();
 
 const dialog = ref(false);
@@ -170,7 +165,7 @@ function isActiveTranslation(translation: any): boolean {
 async function setActiveSeason(season: any) {
   activeSeason.value = season;
 
-    await getStreams();
+  await getStreams();
 }
 
 function isActiveSeason(season: any): boolean {
@@ -180,7 +175,7 @@ function isActiveSeason(season: any): boolean {
 async function setActiveEpisode(episode: any) {
   activeEpisode.value = episode;
 
-    await getStreams();
+  await getStreams();
 }
 
 function isActiveEpisode(episode: any): boolean {
@@ -188,14 +183,6 @@ function isActiveEpisode(episode: any): boolean {
 }
 
 const isAndroid = computed(() => /android/i.test(navigator.userAgent));
-
-async function getWatchLaterList() {
-  emit("get-watch-later-list");
-}
-
-function isInWatchLater(url: string | null): boolean {
-  return props.watchLaterList.some((x: WatchLater) => x.url === url);
-}
 
 function showPlayer(url: string) {
   videoUrl.value = url;
@@ -311,12 +298,8 @@ async function downloadToServer(url: string, filename: string | undefined | null
           <v-col md="4" class="text-center" v-if="props.item.image">
             <v-img class="rounded" max-height="250" :src="props.item.image" :alt="props.item.name" />
 
-            <remove-from-watch-later-button v-if="isInWatchLater(props.item.url)" :url="props.item.url"
-              @get-watch-later-list="getWatchLaterList"></remove-from-watch-later-button>
-
-            <add-to-watch-later-button v-else
-              :name="props.item.originalName || props.item.name" :year="props.item.releaseYear" :url="props.item.url"
-              :image="props.item.image" @get-watch-later-list="getWatchLaterList" />
+            <watch-later-button :name="props.item.originalName || props.item.name" :year="props.item.releaseYear"
+              :url="props.item.url" :image="props.item.image" />
 
           </v-col>
 

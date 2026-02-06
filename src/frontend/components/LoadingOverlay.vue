@@ -12,23 +12,20 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "cancel-local-download"): void;
 }>();
-
-function onCancel() {
-  emit("cancel-local-download");
-}
 </script>
 
 <template>
   <v-overlay :model-value="props.loading" class="d-flex justify-center align-center" persistent>
     <div v-if="props.progress && props.progress > 0" class="text-center">
-      <v-progress-linear :model-value="props.progress" bg-color="white" color="primary" class="mb-2"></v-progress-linear>
+      <v-progress-linear :model-value="props.progress" bg-color="white" color="primary"
+        class="mb-2"></v-progress-linear>
       <div class="text-white">
         Downloading...
         {{ formatBytes(props.loaded || 0) }} /
         {{ formatBytes(props.total || 0) }}
         ({{ formatBytes(props.speed || 0) }}/s)
       </div>
-      <v-btn color="danger" size="small" class="mt-2" @click="onCancel">
+      <v-btn color="danger" size="small" class="mt-2" @click="emit('cancel-local-download')">
         Cancel
       </v-btn>
     </div>

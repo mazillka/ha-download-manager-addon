@@ -4,7 +4,9 @@ import { asyncHandler } from "../utils";
 
 export const GetAll = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    const list = await WatchLaterService.GetAll();
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const list = await WatchLaterService.GetAll(page, limit);
     res.json({ list });
   },
 );
@@ -26,5 +28,12 @@ export const Delete = asyncHandler(
     await WatchLaterService.Delete(url);
 
     res.json({ success: true });
+  },
+);
+
+export const GetUrls = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const list = await WatchLaterService.GetUrls();
+    res.json({ list });
   },
 );

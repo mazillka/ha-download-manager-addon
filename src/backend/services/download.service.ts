@@ -15,8 +15,12 @@ import { config } from "../config";
 
 const activeControllers: Record<string, AbortController> = {};
 
-export const GetAll = async (): Promise<Task[]> => {
-  return await getAllTasks();
+export const GetAll = async (
+  page: number = 1,
+  limit: number = 20,
+): Promise<Task[]> => {
+  const offset = (page - 1) * limit;
+  return await getAllTasks(limit, offset);
 };
 
 export const Start = async (id: string): Promise<void> => {

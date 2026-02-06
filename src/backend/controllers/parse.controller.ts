@@ -5,12 +5,12 @@ import { asyncHandler } from "../utils";
 export const Search = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     // TODO: specify proper TYPE for return
-    const { query, filter } = req.body;
+    const { query, filter, page } = req.body;
 
     let list;
 
     if (query) {
-      list = await ParseService.Search(query);
+      list = await ParseService.Search(query, page || 1);
     }
 
     if (filter) {

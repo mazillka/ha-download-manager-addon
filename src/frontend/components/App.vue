@@ -3,21 +3,24 @@ import { ref, onMounted } from "vue";
 import {
     LoadingOverlay,
     DetailsModal,
-    AddToWatchLaterButton,
-    RemoveFromWatchLaterButton,
+    ContentGrid,
+    ErrorBoundary,
+    ToastNotification,
+    SearchTab,
+    DownloadsTab,
+    SettingsTab,
+    WatchLaterTab,
+    EmptyState,
+    SkeletonGrid,
 } from ".";
-import {
-    Config,
+import type {
     ParseResult,
     SearchResult,
-    WatchLater,
 } from "../../common/interfaces";
 import { api, subscribeLoading } from "../api";
-import { formatBytes } from "../utils/format";
-import { showConfirm } from "../utils/alerts";
 
 const isLoading = ref(false);
-const query = ref("");
+
 const searchResults = ref<SearchResult[]>([]);
 
 const modal = ref<{
@@ -25,6 +28,12 @@ const modal = ref<{
 }>({
     item: null,
 });
+
+const toast = ref<{ display: (msg: string, color?: string) => void } | null>(null);
+
+function showToast(message: string, color: string = "success") {
+    toast.value?.display(message, color);
+}
 
 function initModal(data: ParseResult) {
     modal.value.item = data;
@@ -38,7 +47,7 @@ const tabs = [
     { id: "latest", name: "Latest arrivals", icon: "mdi-trending-up" },
     { id: "popular", name: "Popular", icon: "mdi-fire" },
     { id: "downloads", name: "Downloads", icon: "mdi-download" },
-    { id: "watch_later", name: "Watch Later", icon: "mdi-sync" },
+    { id: "watch-later", name: "Watch Later", icon: "mdi-sync" },
     { id: "settings", name: "Settings", icon: "mdi-cogs" },
 ];
 const tabQueries = {
@@ -47,30 +56,12 @@ const tabQueries = {
     latest: "last",
 } as Record<string, string>;
 
-const configs = ref<Config[]>([]);
-const serverDownloads = ref<any[]>([]);
-const watchLaterList = ref<WatchLater[]>([]);
-
 onMounted(async () => {
     subscribeLoading((v) => (isLoading.value = v));
-
-    await getWatchLaterList();
-    await getServerDownloads();
 });
-
-function isInWatchLater(url: string): boolean {
-    return watchLaterList.value.some((x: WatchLater) => x.url === url);
-}
 
 async function onSelectTab(tabId: string) {
     activeTab.value = tabId;
-    query.value = "";
-    searchResults.value = [];
-
-    if (tabId === "search") return;
-    if (tabId === "settings") return getConfigs();
-    if (tabId === "watch_later") return getWatchLaterList();
-    if (tabId === "downloads") return getServerDownloads();
 
     const filter = tabQueries[tabId];
     if (filter) {
@@ -83,22 +74,6 @@ async function onSelectTab(tabId: string) {
     }
 }
 
-async function onSearch() {
-    if (!query.value) return;
-
-    const payload = {
-        query: query.value,
-        filter: undefined,
-    };
-
-    await getSearchResults(payload);
-}
-
-async function onClear() {
-    query.value = "";
-    searchResults.value = [];
-}
-
 async function getSearchResults(payload: object) {
     const { list } = await api.getSearchResults(payload);
     searchResults.value = list;
@@ -107,65 +82,6 @@ async function getSearchResults(payload: object) {
 async function getDetails(url: string, data_translator_id?: string | null) {
     const { details } = await api.getDetails({ url, data_translator_id });
     initModal(details);
-}
-
-async function getConfigs() {
-    const { list } = await api.getConfigs();
-    configs.value = list;
-}
-
-async function saveConfig() {
-    const { list } = await api.saveConfigs(configs.value);
-    configs.value = list;
-}
-
-async function getServerDownloads() {
-    const { list } = await api.getServerDownloads();
-    serverDownloads.value = list;
-}
-
-async function getWatchLaterList() {
-    const { list } = await api.getWatchLater();
-    watchLaterList.value = list;
-}
-
-async function cancelServerDownload(id: string) {
-    const ok = await showConfirm({
-        title: "Cancel Server Download",
-        text: "Are you sure you want to cancel server download?",
-    });
-
-    if (!ok) return;
-
-    await api.cancelServerDownload(id);
-}
-
-async function pauseServerDownload(id: string) {
-    await api.pauseServerDownload(id);
-}
-
-async function resumeServerDownload(id: string) {
-    await api.resumeServerDownload(id);
-}
-
-async function deleteServerDownload(id: string) {
-    const ok1 = await showConfirm({
-        title: "Delete Server Download",
-        text: "Are you sure you want to delete server download?",
-    });
-
-    if (!ok1) return;
-
-    const ok2 = await showConfirm({
-        title: "Delete File From Disk",
-        text: "Are you sure you want to delete file from disk?",
-    });
-
-    await api.deleteServerDownload(id, ok2);
-}
-
-async function syncWatchLater() {
-    await api.syncWatchLater(watchLaterList.value);
 }
 
 async function handleGetDetails(
@@ -185,14 +101,6 @@ async function handleGetDetails(
 .swal2-container {
     z-index: 99999 !important;
 }
-
-.card-text {
-    min-height: 64px;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
 </style>
 
 <template>
@@ -200,166 +108,52 @@ async function handleGetDetails(
         <loading-overlay :loading="isLoading"></loading-overlay>
 
         <v-container>
-            <v-tabs align-tabs="center" class="mb-4" v-model="activeTab" @update:model-value="onSelectTab">
-                <v-tab v-for="tab in tabs" :key="tab.id" :value="tab.id">
-                    <span :style="{ color: activeTab === tab.id ? 'red' : 'black' }">|</span>
-                    &nbsp;
+            <v-tabs align-tabs="center" class="mb-6 rounded-lg elevation-2 bg-surface" v-model="activeTab"
+                @update:model-value="onSelectTab" color="primary" slider-color="primary">
+                <v-tab v-for="tab in tabs" :key="tab.id" :value="tab.id" class="text-capitalize font-weight-bold"
+                    rounded="lg">
+                    <v-icon :icon="tab.icon" start></v-icon>
                     {{ tab.name }}
-                    &nbsp;
-                    <v-icon :icon="tab.icon"></v-icon>
-                    &nbsp;
-                    <span :style="{ color: activeTab === tab.id ? 'red' : 'black' }">|</span>
                 </v-tab>
             </v-tabs>
 
-            <v-window v-model="activeTab">
-                <v-window-item value="search">
-                    <v-row class="mb-4" align="center">
-                        <!-- Input -->
-                        <v-col cols="12">
-                            <v-text-field v-model="query" placeholder="Search..." density="comfortable"
-                                variant="outlined" hide-details :disabled="isLoading" @keyup.enter="onSearch">
-                                <!-- Desktop inline buttons -->
-                                <template #append>
-                                    <div class="d-none d-md-flex gap-2">
-                                        <v-btn class="mr-1" color="success" :loading="isLoading" @click="onSearch">
-                                            Search
-                                        </v-btn>
-                                        <v-btn variant="outlined" :disabled="isLoading || !query" @click="onClear">
-                                            Clear
-                                        </v-btn>
-                                    </div>
-                                </template>
-                            </v-text-field>
-                        </v-col>
+            <error-boundary>
+                <v-window v-model="activeTab" class="pa-1">
+                    <v-window-item value="search" transition="scroll-x-transition"
+                        reverse-transition="scroll-x-reverse-transition">
+                        <search-tab :is-loading="isLoading" @get-details="handleGetDetails" />
+                    </v-window-item>
 
-                        <!-- Mobile stacked buttons -->
-                        <v-col cols="12" class="d-flex d-md-none flex-column gap-2 mt-2">
-                            <v-btn class="mb-1" block color="success" :loading="isLoading" @click="onSearch">
-                                Search
-                            </v-btn>
-                            <v-btn block variant="outlined" :disabled="isLoading || !query" @click="onClear">
-                                Clear
-                            </v-btn>
-                        </v-col>
-                    </v-row>
+                    <v-window-item v-for="tabKey in ['watching', 'latest', 'popular']" :key="tabKey" :value="tabKey"
+                        transition="scroll-x-transition" reverse-transition="scroll-x-reverse-transition">
 
-                    <v-row>
-                        <v-col v-for="(item, index) in searchResults" :key="index" cols="12" sm="6" md="4" lg="3"
-                            xl="2">
-                            <v-card class="d-flex flex-column" height="100%" @click="handleGetDetails(item.url)">
-                                <v-img :src="item.image" :alt="item.name" height="150px" contain>
-                                    <v-chip v-if="item.category" class="ma-2" color="primary" label>
-                                        {{ item.category.name }}
-                                    </v-chip>
-                                </v-img>
-                                <v-card-text class="flex-grow-1 card-text">{{ item.name }}<br>{{ item.year
-                                    }}</v-card-text>
-                                <v-card-actions>
-                                    <remove-from-watch-later-button v-if="isInWatchLater(item.url)" :url="item.url"
-                                        @get-watch-later-list="getWatchLaterList"></remove-from-watch-later-button>
+                        <skeleton-grid v-if="isLoading && searchResults.length === 0" :count="12" />
 
-                                    <add-to-watch-later-button v-else :name="item.name" :year="item.year"
-                                        :url="item.url" :image="item.image"
-                                        @get-watch-later-list="getWatchLaterList"></add-to-watch-later-button>
-                                </v-card-actions>
-                            </v-card>
-                        </v-col>
-                    </v-row>
-                </v-window-item>
+                        <content-grid v-else :is-loading="isLoading" :items="searchResults"
+                            :empty-message="`No ${tabKey} content available.`" @get-details="handleGetDetails" />
+                    </v-window-item>
 
-                <v-window-item v-for="tabKey in ['watching', 'latest', 'popular']" :key="tabKey" :value="tabKey">
-                    <v-row>
-                        <v-col v-for="(item, index) in searchResults" :key="index" cols="12" sm="6" md="4" lg="3"
-                            xl="2">
-                            <v-card class="d-flex flex-column" height="100%" @click="handleGetDetails(item.url)">
-                                <v-img :src="item.image" :alt="item.name" height="150px" contain>
-                                    <v-chip v-if="item.category" class="ma-2" color="primary" label>
-                                        {{ item.category.name }}
-                                    </v-chip>
-                                </v-img>
-                                <v-card-text class="flex-grow-1 card-text">{{ item.name }}<br>{{ item.year
-                                    }}</v-card-text>
-                                <v-card-actions>
-                                    <remove-from-watch-later-button v-if="isInWatchLater(item.url)" :url="item.url"
-                                        @get-watch-later-list="getWatchLaterList"></remove-from-watch-later-button>
+                    <v-window-item value="watch-later" transition="scroll-x-transition"
+                        reverse-transition="scroll-x-reverse-transition">
+                        <watch-later-tab :is-loading="isLoading" @get-details="handleGetDetails"
+                            @select-tab="onSelectTab" :active="activeTab === 'watch-later'" />
+                    </v-window-item>
 
-                                    <add-to-watch-later-button v-else :name="item.name" :year="item.year"
-                                        :url="item.url" :image="item.image"
-                                        @get-watch-later-list="getWatchLaterList"></add-to-watch-later-button>
-                                </v-card-actions>
-                            </v-card>
-                        </v-col>
-                    </v-row>
-                </v-window-item>
+                    <v-window-item value="downloads" transition="scroll-x-transition"
+                        reverse-transition="scroll-x-reverse-transition">
+                        <downloads-tab :is-loading="isLoading" @select-tab="onSelectTab"
+                            :active="activeTab === 'downloads'" />
+                    </v-window-item>
 
-                <v-window-item value="watch_later">
-                    <v-alert v-if="!watchLaterList || watchLaterList.length === 0" type="info" class="mt-5" prominent>
-                        No items in Watch Later
-                    </v-alert>
-                    <v-row v-else>
-                        <v-col v-for="(item, index) in watchLaterList" :key="index" cols="12" sm="6" md="4" lg="3"
-                            xl="2">
-                            <v-card class="d-flex flex-column" height="100%" @click="handleGetDetails(item.url)">
-                                <v-img :src="item.image" :alt="item.name" height="150px" contain></v-img>
-                                <v-card-text class="card-text">{{ item.name }} <br> {{ item.year }}</v-card-text>
-                                <v-card-actions>
-                                    <remove-from-watch-later-button :url="item.url"
-                                        @get-watch-later-list="getWatchLaterList"></remove-from-watch-later-button>
-                                </v-card-actions>
-                            </v-card>
-                        </v-col>
-                    </v-row>
-                </v-window-item>
+                    <v-window-item value="settings" transition="scroll-x-transition"
+                        reverse-transition="scroll-x-reverse-transition">
+                        <settings-tab :active="activeTab === 'settings'" />
+                    </v-window-item>
+                </v-window>
+            </error-boundary>
 
-                <v-window-item value="downloads">
-                    <v-alert v-if="serverDownloads.length === 0" type="info" class="mt-5" prominent>
-                        No active downloads
-                    </v-alert>
-                    <v-card v-else>
-                        <v-list lines="two">
-                            <v-list-item v-for="item in serverDownloads" :key="item.id" :title="item.filename">
-                                <template v-slot:subtitle>
-                                    <v-progress-linear :model-value="item.progress" class="my-1"></v-progress-linear>
-                                    {{ formatBytes(item.loaded) }} / {{ item.total ? formatBytes(item.total) : '?' }}
-                                    <span v-if="item.status === 'downloading'">({{ formatBytes(item.speed)
-                                    }}/s)</span>
-                                </template>
-
-                                <template v-slot:append>
-                                    <v-chip class="ml-3"
-                                        :color="item.status === 'downloading' ? 'primary' : (item.status === 'completed' ? 'success' : (item.status === 'error' ? 'red' : 'grey'))"
-                                        dark>{{ item.status }}</v-chip>
-                                    <v-btn v-if="item.status === 'downloading'" icon="mdi-pause" variant="text"
-                                        @click="pauseServerDownload(item.id)"></v-btn>
-                                    <v-btn v-if="item.status === 'paused' || item.status === 'error'" icon="mdi-play"
-                                        variant="text" @click="resumeServerDownload(item.id)"></v-btn>
-                                    <v-btn v-if="item.status === 'downloading' || item.status === 'pending'"
-                                        icon="mdi-cancel" variant="text" @click="cancelServerDownload(item.id)"></v-btn>
-                                    <v-btn icon="mdi-delete" variant="text"
-                                        @click="deleteServerDownload(item.id)"></v-btn>
-                                </template>
-                            </v-list-item>
-                        </v-list>
-                    </v-card>
-                </v-window-item>
-
-                <v-window-item value="settings">
-                    <v-card>
-                        <v-card-title>Settings</v-card-title>
-                        <v-card-text>
-                            <v-text-field v-for="config in configs" :key="config.key" v-model="config.value"
-                                :label="config.description"></v-text-field>
-                        </v-card-text>
-                        <v-card-actions>
-                            <v-spacer></v-spacer>
-                            <v-btn color="primary" variant="outlined" @click="saveConfig">Save</v-btn>
-                        </v-card-actions>
-                    </v-card>
-                </v-window-item>
-            </v-window>
+            <toast-notification ref="toast" />
         </v-container>
-        <details-modal :item="modal.item" :watchLaterList="watchLaterList"
-            @get-watch-later-list="getWatchLaterList"></details-modal>
+        <details-modal :item="modal.item"></details-modal>
     </v-app>
 </template>

@@ -172,7 +172,11 @@ export const api = {
       return result;
     }),
 
-  getSearchResults: (payload: object) =>
+  getSearchResults: (payload: {
+    query?: string;
+    filter?: string;
+    page?: number;
+  }) =>
     request<{ list: SearchResult[] }>("api/search", {
       method: "POST",
       body: JSON.stringify(payload),
@@ -211,15 +215,27 @@ export const api = {
       return result;
     }),
 
-  getWatchLater: () =>
-    request<{ list: WatchLater[] }>("api/watch-later/get-all", {
+  getWatchLaterUrls: () =>
+    request<{ list: string[] }>("api/watch-later/get-urls", {
       method: "GET",
+      cache: false,
     }),
 
-  getServerDownloads: () =>
-    request<{ list: DownloadTask[] }>("api/downloads/get-all", {
-      method: "GET",
-    }),
+  getWatchLater: (page: number = 1, limit: number = 20) =>
+    request<{ list: WatchLater[] }>(
+      `api/watch-later/get-all?page=${page}&limit=${limit}`,
+      {
+        method: "GET",
+      },
+    ),
+
+  getServerDownloads: (page: number = 1, limit: number = 20) =>
+    request<{ list: DownloadTask[] }>(
+      `api/downloads/get-all?page=${page}&limit=${limit}`,
+      {
+        method: "GET",
+      },
+    ),
 
   downloadToServer: (payload: object) =>
     request("api/downloads/add", {

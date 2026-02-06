@@ -24,7 +24,7 @@ export const saveTask = (task: Task): Promise<void> => {
         } else {
           resolve();
         }
-      }
+      },
     );
   });
 };
@@ -41,15 +41,22 @@ export const deleteTask = (id: string): Promise<void> => {
   });
 };
 
-export const getAllTasks = (): Promise<Task[]> => {
+export const getAllTasks = (
+  limit: number = 20,
+  offset: number = 0,
+): Promise<Task[]> => {
   return new Promise((resolve, reject) => {
-    db.all("SELECT * FROM tasks", (err, rows: Task[]) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(rows);
-      }
-    });
+    db.all(
+      "SELECT * FROM tasks LIMIT ? OFFSET ?",
+      [limit, offset],
+      (err, rows: Task[]) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(rows);
+        }
+      },
+    );
   });
 };
 
