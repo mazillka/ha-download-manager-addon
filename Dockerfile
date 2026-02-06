@@ -65,8 +65,8 @@ COPY run.sh /run.sh
 RUN chmod +x /run.sh
 
 # ========= Create required directories with proper permissions =========
-RUN mkdir -p /share/ha-download-manager /media/DOWNLOADS \
-    && chown -R nodejs:nodejs /share /media
+RUN mkdir -p /data/ha-download-manager /media/DOWNLOADS \
+    && chown -R nodejs:nodejs /data /media
 
 # ========= Security: Change ownership =========
 RUN chown -R nodejs:nodejs /src/dist
