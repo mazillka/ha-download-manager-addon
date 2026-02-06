@@ -90,9 +90,9 @@ function onClear() {
 
         <skeleton-grid v-if="isLoading && searchResults.length === 0" :count="12" />
 
-        <content-grid v-else :items="searchResults"
-            :empty-message="hasSearched ? 'No search results found. Try a different query.' : 'Enter a query to search.'"
-            @get-details="(item) => emit('get-details', item)" />
+        <empty-state v-else-if="!isLoading && searchResults.length === 0" icon="" title="" message="" />
+
+        <content-grid v-else :items="searchResults" @get-details="(item) => emit('get-details', item)" />
 
         <div v-if="hasSearched && searchResults.length > 0 && searchResults.length % 20 === 0"
             class="d-flex justify-center mt-4">
