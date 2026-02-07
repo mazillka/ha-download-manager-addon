@@ -10,6 +10,10 @@ const props = defineProps<{
   item: ParseResult | null;
 }>();
 
+const emit = defineEmits<{
+  (e: "get-details", t: string): void;
+}>();
+
 const dialog = ref(false);
 const videoUrl = ref<string | null>(null);
 const loading = ref(false);
@@ -300,7 +304,6 @@ async function downloadToServer(url: string, filename: string | undefined | null
 
             <watch-later-button :name="props.item.originalName || props.item.name" :year="props.item.releaseYear"
               :url="props.item.url" :image="props.item.image" />
-
           </v-col>
 
           <v-col :md="props.item.image ? 8 : 12">
@@ -313,7 +316,32 @@ async function downloadToServer(url: string, filename: string | undefined | null
                   {{ props.item.description }}
                 </v-expansion-panel-text>
               </v-expansion-panel>
+              <v-expansion-panel>
+                <v-expansion-panel-title>
+                  <div class="text-h6">Other Parts</div>
+                </v-expansion-panel-title>
+                <v-expansion-panel-text>
+                  <v-data-table density="compact" :headers="[
+                    { title: '#', key: 'num' },
+                    { title: 'title', key: 'title' },
+                    { title: 'year', key: 'year' },
+                    { title: 'actions', key: 'actions' }
+                  ]" :items="props.item.otherParts" :items-per-page="-1" item-key="num" class="elevation-1"
+                    hide-default-header hide-default-footer height="400" fixed-header>
+                    <template #item.title="{ item }">
+                      <div class="d-flex align-center">
+                        <a href="#" :style="{ color: item.current ? 'blue' : 'inherit' }" class="me-2"
+                          @click="emit('get-details', item.url)">{{ item.title }}</a>
+                      </div>
+                    </template>
+                  </v-data-table>
+                </v-expansion-panel-text>
+              </v-expansion-panel>
             </v-expansion-panels>
+
+
+
+
             <div v-if="translations">
               <div class="text-h6">Translations</div>
               <div class="d-flex flex-wrap mb-3">

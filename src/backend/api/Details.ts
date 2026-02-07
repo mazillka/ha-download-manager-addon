@@ -525,12 +525,17 @@ export class Details {
     if (parts.length) {
       parts.find(".b-post__partcontent_item").each((_, el) => {
         const $el = $(el);
+        const num = $el.find(".num").text();
         const title = $el.find(".title").text();
-        if ($el.hasClass("current")) {
-          other.push({ [title]: this.url });
-        } else {
-          other.push({ [title]: $el.attr("data-url") });
-        }
+        const year = $el.find(".year").text();
+        const current = $el.hasClass("current");
+        other.push({
+          title,
+          num: Number(num),
+          year: Number(year.replace(/\D/g, "")),
+          url: current ? this.url : $el.attr("data-url"),
+          current,
+        });
       });
     }
     return other;

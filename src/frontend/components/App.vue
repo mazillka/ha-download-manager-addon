@@ -154,6 +154,6 @@ async function handleGetDetails(
 
             <toast-notification ref="toast" />
         </v-container>
-        <details-modal :item="modal.item"></details-modal>
+        <details-modal :item="modal.item" @get-details="handleGetDetails"></details-modal>
     </v-app>
 </template>
