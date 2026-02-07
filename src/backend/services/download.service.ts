@@ -31,10 +31,10 @@ export const Start = async (id: string): Promise<void> => {
 
   try {
     // TODO: move to fsService
-    if (!fs.existsSync(config.donwloadFolderPath)) {
-      fs.mkdirSync(config.donwloadFolderPath, { recursive: true });
+    if (!fs.existsSync(config.donwloadsFolderPath)) {
+      fs.mkdirSync(config.donwloadsFolderPath, { recursive: true });
     }
-    const dest = path.join(config.donwloadFolderPath, task.filename);
+    const dest = path.join(config.donwloadsFolderPath, task.filename);
 
     task.status = "downloading";
     task.error = null;
@@ -219,7 +219,7 @@ export const Delete = async (
     delete activeControllers[id];
   }
   if (removeFile) {
-    const dest = path.join(config.donwloadFolderPath, task.filename);
+    const dest = path.join(config.donwloadsFolderPath, task.filename);
     // TODO: move to fsService
     if (fs.existsSync(dest)) {
       try {
