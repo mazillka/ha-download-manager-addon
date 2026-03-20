@@ -3,6 +3,7 @@ import DownloadService from "./download.service";
 import ConfigService from "./config.service";
 import WatchLaterService from "./watchLater.service";
 import DatabaseService from "./database.service";
+import PlaywrightService from "./playwright.service";
 
 export {
   ParseService,
@@ -10,4 +11,5 @@ export {
   ConfigService,
   WatchLaterService,
   DatabaseService,
+  PlaywrightService,
 };

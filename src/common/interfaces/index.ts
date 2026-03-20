@@ -8,7 +8,7 @@ import type Season from "./Season";
 import type Streams from "./Stream";
 import type Translation from "./Translation";
 import type SearchResult from "./SearchResult";
-import type ParseResult from "./ParseResult";
+import type DetailsResult from "./DetailsResult";
 import type DownloadTask from "./DownloadTask";
 import type Tab from "./Tab";
 
@@ -23,7 +23,7 @@ export type {
   Streams,
   Translation,
   SearchResult,
-  ParseResult,
+  DetailsResult,
   DownloadTask,
   Tab,
 };

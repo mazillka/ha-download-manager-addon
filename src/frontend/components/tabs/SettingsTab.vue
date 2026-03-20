@@ -1,33 +1,24 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from "vue";
-import { api } from "../../api";
-import { Config } from "../../../common/interfaces";
+import { watch, onMounted } from "vue";
+import { useSettingsStore } from "../../stores/settings";
+import { useAppStore } from "../../stores/app";
+import { storeToRefs } from "pinia";
 
-const props = defineProps<{
-    active: boolean;
-}>();
+const settingsStore = useSettingsStore();
+const { configs } = storeToRefs(settingsStore);
 
-const configs = ref<Config[]>([]);
+const appStore = useAppStore();
+const { activeTab } = storeToRefs(appStore);
 
-async function getConfigs() {
-    const { list } = await api.getConfigs();
-    configs.value = list;
-}
-
-async function saveConfig() {
-    const { list } = await api.saveConfigs(configs.value);
-    configs.value = list;
-}
-
-watch(() => props.active, (val) => {
-    if (val) {
-        getConfigs();
+onMounted(() => {
+    if (activeTab.value === "settings") {
+        settingsStore.load();
     }
 });
 
-onMounted(() => {
-    if (props.active) {
-        getConfigs();
+watch(activeTab, (val) => {
+    if (val === "settings" && !settingsStore.loaded) {
+        settingsStore.load();
     }
 });
 </script>
@@ -40,7 +31,7 @@ onMounted(() => {
         </v-card-text>
         <v-card-actions>
             <v-spacer></v-spacer>
-            <v-btn color="primary" variant="outlined" @click="saveConfig">Save</v-btn>
+            <v-btn color="primary" variant="outlined" @click="settingsStore.save">Save</v-btn>
         </v-card-actions>
     </v-card>
 </template>

@@ -13,6 +13,7 @@ import SearchTab from "./tabs/SearchTab.vue";
 import DownloadsTab from "./tabs/DownloadsTab.vue";
 import SettingsTab from "./tabs/SettingsTab.vue";
 import WatchLaterTab from "./tabs/WatchLaterTab.vue";
+import SectionWithButtons from "./SectionWithButtons.vue";
 
 export {
   App,
@@ -30,4 +31,5 @@ export {
   DownloadsTab,
   SettingsTab,
   WatchLaterTab,
+  SectionWithButtons,
 };

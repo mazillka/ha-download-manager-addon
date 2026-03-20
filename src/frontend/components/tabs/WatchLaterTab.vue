@@ -3,19 +3,13 @@ import { ref, watch, onMounted } from "vue";
 import { api } from "../../api";
 import { WatchLater } from "../../../common/interfaces";
 import { EmptyState, ContentGrid, SkeletonGrid } from "../";
-import { useWatchLater } from "../../store/watch-later";
+import { useWatchLaterStore } from "../../stores/watchLater";
+import { useAppStore } from "../../stores/app";
+import { storeToRefs } from "pinia";
 
-const watchLaterStore = useWatchLater();
-
-const props = defineProps<{
-    active: boolean;
-    isLoading: boolean;
-}>();
-
-const emit = defineEmits<{
-    (e: "get-details", value: any): void;
-    (e: "select-tab", value: any): void;
-}>();
+const watchLaterStore = useWatchLaterStore();
+const appStore = useAppStore();
+const { isLoading, activeTab } = storeToRefs(appStore);
 
 const watchLaterList = ref<WatchLater[]>([]);
 const page = ref(1);
@@ -23,7 +17,7 @@ const page = ref(1);
 onMounted(async () => {
     await watchLaterStore.init();
 
-    if (props.active) {
+    if (activeTab.value === "watch-later") {
         await getWatchLaterList(true);
     }
 });
@@ -33,14 +27,14 @@ watch(
     (newList) => {
         if (newList) {
             watchLaterList.value = watchLaterList.value.filter(
-                item => newList.value.has(item.url)
+                item => newList.has(item.url)
             );
         }
     }, { deep: true }
 );
 
-watch(() => props.active, async (val) => {
-    if (val) {
+watch(activeTab, async (val) => {
+    if (val === "watch-later") {
         await getWatchLaterList(true);
     }
 });
@@ -71,9 +65,9 @@ async function onLoadMore() {
 
     <empty-state v-else-if="!isLoading && watchLaterList.length === 0" icon="mdi-bookmark-outline"
         title="No items in Watch Later" message="Add items to your Watch Later list to view them here."
-        action-text="Browse Content" action-icon="mdi-magnify" @action="emit('select-tab', 'search')" />
+        action-text="Browse Content" action-icon="mdi-magnify" @action="appStore.setActiveTab('search')" />
 
-    <content-grid v-else :items="watchLaterList" @get-details="emit('get-details', $event)" />
+    <content-grid v-else :items="watchLaterList" @get-details="appStore.getDetails" />
 
     <div v-if="!isLoading && watchLaterList.length > 0 && watchLaterList.length % 20 === 0"
         class="d-flex justify-center mt-4">

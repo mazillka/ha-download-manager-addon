@@ -1,6 +1,6 @@
 export default interface Translation {
   name: string;
   active: boolean;
-  data_translator_id: string | null;
+  translator: string | null;
   url: string;
 }

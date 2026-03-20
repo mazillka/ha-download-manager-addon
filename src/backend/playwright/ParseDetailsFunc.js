@@ -1,0 +1,266 @@
+export default async function ParseDetailsFunc(evalArg) {
+  if (evalArg.translator) {
+    const el = document.querySelector(
+      `[data-translator_id='${evalArg.translator}']`,
+    );
+    if (el && !el.classList.contains("active")) {
+      el.click();
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+  }
+
+  if (evalArg.season) {
+    const el = document.querySelector(`[data-tab_id='${evalArg.season}']`);
+    if (el && !el.classList.contains("active")) {
+      el.click();
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+  }
+
+  if (evalArg.season && evalArg.episode) {
+    const el = document.querySelector(
+      `[data-season_id='${evalArg.season}'][data-episode_id='${evalArg.episode}']`,
+    );
+
+    if (el && !el.classList.contains("active")) {
+      el.click();
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+  }
+
+  const getUrl = ({ translator, season, episode } = {}) => {
+    const url = window.location.origin + window.location.pathname;
+
+    if (translator && season && episode) {
+      return `${url}#t:${translator}-s:${season}-e:${episode}`;
+    }
+
+    return url;
+  };
+
+  const getStreams = () => {
+    const input =
+      typeof CDNPlayerInfo !== "undefined" ? CDNPlayerInfo.streams : "";
+
+    const streams = [];
+
+    const parts = input.split(/,\s*\[/);
+
+    parts.forEach((part, index) => {
+      let chunk = part;
+
+      if (index !== 0) {
+        chunk = "[" + chunk;
+      }
+
+      const qualityMatch = chunk.match(/\[(.*?)\]/);
+      if (!qualityMatch) return;
+
+      const quality = qualityMatch[1];
+
+      const urlMatch = chunk.match(/https?:\/\/[^,\s]+?\.mp4(?!:hls)/);
+
+      if (urlMatch) {
+        streams.push({
+          quality,
+          url: urlMatch[0],
+        });
+      }
+    });
+
+    return streams;
+  };
+
+  const getTranslators = () => {
+    const translationsEl = document.querySelectorAll(".b-translator__item");
+
+    const translations =
+      translationsEl &&
+      Array.from(translationsEl).map((el) => {
+        const translator = el.getAttribute("data-translator_id");
+
+        return {
+          translator,
+          name: el?.textContent?.trim(),
+          active: el.classList.contains("active"),
+          url: el.href || getUrl(translator, 1, 1),
+          premium: el.classList.contains("b-prem_translator"),
+        };
+      });
+
+    return translations || [];
+  };
+
+  const getSeasons = (translator) => {
+    const seasonsEl = document.querySelectorAll(
+      "#simple-seasons-tabs .b-simple_season__item",
+    );
+
+    const seasons =
+      seasonsEl &&
+      Array.from(seasonsEl).map((el) => {
+        const season = el.getAttribute("data-tab_id");
+
+        return {
+          season,
+          name: `Season ${season}`,
+          active: el.classList.contains("active"),
+          url:
+            el.href ||
+            getUrl({ translator: translator, season: season, episode: 1 }),
+        };
+      });
+
+    return seasons || [];
+  };
+
+  const getEpisodes = (translator) => {
+    const episodesEl = document.querySelectorAll(".b-simple_episode__item");
+
+    const episodes =
+      episodesEl &&
+      Array.from(episodesEl).map((el) => {
+        const episode = el.getAttribute("data-episode_id");
+        const season = el.getAttribute("data-season_id");
+
+        return {
+          episode,
+          name: `Episode ${episode}`,
+          active: el.classList.contains("active"),
+          season,
+          url:
+            el.href ||
+            getUrl({
+              translator: translator,
+              season: season,
+              episode: episode,
+            }),
+        };
+      });
+
+    return episodes || [];
+  };
+
+  const getOtherParts = () => {
+    const otherPartsEl = document.querySelectorAll(
+      ".b-post__partcontent .b-post__partcontent_item",
+    );
+
+    const otherParts =
+      otherPartsEl &&
+      Array.from(otherPartsEl).map((el) => ({
+        num: el.querySelector(".num")?.textContent?.trim(),
+        title: el.querySelector(".title")?.textContent?.trim(),
+        year: el.querySelector(".year")?.textContent?.trim().replace(/\D/g, ""),
+        current: el.classList.contains("current"),
+        url: el.getAttribute("data-url"),
+      }));
+
+    return otherParts || [];
+  };
+
+  const isTVSeries = document.querySelector("#simple-seasons-tabs")
+    ? true
+    : false;
+
+  const name = document.querySelector(".b-post__title")?.textContent?.trim();
+  const originalName = document
+    .querySelector(".b-post__origtitle")
+    ?.textContent?.trim();
+  const image = document.querySelector(".b-sidecover img")?.src;
+
+  const releaseYear = document
+    .querySelector('.b-post__info a[href*="/year/"]')
+    ?.textContent?.match(/\d{4}/)?.[0];
+
+  const description = document
+    .querySelector(".b-post__description_text")
+    ?.textContent?.trim();
+
+  const translators = getTranslators().filter(
+    (translator) => !translator.premium,
+  );
+  const activeTranslator = translators.find((translator) => translator.active);
+
+  const seasons = getSeasons(activeTranslator.translator);
+  const activeSeason = seasons.find((season) => season.active) || null;
+
+  const episodes = getEpisodes(activeTranslator.translator).filter(
+    (episode) => episode.season == activeSeason.season,
+  );
+  const activeEpisode = episodes.find((episode) => episode.active) || null;
+
+  const streams = getStreams();
+
+  const otherParts = getOtherParts();
+
+  const urlExist = document.querySelector("#translators-list a")?.href
+    ? true
+    : false;
+
+  const url = urlExist
+    ? getUrl()
+    : getUrl({
+        translator: activeTranslator.translator,
+        season: activeEpisode?.season,
+        episode: activeEpisode?.episode,
+      });
+
+  // const url = isTVSeries
+  //   ? getUrl({
+  //       translator: activeTranslator.translator,
+  //       season: activeEpisode?.season,
+  //       episode: activeEpisode?.episode,
+  //     })
+  //   : getUrl();
+
+  return {
+    debug: {
+      isTVSeries,
+      url: url,
+
+      evalArg: evalArg,
+
+      ...(activeTranslator && { activeTranslator: activeTranslator }),
+      ...(activeSeason && { activeSeason: activeSeason }),
+      ...(activeEpisode && { activeEpisode: activeEpisode }),
+      ...(urlExist && { urlExist: urlExist }),
+
+      ...(activeTranslator && { totalTranslations: translators.length }),
+      ...(activeSeason && { totalSeasons: seasons.length }),
+      ...(activeSeason && { totalEpisodes: episodes.length }),
+      ...(streams && { totalStreams: streams.length }),
+      ...(otherParts && { totalOtherParts: otherParts.length }),
+    },
+
+    url: url,
+    isTVSeries: isTVSeries,
+    releaseYear,
+    name,
+    originalName,
+    description,
+    image,
+    otherParts: otherParts,
+    translations: translators,
+
+    seasons: seasons,
+    episodes: episodes,
+
+    category: "N/A", // TODO: implement
+
+    streams: streams.map((s) => ({
+      quality: s.quality,
+      url: s.url,
+      ///
+      name,
+      originalName,
+      translator: activeTranslator.translator,
+      translatorName: activeTranslator.name,
+      episode: activeEpisode?.episode,
+      season: activeEpisode?.season,
+    })),
+  };
+}

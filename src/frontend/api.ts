@@ -1,7 +1,7 @@
 import type {
   Config,
   DownloadTask,
-  ParseResult,
+  DetailsResult,
   SearchResult,
   WatchLater,
 } from "../common/interfaces";
@@ -184,7 +184,7 @@ export const api = {
     }),
 
   getDetails: (payload: object) =>
-    request<{ details: ParseResult }>("api/get-details", {
+    request<{ details: DetailsResult }>("api/get-details", {
       method: "POST",
       body: JSON.stringify(payload),
     }),

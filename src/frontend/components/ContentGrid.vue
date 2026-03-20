@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import type { SearchResult } from "../../common/interfaces";
 import { WatchLaterButton, EmptyState, SkeletonGrid } from ".";
 
 const props = withDefaults(defineProps<{
-    items: SearchResult[];
+    items: {
+        url: string, name: string, year: string, image: string, category: string
+    }[];
     loading?: boolean;
     emptyMessage?: string;
 }>(), {
@@ -12,7 +13,7 @@ const props = withDefaults(defineProps<{
 });
 
 const emit = defineEmits<{
-    (e: "get-details", item: SearchResult): void;
+    (e: "get-details", item: { url: string }): void;
 }>();
 </script>
 
@@ -29,16 +30,17 @@ const emit = defineEmits<{
         <v-row v-else>
             <v-col v-for="(item, index) in items" :key="index" cols="12" sm="6" md="4" lg="3" xl="2">
                 <v-card class="d-flex flex-column content-card" height="100%" @click="emit('get-details', item)" hover>
-                    <v-img :src="item.image" :alt="item.name" height="150px" contain>
-                        <v-chip v-if="'category' in item && item.category" class="ma-2" color="primary" label>
-                            {{ item.category.name }}
+                    <v-img class="mt-2" :src="item.image" :alt="item.name" height="150px" contain>
+                        <v-chip class="ma-1" color="primary" label>
+                            {{ item.category }}
                         </v-chip>
                     </v-img>
                     <v-card-text class="flex-grow-1 card-text">
                         {{ item.name }}<br />{{ item.year }}
                     </v-card-text>
                     <v-card-actions>
-                        <watch-later-button :name="item.name" :year="item.year" :url="item.url" :image="item.image" />
+                        <watch-later-button :name="item.name" :year="item.year" :url="item.url" :image="item.image"
+                            :category="item.category" />
                     </v-card-actions>
                 </v-card>
             </v-col>

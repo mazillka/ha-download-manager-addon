@@ -5,12 +5,12 @@ import { asyncHandler } from "../utils";
 export const Search = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     // TODO: specify proper TYPE for return
-    const { query, filter, page } = req.body;
+    const { query, filter } = req.body;
 
     let list;
 
     if (query) {
-      list = await ParseService.Search(query, page || 1);
+      list = await ParseService.Search(query);
     }
 
     if (filter) {
@@ -24,25 +24,15 @@ export const Search = asyncHandler(
 export const GetDetails = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     // TODO: specify proper TYPE for return
-    const { url } = req.body;
+    const { url, translator, season, episode } = req.body;
 
-    const details = await ParseService.GetDetails(url);
-    res.json({ details });
-  },
-);
-
-export const GetStreams = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
-    // TODO: specify proper TYPE for return
-    const { url, season, episode, translation } = req.body;
-
-    const streams = await ParseService.GetStreams(
+    const details = await ParseService.GetDetails(
       url,
+      translator,
       season,
       episode,
-      translation,
     );
 
-    res.json({ streams });
+    res.json({ details });
   },
 );

@@ -25,7 +25,7 @@ const emit = defineEmits<{
         {{ formatBytes(props.total || 0) }}
         ({{ formatBytes(props.speed || 0) }}/s)
       </div>
-      <v-btn color="danger" size="small" class="mt-2" @click="emit('cancel-local-download')">
+      <v-btn color="error" size="small" class="mt-2" @click="emit('cancel-local-download')">
         Cancel
       </v-btn>
     </div>

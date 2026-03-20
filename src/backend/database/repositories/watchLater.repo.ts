@@ -4,8 +4,14 @@ import type { WatchLater } from "../../../common/interfaces";
 export const addWatchLater = (watchLater: WatchLater): Promise<void> => {
   return new Promise((resolve, reject) => {
     db.run(
-      "INSERT INTO watch_later (url, name, year, image) VALUES (?, ?, ?, ?)",
-      [watchLater.url, watchLater.name, watchLater.year, watchLater.image],
+      "INSERT INTO watch_later (url, name, year, image, category) VALUES (?, ?, ?, ?, ?)",
+      [
+        watchLater.url,
+        watchLater.name,
+        watchLater.year,
+        watchLater.image,
+        watchLater.category,
+      ],
       (err) => {
         if (err) {
           reject(err);

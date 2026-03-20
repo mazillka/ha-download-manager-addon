@@ -2,13 +2,14 @@
 const props = defineProps<{
   label: string;
   streams: {
-    videos: { quality: string; url: string }[];
+    quality: string;
+    url: string;
     season: number;
     episode: number;
     name: string;
     translator_id: number;
     subtitles: { data: boolean; codes: boolean };
-  };
+  }[];
 }>();
 
 const emit = defineEmits<{
@@ -22,7 +23,7 @@ const emit = defineEmits<{
       <v-btn color="primary" v-bind="menu" class="me-2 mb-2">{{ props.label }}</v-btn>
     </template>
     <v-list>
-      <v-list-item v-for="(video, index) in props.streams?.videos" :key="index + '-' + video.url"
+      <v-list-item v-for="(video, index) in props.streams" :key="index + '-' + video.url"
         @click="emit('select', video)">
         <v-list-item-title>[{{ video.quality }}]</v-list-item-title>
       </v-list-item>

@@ -1,18 +1,19 @@
 <script setup lang="ts">
-import { ref, watch, computed } from "vue";
+import { ref, watch, computed, onMounted } from "vue";
 import { SanitizeFileName } from "../../common/utils";
 import { api } from "../api";
-import type { ParseResult } from "../../common/interfaces";
-import { StreamDropdown, LoadingOverlay, WatchLaterButton, VideoPlayer } from "./";
+import type { DetailsResult } from "../../common/interfaces";
+import { StreamDropdown, LoadingOverlay, WatchLaterButton, VideoPlayer, SectionWithButtons } from "./";
 import { showConfirm, showSuccess } from "../utils/alerts";
+import { useGlobalStore } from "../stores/global";
+import { useAppStore } from "../stores/app";
 
 const props = defineProps<{
-  item: ParseResult | null;
+  details: DetailsResult | null;
 }>();
 
-const emit = defineEmits<{
-  (e: "get-details", t: string): void;
-}>();
+const globalStore = useGlobalStore();
+const appStore = useAppStore();
 
 const dialog = ref(false);
 const videoUrl = ref<string | null>(null);
@@ -33,158 +34,49 @@ const download = ref({
   },
 });
 
-let activeTranslation = ref<any>(null);
-let activeSeason = ref<any>(null);
-let activeEpisode = ref<any>(null);
+let tooltipVisible = ref(false);
 
-let streamsObj = ref<any>(null);
+onMounted(async () => {
+  const activeTranslator = props.details?.translations?.find((s) => s.active)?.translator;
+  const activeSeason = props.details?.seasons?.find((s) => s.active)?.season;
+  const activeEpisode = props.details?.episodes?.find((s) => s.active)?.episode;
 
-const translations = computed(() => {
-  if (!props.item || !props.item?.translations) return [];
-
-  return Object.entries(props.item?.translations).map(
-    ([id, value]) => ({
-      translator_id: parseInt(id),
-      translator_name: value.name,
-      premium: value.premium,
-    })
-  );
-});
-
-const seasons = computed(() => {
-  if (!props.item || !props.item?.seasonsInfo) return [];
-
-  const translationId =
-    activeTranslation.value?.translator_id ??
-    props.item.activeTranslation?.translator_id;
-
-  if (!translationId) return [];
-
-  return props.item?.seasonsInfo
-    .map(season => {
-      const episodes = season.episodes.filter((e: any) =>
-        e.translations.some((t: any) => t.translator_id === translationId)
-      );
-      return episodes.length ? { ...season, episodes } : null;
-    })
-    .filter(Boolean);
-});
-
-const episodes = computed(() => {
-  if (!activeSeason.value) return [];
-
-  const season = seasons.value.find(
-    s => s.season === activeSeason.value.season
-  );
-
-  return season?.episodes ?? [];
-});
-
-watch(seasons, (list) => {
-  if (!list.length) return;
-
-  if (!activeSeason.value || !list.some(s => s.season === activeSeason.value.season)) {
-    activeSeason.value = list[0];
-  }
-});
-
-watch(activeSeason, (season) => {
-  if (!season?.episodes?.length) return;
-  activeEpisode.value = season.episodes[0];
+  globalStore.setTranslator(activeTranslator || "");
+  globalStore.setSeason(activeSeason || "");
+  globalStore.setEpisode(activeEpisode || "");
 });
 
 watch(
-  () => props.item,
-  (item) => {
-    if (!item) return;
+  () => props.details,
+  (details) => {
+    if (!details) return;
 
     videoUrl.value = null;
     dialog.value = true;
-
-    activeTranslation.value = item.activeTranslation || translations.value[0] || null;
-
-    if (item.isTVSeries) {
-      activeSeason.value = item.activeSeason || null;
-      activeEpisode.value = item.activeEpisode || null;
-    }
-
-    streamsObj.value = item.streams;
   },
   { immediate: true }
 );
 
-async function getStreams() {
-  if (!props.item) return;
-
-  const payload = {
-    url: props.item.url,
-    translator_id: activeTranslation?.value.translator_id,
-    season: activeSeason.value?.season,
-    episode: activeEpisode.value?.episode,
-  };
-
-  setStreams(null);
-
-  const { streams } = await api.getStreams(payload) || { streams: null };
-
-  setStreams(streams);
-}
 
 function androidUrl(url: string) {
   return `intent:${url}#Intent;action=android.intent.action.VIEW;type=video/mp4;end`;
 };
 
-function fileName(quality: string) {
-  const season = activeSeason.value?.season;
-  const episode = activeEpisode.value?.episode;
-  const isTVSeries = props.item?.isTVSeries;
+function fileName(stream: any) {
+  const isTVSeries = props.details?.isTVSeries;
 
-  const title = props.item?.originalName || props.item?.name;
+  const title = stream.originalName || stream.name;
 
-  const year = props.item?.releaseYear;
+  const year = props.details?.releaseYear;
 
   const seasonEpisode = isTVSeries
-    ? `S${season}E${episode} `
+    ? `S${stream.season}E${stream.episode} `
     : "";
 
   const yearStr = isTVSeries ? " " : ` (${year}) `;
 
-  return `${title}${yearStr}${seasonEpisode}[${quality}].mp4`;
+  return `${title}${yearStr}${seasonEpisode}[${stream.quality}].mp4`;
 };
-
-function setStreams(streams: any) {
-  streamsObj.value = streams;
-}
-
-async function setActiveTranslation(translation: any) {
-  activeTranslation.value = translation;
-
-  await getStreams();
-}
-
-function isActiveTranslation(translation: any): boolean {
-  return activeTranslation.value?.translator_id == translation.translator_id || false;
-}
-
-async function setActiveSeason(season: any) {
-  activeSeason.value = season;
-
-  await getStreams();
-}
-
-function isActiveSeason(season: any): boolean {
-  return activeSeason.value?.season == season.season || false;
-}
-
-async function setActiveEpisode(episode: any) {
-  activeEpisode.value = episode;
-
-  await getStreams();
-}
-
-function isActiveEpisode(episode: any): boolean {
-  return activeEpisode.value?.episode == episode.episode || false;
-}
 
 const isAndroid = computed(() => /android/i.test(navigator.userAgent));
 
@@ -256,6 +148,7 @@ async function downloadToLocal(url: string, filename: string | null | undefined)
 
 function cancelLocalDownload() {
   download.value.controller.abort();
+  download.value.reset();
 }
 
 async function downloadToServer(url: string, filename: string | undefined | null) {
@@ -275,15 +168,40 @@ async function downloadToServer(url: string, filename: string | undefined | null
 
   await showSuccess({ title: "Download started on Server" });
 }
+
+async function getDetails({ url, translator, season, episode }: { url: string; translator?: string; season?: string; episode?: string }) {
+
+  console.error("BEGIN - getDetails - ");
+
+  console.log("url: ", url);
+  console.log("translator: ", translator);
+  console.log("season: ", season);
+  console.log("episode: ", episode);
+
+  console.error("END - getDetails - ");
+
+  if (translator) globalStore.setTranslator(translator);
+  if (season) globalStore.setSeason(season);
+  if (episode) globalStore.setEpisode(episode);
+
+  await appStore.getDetails({ url, translator, season, episode });
+}
+
 </script>
 
 <style scoped>
 .json-viewer {
+  overflow-x: auto;
+  overflow-y: auto;
   white-space: pre-wrap;
   font-family: monospace;
   background: #f5f5f5;
   padding: 10px;
   border-radius: 6px;
+}
+
+.v-expansion-panel-text__wrapper {
+  padding: 8px 8px 8px !important;
 }
 </style>
 
@@ -291,47 +209,43 @@ async function downloadToServer(url: string, filename: string | undefined | null
   <loading-overlay :loading="loading" :progress="download.progress" :loaded="download.loaded" :total="download.total"
     :speed="download.speed" @cancel-local-download="cancelLocalDownload" />
 
-  <v-dialog v-model="dialog" max-width="800px">
-    <v-card v-if="props.item">
+  <v-dialog v-model="dialog" max-width="1200px">
+    <v-card v-if="props.details">
       <v-card-title class="d-flex align-center">
-        <a :href="props.item.url" target="_blank">{{ props.item.originalName || props.item.name }}</a>
+        <a :href="props.details.url" target="_blank">{{ props.details.originalName || props.details.name }}</a>
         <v-btn icon="mdi-close" variant="text" class="ml-auto" @click="dialog = false"></v-btn>
       </v-card-title>
       <v-card-text>
         <v-row>
-          <v-col md="4" class="text-center" v-if="props.item.image">
-            <v-img class="rounded" max-height="250" :src="props.item.image" :alt="props.item.name" />
+          <v-col md="4" class="text-center" v-if="props.details.image">
 
-            <watch-later-button :name="props.item.originalName || props.item.name" :year="props.item.releaseYear"
-              :url="props.item.url" :image="props.item.image" />
+            <v-img
+              v-tooltip="{ text: props.details.description, openOnHover: false, target: 'cursor', openOnClick: true, maxWidth: '680px' }"
+              class="rounded" max-height="250" :src="props.details.image" :alt="props.details.name" />
+
+            <watch-later-button :name="props.details.originalName || props.details.name"
+              :year="props.details.releaseYear" :url="props.details.url" :image="props.details.image"
+              :category="props.details.category" />
           </v-col>
 
-          <v-col :md="props.item.image ? 8 : 12">
-            <v-expansion-panels>
-              <v-expansion-panel>
-                <v-expansion-panel-title>
-                  <div class="text-h6">Description</div>
-                </v-expansion-panel-title>
-                <v-expansion-panel-text>
-                  {{ props.item.description }}
-                </v-expansion-panel-text>
-              </v-expansion-panel>
-              <v-expansion-panel>
+          <v-col :md="props.details.image ? 8 : 12">
+            <v-expansion-panels class="mb-3">
+              <v-expansion-panel v-if="props.details.otherParts?.length > 0">
                 <v-expansion-panel-title>
                   <div class="text-h6">Other Parts</div>
                 </v-expansion-panel-title>
                 <v-expansion-panel-text>
-                  <v-data-table density="compact" :headers="[
+                  <v-data-table height="auto" density="compact" :headers="[
                     { title: '#', key: 'num' },
                     { title: 'title', key: 'title' },
                     { title: 'year', key: 'year' },
                     { title: 'actions', key: 'actions' }
-                  ]" :items="props.item.otherParts" :items-per-page="-1" item-key="num" class="elevation-1"
-                    hide-default-header hide-default-footer height="400" fixed-header>
+                  ]" :items="props.details.otherParts" :items-per-page="-1" item-key="num" class="elevation-1"
+                    hide-default-header hide-default-footer fixed-header>
                     <template #item.title="{ item }">
                       <div class="d-flex align-center">
                         <a href="#" :style="{ color: item.current ? 'blue' : 'inherit' }" class="me-2"
-                          @click="emit('get-details', item.url)">{{ item.title }}</a>
+                          @click="appStore.getDetails({ url: item.url })">{{ item.title }}</a>
                       </div>
                     </template>
                   </v-data-table>
@@ -339,70 +253,35 @@ async function downloadToServer(url: string, filename: string | undefined | null
               </v-expansion-panel>
             </v-expansion-panels>
 
+            <section-with-buttons title="Translations" :items="props.details.translations"
+              @get-details="getDetails($event)" season="1" episode="1" />
 
+            <section-with-buttons title="Seasons" :items="props.details.seasons" @get-details="getDetails($event)"
+              :translator="globalStore.translator" episode="1" />
 
-
-            <div v-if="translations">
-              <div class="text-h6">Translations</div>
-              <div class="d-flex flex-wrap mb-3">
-                <v-btn v-for="translation in translations" size="small" class="me-2 mb-2" variant="outlined"
-                  color="primary" @click="setActiveTranslation(translation)"
-                  :disabled="isActiveTranslation(translation)">
-                  {{ translation.translator_name }}
-                </v-btn>
-              </div>
-            </div>
-          </v-col>
-        </v-row>
-
-        <v-row v-if="item?.isTVSeries">
-          <v-col md="12">
-            <div>
-              <div class="text-h6">Seasons</div>
-              <div class="d-flex flex-wrap mb-3">
-                <v-btn v-for="season in seasons" size="small" class="me-2 mb-2" variant="outlined" color="primary"
-                  @click="setActiveSeason(season)" :disabled="isActiveSeason(season)">
-                  {{ season.season_text }}
-                </v-btn>
-              </div>
-            </div>
-          </v-col>
-        </v-row>
-
-        <v-row v-if="item?.isTVSeries">
-          <v-col md="12">
-            <div>
-              <div class="text-h6">Episodes</div>
-              <div class="d-flex flex-wrap mb-3">
-                <v-btn v-for="episode in episodes" size="small" class="me-2 mb-2" variant="outlined" color="primary"
-                  @click="setActiveEpisode(episode)" :disabled="isActiveEpisode(episode)">
-                  {{ episode.episode_text }}
-                </v-btn>
-              </div>
-            </div>
+            <section-with-buttons title="Episodes" :items="props.details.episodes" @get-details="getDetails($event)"
+              :translator="globalStore.translator" :season="globalStore.season" />
           </v-col>
         </v-row>
 
         <div class="mt-4">
           <div class="text-h6">
-            <span class="cursor-pointer" :class="streamsObj ? 'text-black' : 'text-red'" @click="getStreams()">
-              Actions
-            </span>
+            Actions
           </div>
-          <div v-if="streamsObj">
-            <stream-dropdown label="Watch" :streams="streamsObj" @select="showPlayer($event.url)" />
-            <stream-dropdown v-if="isAndroid" label="Watch External" :streams="streamsObj"
+          <div v-if="props.details.streams">
+            <stream-dropdown label="Watch" :streams="props.details.streams" @select="showPlayer($event.url)" />
+            <stream-dropdown v-if="isAndroid" label="Watch External" :streams="props.details.streams"
               @select="openStream(androidUrl($event.url))" />
 
             <div class="d-none">
-              <stream-dropdown label="Open in Tab" :streams="streamsObj" @select="openStream($event.url)" />
-              <stream-dropdown label="Copy Url" :streams="streamsObj" @select="copyStreamUrl($event.url)" />
+              <stream-dropdown label="Open in Tab" :streams="props.details.streams" @select="openStream($event.url)" />
+              <stream-dropdown label="Copy Url" :streams="props.details.streams" @select="copyStreamUrl($event.url)" />
             </div>
 
-            <stream-dropdown label="Download" :streams="streamsObj"
-              @select="downloadToLocal($event.url, fileName($event.quality))" />
-            <stream-dropdown label="Download To Server" :streams="streamsObj"
-              @select="downloadToServer($event.url, fileName($event.quality))" />
+            <stream-dropdown label="Download" :streams="props.details.streams"
+              @select="downloadToLocal($event.url, fileName($event))" />
+            <stream-dropdown label="Download To Server" :streams="props.details.streams"
+              @select="downloadToServer($event.url, fileName($event))" />
           </div>
         </div>
 
@@ -414,7 +293,7 @@ async function downloadToServer(url: string, filename: string | undefined | null
             <v-expansion-panel-title>RAW JSON</v-expansion-panel-title>
             <v-expansion-panel-text>
               <pre class="json-viewer">{{
-                JSON.stringify(props.item, null, 2) }}</pre>
+                JSON.stringify(props.details, null, 2) }}</pre>
             </v-expansion-panel-text>
           </v-expansion-panel>
         </v-expansion-panels>

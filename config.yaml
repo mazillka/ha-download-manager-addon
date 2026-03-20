@@ -8,7 +8,7 @@ arch:
   - aarch64
 
 ingress: true
-ingress_port: 3000
+ingress_port: 5172
 
 startup: services
 boot: auto

@@ -62,13 +62,13 @@ COPY run.sh /run.sh
 RUN chmod +x /run.sh
 
 # Home Assistant ingress
-EXPOSE 3000
+EXPOSE 5172
 
 # Graceful shutdown
 STOPSIGNAL SIGTERM
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:3000/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
+    CMD node -e "require('http').get('http://localhost:5172/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
 
 CMD ["/run.sh"]

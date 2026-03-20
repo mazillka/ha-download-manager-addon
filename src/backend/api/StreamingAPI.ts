@@ -1,24 +1,89 @@
-import axios, { AxiosInstance, AxiosResponse } from "axios";
+import axios, { AxiosResponse } from "axios";
 import * as cheerio from "cheerio";
-import { URL } from "url";
+import type { Element } from "domhandler";
+import { URL, URLSearchParams } from "url";
+import fetch from "node-fetch";
 
-// --- Types & Stubs (аналоги з .types та .errors) ---
+// --- Default Configuration ---
 
-class CustomError extends Error {}
-class LoginRequiredError extends CustomError {}
-class LoginFailed extends CustomError {}
-class FetchFailed extends CustomError {}
-class CaptchaError extends CustomError {}
-class HTTPError extends CustomError {
+export const defaultCookies: Record<string, string> = {
+  hdmbbs: "1",
+};
+
+export const defaultHeaders: Record<string, string> = {
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36",
+};
+
+export const defaultTranslatorsPriority: number[] = [56, 105, 111];
+export const defaultTranslatorsNonPriority: number[] = [238];
+
+// --- Error Classes ---
+
+export class CustomError extends Error {}
+
+export class LoginRequiredError extends CustomError {
+  constructor() {
+    super("Login is required to access this page.");
+    this.name = "LoginRequiredError";
+  }
+}
+
+export class LoginFailed extends CustomError {
+  constructor(msg: string) {
+    super(msg);
+    this.name = "LoginFailed";
+  }
+}
+
+export class FetchFailed extends CustomError {
+  constructor() {
+    super("Failed to fetch stream!");
+    this.name = "FetchFailed";
+  }
+}
+
+export class CaptchaError extends CustomError {
+  constructor() {
+    super("Failed to bypass captcha!");
+    this.name = "CaptchaError";
+  }
+}
+
+export class HTTPError extends CustomError {
   constructor(
     public code: number,
     public reason: string,
   ) {
     super(`${code} ${reason}`);
+    this.name = "HTTPError";
   }
 }
 
-// Заглушки для типів контенту
+// --- Type Classes ---
+
+export class Type {
+  name: string;
+  type: string;
+
+  constructor(name: string, type: string) {
+    this.name = name;
+    this.type = type;
+  }
+
+  toString(): string {
+    return `${this.type}.${this.name}`;
+  }
+
+  equals(other: any): boolean {
+    if (other instanceof Type) return this.name === other.name;
+    if (typeof other === "string") return this.name === other;
+    return false;
+  }
+}
+
+// --- Content Type Classes ---
+
 export class ContentType {
   isMovie() {
     return this instanceof Movie;
@@ -32,31 +97,128 @@ export class ContentType {
     return this instanceof Format;
   }
 }
+
 export class TVSeries extends ContentType {}
+
 export class Movie extends ContentType {}
+
 export class Format extends ContentType {
   constructor(public name: string) {
     super();
   }
 }
 
-export class CategoryType {}
-export class Film extends CategoryType {}
-export class Series extends CategoryType {}
-export class Cartoon extends CategoryType {}
-export class Anime extends CategoryType {}
+// --- Category Type Classes ---
+
+export class CategoryType {
+  toJSON(): { name: string } {
+    return { name: this.constructor.name };
+  }
+}
+
+export class Film extends CategoryType {
+  toJSON() {
+    return { name: "Film" };
+  }
+}
+
+export class Series extends CategoryType {
+  toJSON() {
+    return { name: "Series" };
+  }
+}
+
+export class Cartoon extends CategoryType {
+  toJSON() {
+    return { name: "Cartoon" };
+  }
+}
+
+export class Anime extends CategoryType {
+  toJSON() {
+    return { name: "Anime" };
+  }
+}
+
 export class Category extends CategoryType {
   constructor(public name: string) {
     super();
   }
+
+  toJSON() {
+    return { name: this.name };
+  }
 }
+
+// --- Rating Classes ---
 
 export interface Rating {
   value: number;
   votes: number;
 }
 
-// Потік (Stream)
+export class RatingClass {
+  value: number;
+  votes: number;
+
+  constructor(value: number, votes: number) {
+    this.value = value;
+    this.votes = votes;
+  }
+
+  toString(): string {
+    return `${this.value} (${this.votes})`;
+  }
+
+  valueOf(): number {
+    return this.value;
+  }
+
+  gt(other: RatingClass | number): boolean {
+    return this.value > (other instanceof RatingClass ? other.value : other);
+  }
+
+  lt(other: RatingClass | number): boolean {
+    return this.value < (other instanceof RatingClass ? other.value : other);
+  }
+
+  eq(other: RatingClass | number): boolean {
+    return this.value === (other instanceof RatingClass ? other.value : other);
+  }
+}
+
+export class EmptyRating extends RatingClass {
+  constructor() {
+    super(0, 0);
+  }
+
+  toString(): string {
+    return "Rating(Empty)";
+  }
+
+  valueOf(): number {
+    return 0;
+  }
+
+  gt(): boolean {
+    return false;
+  }
+
+  ge(other?: RatingClass): boolean {
+    return other?.value ? false : true;
+  }
+
+  le(other?: RatingClass): boolean {
+    return other?.value ? false : true;
+  }
+
+  booleanValue(): boolean {
+    return false;
+  }
+}
+
+// --- Stream Class ---
+
 export class Stream {
   videos: { quality: string; url: string }[] = [];
 
@@ -73,27 +235,179 @@ export class Stream {
   }
 }
 
-// Константи
-const default_cookies: Record<string, string> = {};
-const default_headers: Record<string, string> = {
-  "User-Agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-};
-const default_translators_priority: number[] = [];
-const default_translators_non_priority: number[] = [];
+// --- Search Interfaces ---
 
-// --- Main Class ---
-
-export class Details {
+export interface SearchItem {
+  name: string;
   url: string;
+  image?: string;
+  rating?: number;
+  category?: CategoryType;
+  year?: string;
+}
+
+export interface SearchOptions {
+  origin: string;
+  proxy?: Record<string, string>;
+  headers?: Record<string, string>;
+  cookies?: Record<string, string>;
+}
+
+// --- SearchResult Helper Class ---
+
+export class SearchResult implements AsyncIterable<SearchItem[]> {
+  origin: string;
+  query: string;
+  proxy?: Record<string, string>;
+  headers?: Record<string, string>;
+  cookies?: Record<string, string>;
+
+  private _currentPage = 1;
+  private _allPagesCache: SearchItem[][] | null = null;
+
+  constructor(
+    origin: string,
+    query: string,
+    proxy?: Record<string, string>,
+    headers?: Record<string, string>,
+    cookies?: Record<string, string>,
+  ) {
+    this.origin = origin;
+    this.query = query;
+    this.proxy = proxy;
+    this.headers = headers;
+    this.cookies = cookies;
+  }
+
+  [Symbol.asyncIterator](): AsyncIterator<SearchItem[]> {
+    this._currentPage = 1;
+    return {
+      next: async (): Promise<IteratorResult<SearchItem[]>> => {
+        const page = await this.getPage(this._currentPage);
+        if (page.length) {
+          this._currentPage++;
+          return { value: page, done: false };
+        }
+        return { value: [], done: true };
+      },
+    };
+  }
+
+  async allPages(): Promise<SearchItem[][]> {
+    if (!this._allPagesCache) {
+      const pages: SearchItem[][] = [];
+      for await (const page of this) {
+        if (page.length > 0) pages.push(page);
+      }
+      this._allPagesCache = pages;
+    }
+    return this._allPagesCache;
+  }
+
+  async all(): Promise<SearchItem[]> {
+    const pages = await this.allPages();
+    return pages.flat();
+  }
+
+  async getPage(page: number): Promise<SearchItem[]> {
+    const params = new URLSearchParams({
+      do: "search",
+      subaction: "search",
+      q: this.query,
+      page: String(page),
+    });
+
+    const url = `${this.origin}/search/?${params.toString()}`;
+    const res = await fetch(url, { headers: this.headers });
+
+    if (!res.ok) throw new HTTPError(res.status, res.statusText);
+
+    const html = await res.text();
+    const $ = cheerio.load(html);
+
+    const title = $("title").text();
+    if (title === "Sign In") throw new LoginRequiredError();
+    if (title === "Verify") throw new CaptchaError();
+
+    const result: SearchItem[] = [];
+
+    $(".b-content__inline_item").each((_, el) => {
+      const item = SearchResult.processItemCheerio($, el);
+      if (item) result.push(item);
+    });
+
+    return result;
+  }
+
+  static processItemCheerio(
+    $: cheerio.CheerioAPI,
+    el: Element,
+  ): SearchItem | null {
+    const linkEl = $(el).find(".b-content__inline_item-link a");
+    const textDiv = $(el).find(".b-content__inline_item-link div");
+    const cover = $(el).find(".b-content__inline_item-cover img");
+    const catEl = $(el).find(".cat");
+
+    if (!linkEl.length || !textDiv.length || !cover.length) return null;
+
+    const classes =
+      catEl
+        .attr("class")
+        ?.split(" ")
+        .filter((c) => c !== "cat") ?? [];
+
+    const category = classes.length
+      ? SearchResult.detectType(classes)
+      : undefined;
+
+    const year = SearchResult.parseYearString(textDiv.text());
+
+    return {
+      name: linkEl.text().trim(),
+      url: linkEl.attr("href")!,
+      image: cover.attr("src"),
+      category,
+      year,
+    };
+  }
+
+  static detectType(classes: string[]): CategoryType {
+    if (classes.includes("films")) return new Film();
+    if (classes.includes("series")) return new Series();
+    if (classes.includes("cartoons")) return new Cartoon();
+    if (classes.includes("animation")) return new Anime();
+    return new Category(classes[0]);
+  }
+
+  static parseYearString(input: string): string {
+    const yearPart = input.split(",")[0].trim();
+
+    const openRange = yearPart.match(/(\d{4})\s*[–-]\s*(\.\.\.)/);
+    if (openRange) return `${openRange[1]} – ...`;
+
+    const closedRange = yearPart.match(/(\d{4})\s*[–-]\s*(\d{4})/);
+    if (closedRange) return `${closedRange[1]} – ${closedRange[2]}`;
+
+    const singleYear = yearPart.match(/\d{4}/);
+    if (singleYear) return singleYear[0];
+
+    return "N/A";
+  }
+}
+
+// --- Main Streaming API Class ---
+
+export class StreamingAPI {
   origin: string;
   proxy: any;
   customHeaders: Record<string, string>;
-  cookies: Record<string, string>;
+  private _cookies: Record<string, string>;
   private _translators_priority: number[];
   private _translators_non_priority: number[];
+  private _cookieHeaderCache: string | null = null;
 
-  // Cache storage
+  // Details-specific properties
+  private _currentUrl: string | null = null;
   private _page: AxiosResponse | null = null;
   private _soup: cheerio.CheerioAPI | null = null;
   private _id: number | null = null;
@@ -113,37 +427,38 @@ export class Details {
   private _seriesInfo: Record<number, any> | null = null;
   private _episodesInfo: any[] | null = null;
 
-  constructor({
-    url,
-    options = {},
-  }: {
-    url: string;
-    options: {
-      proxy?: any;
-      customHeaders?: Record<string, string>;
-      cookies?: Record<string, string>;
-      translators_priority?: number[];
-      translators_non_priority?: number[];
-    };
+  constructor(options: {
+    origin: string;
+    proxy?: any;
+    customHeaders?: Record<string, string>;
+    cookies?: Record<string, string>;
+    translators_priority?: number[];
+    translators_non_priority?: number[];
   }) {
-    this.url = url.split(".html")[0] + ".html";
-    const uri = new URL(url);
+    const uri = new URL(options.origin);
     this.origin = `${uri.protocol}//${uri.host}`;
     this.proxy = options.proxy || {};
-    this.cookies = { ...default_cookies, ...(options.cookies || {}) };
+    this._cookies = { ...defaultCookies, ...(options.cookies || {}) };
     this.customHeaders = {
-      ...default_headers,
+      ...defaultHeaders,
       ...(options.customHeaders || {}),
     };
     this._translators_priority =
-      options.translators_priority || default_translators_priority;
+      options.translators_priority || defaultTranslatorsPriority;
     this._translators_non_priority =
-      options.translators_non_priority || default_translators_non_priority;
+      options.translators_non_priority || defaultTranslatorsNonPriority;
   }
 
-  toString(): string {
-    return `("${this.url}")`; // Спрощено, бо ім'я асинхронне
+  get cookies() {
+    return this._cookies;
   }
+
+  set cookies(value: Record<string, string>) {
+    this._cookies = value;
+    this._cookieHeaderCache = null;
+  }
+
+  // --- Configuration Methods ---
 
   get translators_priority() {
     return this._translators_priority;
@@ -159,13 +474,7 @@ export class Details {
     this._translators_non_priority = value || [];
   }
 
-  async ok(): Promise<boolean> {
-    try {
-      return !!(await this.getSoup());
-    } catch {
-      return false;
-    }
-  }
+  // --- Authentication Methods ---
 
   async login(
     email: string,
@@ -180,17 +489,16 @@ export class Details {
       `${this.origin}/ajax/login/`,
       formData.toString(),
       {
+        ...this.getAxiosConfig(),
         headers: {
           ...this.customHeaders,
           "Content-Type": "application/x-www-form-urlencoded",
         },
-        ...this.getAxiosConfig(), // Proxy included here
       },
     );
 
     const data = response.data;
     if (data.success) {
-      // Оновлюємо куки з відповіді (спрощена логіка, для повного стеку треба tough-cookie)
       if (response.headers["set-cookie"]) {
         response.headers["set-cookie"].forEach((c) => {
           const [keyVal] = c.split(";");
@@ -208,23 +516,172 @@ export class Details {
     return { dle_user_id: String(user_id), dle_password: password_hash };
   }
 
-  // Helper для Axios конфігурації
-  private getAxiosConfig() {
-    // Формуємо рядок Cookie header
-    const cookieHeader = Object.entries(this.cookies)
+  // --- Search Methods ---
+
+  async search(
+    query: string,
+    findAll = false,
+  ): Promise<SearchItem[] | SearchResult> {
+    return findAll ? this.advancedSearch(query) : this.fastSearch(query);
+  }
+
+  async filter(filter: string): Promise<SearchItem[]> {
+    const url = `${this.origin}/?filter=${filter}`;
+    const res = await fetch(url, { headers: this.customHeaders });
+
+    if (!res.ok) throw new HTTPError(res.status, res.statusText);
+
+    const html = await res.text();
+    const $ = cheerio.load(html);
+
+    const title = $("title").text();
+    if (title === "Sign In") throw new LoginRequiredError();
+    if (title === "Verify") throw new CaptchaError();
+
+    const result: SearchItem[] = [];
+
+    $(".b-content__inline_item").each((_, el) => {
+      const item = SearchResult.processItemCheerio($, el);
+      if (item) result.push(item);
+    });
+
+    return result;
+  }
+
+  async fastSearch(query: string): Promise<SearchItem[]> {
+    const url = `${this.origin}/engine/ajax/search.php`;
+    const body = new URLSearchParams({ q: query });
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { ...this.customHeaders },
+      body,
+    });
+
+    if (!res.ok) throw new HTTPError(res.status, res.statusText);
+
+    const html = await res.text();
+    const $ = cheerio.load(html);
+
+    const results: SearchItem[] = [];
+
+    $(".b-search__section_list li").each((_, el) => {
+      const title = $(el).find("span.enty").text().trim();
+      const link = $(el).find("a").attr("href");
+      const ratingText = $(el).find("span.rating").text();
+
+      if (title && link) {
+        // Extract category from URL path
+        let category: CategoryType | undefined;
+        try {
+          const urlPath = new URL(link, this.origin).pathname;
+          const pathParts = urlPath.replace(/^\//, "").split("/");
+          if (pathParts.length > 0) {
+            const cat = pathParts[0];
+            if (cat === "films") category = new Film();
+            else if (cat === "series") category = new Series();
+            else if (cat === "cartoons") category = new Cartoon();
+            else if (cat === "animation") category = new Anime();
+            else if (cat) category = new Category(cat);
+          }
+        } catch (e) {
+          // If URL parsing fails, category remains undefined
+        }
+
+        results.push({
+          name: title,
+          url: link,
+          rating: ratingText ? parseFloat(ratingText) : undefined,
+          category,
+        });
+      }
+    });
+
+    return results;
+  }
+
+  advancedSearch(query: string): SearchResult {
+    return new SearchResult(
+      this.origin,
+      query,
+      this.proxy,
+      this.customHeaders,
+      this.cookies,
+    );
+  }
+
+  // --- Details Methods ---
+
+  /**
+   * Clear all cached data
+   */
+  private clearCache() {
+    Object.assign(this, {
+      _page: null,
+      _soup: null,
+      _id: null,
+      _names: null,
+      _origNames: null,
+      _description: null,
+      _thumbnail: null,
+      _thumbnailHQ: null,
+      _releaseYear: null,
+      _type: null,
+      _category: null,
+      _rating: null,
+      _translators: null,
+      _seriesInfo: null,
+      _episodesInfo: null,
+    });
+  }
+
+  /**
+   * Load a specific URL for details extraction
+   */
+  loadUrl(url: string): this {
+    this._currentUrl = url.split(".html")[0] + ".html";
+    this.clearCache();
+    return this;
+  }
+
+  private ensureUrlLoaded() {
+    if (!this._currentUrl) {
+      throw new Error(
+        "No URL loaded. Call loadUrl(url) before accessing details.",
+      );
+    }
+  }
+
+  async ok(): Promise<boolean> {
+    try {
+      return !!(await this.getSoup());
+    } catch {
+      return false;
+    }
+  }
+
+  private getCookieHeader(): string {
+    if (this._cookieHeaderCache) return this._cookieHeaderCache;
+
+    this._cookieHeaderCache = Object.entries(this.cookies)
       .map(([k, v]) => `${k}=${v}`)
       .join("; ");
 
+    return this._cookieHeaderCache;
+  }
+
+  private getAxiosConfig() {
     return {
-      headers: { ...this.customHeaders, Cookie: cookieHeader },
+      headers: { ...this.customHeaders, Cookie: this.getCookieHeader() },
       proxy: Object.keys(this.proxy).length > 0 ? this.proxy : false,
-      validateStatus: () => true, // Дозволяємо ручну обробку кодів
+      validateStatus: () => true,
     };
   }
 
-  async getPage(): Promise<AxiosResponse> {
+  private async getPage(): Promise<AxiosResponse> {
+    this.ensureUrlLoaded();
     if (this._page) return this._page;
-    const r = await axios.get(this.url, {
+    const r = await axios.get(this._currentUrl!, {
       ...this.getAxiosConfig(),
       maxRedirects: 5,
     });
@@ -236,7 +693,7 @@ export class Details {
     throw new HTTPError(r.status, r.statusText);
   }
 
-  async getSoup(): Promise<cheerio.CheerioAPI> {
+  private async getSoup(): Promise<cheerio.CheerioAPI> {
     if (this._soup) return this._soup;
     const page = await this.getPage();
     const $ = cheerio.load(page.data);
@@ -256,7 +713,7 @@ export class Details {
     let val = $("#post_id").val();
     if (!val) val = $("#send-video-issue").attr("data-id");
     if (!val) val = $("#user-favorites-holder").attr("data-post_id");
-    if (!val) val = this.url.split("/").pop()?.split("-")[0];
+    if (!val) val = this._currentUrl!.split("/").pop()?.split("-")[0];
 
     this._id = val ? parseInt(String(val)) : 0;
     return this._id;
@@ -346,7 +803,7 @@ export class Details {
 
   async getCategory(): Promise<CategoryType> {
     if (this._category) return this._category;
-    const uri = new URL(this.url);
+    const uri = new URL(this._currentUrl!);
     const cat = uri.pathname.replace(/^\//, "").split("/")[0];
 
     if (cat === "films") this._category = new Film();
@@ -359,18 +816,19 @@ export class Details {
   }
 
   async getRating(): Promise<Rating | null> {
-    if (this._rating) return this._rating;
+    if (this._rating !== undefined) return this._rating;
+
     const $ = await this.getSoup();
     const wrapper = $(".b-post__rating");
-    if (wrapper.length) {
-      const rating = parseFloat(wrapper.find(".num").text());
-      const votes = parseInt(
-        wrapper.find(".votes").text().replace(/[()]/g, ""),
-      );
-      this._rating = { value: rating, votes: votes };
-    } else {
+
+    if (!wrapper.length) {
       this._rating = null;
+      return null;
     }
+
+    const rating = parseFloat(wrapper.find(".num").text());
+    const votes = parseInt(wrapper.find(".votes").text().replace(/[()]/g, ""));
+    this._rating = { value: rating, votes };
     return this._rating;
   }
 
@@ -401,7 +859,6 @@ export class Details {
     }
 
     if (Object.keys(arr).length === 0) {
-      // Auto-detect
       const getTranslationName = ($doc: cheerio.CheerioAPI) => {
         const table = $doc(".b-post__info");
         let foundName = "";
@@ -420,10 +877,9 @@ export class Details {
           "video.tv_series": "initCDNSeriesEvents",
           "video.movie": "initCDNMoviesEvents",
         };
-        // Need strict type check logic or string comparison
         const typeKey =
           type instanceof TVSeries ? "video.tv_series" : "video.movie";
-        const scriptText = $doc.text(); // Simplification: searching whole text
+        const scriptText = $doc.text();
         const eventName = initCDNEvents[typeKey];
 
         if (eventName) {
@@ -450,38 +906,38 @@ export class Details {
     non_priority?: number[],
   ) {
     const currentTranslators = translators || (await this.getTranslators());
-    const prior: Record<number, number> = {};
     const pList = priority || this._translators_priority || [];
-
-    pList.forEach((item, index) => {
-      prior[item] = index + 1;
-    });
-
-    const maxIndex = Object.keys(prior).length + 1;
     const npList = non_priority || this._translators_non_priority || [];
 
-    npList.forEach((item, index) => {
-      if (!(item in prior)) {
-        prior[item] = maxIndex + index + 1;
+    // Create priority map once for O(1) lookups
+    const priorityMap = new Map<number, number>();
+    pList.forEach((id, idx) => priorityMap.set(id, idx + 1));
+
+    const maxPriority = pList.length + 1;
+    npList.forEach((id, idx) => {
+      if (!priorityMap.has(id)) {
+        priorityMap.set(id, maxPriority + idx + 1);
       }
     });
 
-    return Object.fromEntries(
-      Object.entries(currentTranslators).sort((a, b) => {
-        const idA = parseInt(a[0]);
-        const idB = parseInt(b[0]);
-        const rankA = prior[idA] || maxIndex;
-        const rankB = prior[idB] || maxIndex;
-        return rankA - rankB;
-      }),
-    );
+    // Sort entries directly
+    const sorted = Object.entries(currentTranslators).sort((a, b) => {
+      const rankA = priorityMap.get(parseInt(a[0])) || maxPriority;
+      const rankB = priorityMap.get(parseInt(b[0])) || maxPriority;
+      return rankA - rankB;
+    });
+
+    return Object.fromEntries(sorted);
   }
 
-  static clearTrash(data: string): string {
+  private static trashCodesCache: string[] | null = null;
+
+  private static getTrashCodes(): string[] {
+    if (this.trashCodesCache) return this.trashCodesCache;
+
     const trashList = ["@", "#", "!", "^", "$"];
     const trashCodesSet: string[] = [];
 
-    // Helper to generate combinations (product)
     const getCombinations = (chars: string[], length: number) => {
       const result: string[] = [];
       const f = (prefix: string, chars: string[]) => {
@@ -503,6 +959,13 @@ export class Details {
         trashCodesSet.push(trashcombo);
       }
     }
+
+    this.trashCodesCache = trashCodesSet;
+    return trashCodesSet;
+  }
+
+  static clearTrash(data: string): string {
+    const trashCodesSet = this.getTrashCodes();
 
     let arr = data.replace("#h", "").split("//_//");
     let trashString = arr.join("");
@@ -533,7 +996,7 @@ export class Details {
           title,
           num: Number(num),
           year: Number(year.replace(/\D/g, "")),
-          url: current ? this.url : $el.attr("data-url"),
+          url: current ? this._currentUrl : $el.attr("data-url"),
           current,
         });
       });
@@ -553,12 +1016,12 @@ export class Details {
 
     const episodes_: Record<number, Record<number, string>> = {};
     $episodes(".b-simple_episode__item").each((_, el) => {
-      const seasonId = parseInt($episodes(el).attr("data-season_id") || "0");
-      const episodeId = parseInt($episodes(el).attr("data-episode_id") || "0");
+      const season = parseInt($episodes(el).attr("data-season_id") || "0");
+      const episode = parseInt($episodes(el).attr("data-episode_id") || "0");
       const text = $episodes(el).text();
 
-      if (!episodes_[seasonId]) episodes_[seasonId] = {};
-      episodes_[seasonId][episodeId] = text;
+      if (!episodes_[season]) episodes_[season] = {};
+      episodes_[season][episode] = text;
     });
 
     return { seasons: seasons_, episodes: episodes_ };
@@ -572,44 +1035,59 @@ export class Details {
     }
     if (this._seriesInfo) return this._seriesInfo;
 
-    const arr: Record<number, any> = {};
     const translators = await this.getTranslators();
     const id = await this.getId();
 
-    for (const [tr_id, tr_val] of Object.entries(translators)) {
-      const formData = new URLSearchParams();
-      formData.append("id", String(id));
-      formData.append("translator_id", tr_id);
-      formData.append("action", "get_episodes");
+    // Parallelize API requests for better performance
+    const requests = Object.entries(translators).map(
+      async ([tr_id, tr_val]) => {
+        const formData = new URLSearchParams();
+        formData.append("id", String(id));
+        formData.append("translator_id", tr_id);
+        formData.append("action", "get_episodes");
 
-      const r = await axios.post(
-        `${this.origin}/ajax/get_cdn_series/`,
-        formData.toString(),
-        {
-          headers: {
-            ...this.customHeaders,
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          ...this.getAxiosConfig(),
-        },
-      );
-      const response = r.data;
+        try {
+          const r = await axios.post(
+            `${this.origin}/ajax/get_cdn_series/`,
+            formData.toString(),
+            {
+              ...this.getAxiosConfig(),
+              headers: {
+                ...this.customHeaders,
+                "Content-Type": "application/x-www-form-urlencoded",
+              },
+            },
+          );
+          const response = r.data;
 
-      if (response.success) {
-        const { seasons, episodes } = Details.getEpisodes(
-          response.seasons,
-          response.episodes,
-        );
-        arr[parseInt(tr_id)] = {
-          translator_name: tr_val.name,
-          premium: tr_val.premium,
-          seasons,
-          episodes,
-        };
-      }
-    }
-    this._seriesInfo = arr;
-    return arr;
+          if (response.success) {
+            const { seasons, episodes } = StreamingAPI.getEpisodes(
+              response.seasons,
+              response.episodes,
+            );
+            return [
+              parseInt(tr_id),
+              {
+                translator_name: tr_val.name,
+                premium: tr_val.premium,
+                seasons,
+                episodes,
+              },
+            ];
+          }
+        } catch (error) {
+          // Skip failed requests
+          return null;
+        }
+        return null;
+      },
+    );
+
+    const results = await Promise.all(requests);
+    this._seriesInfo = Object.fromEntries(
+      results.filter((r): r is [number, any] => r !== null),
+    );
+    return this._seriesInfo;
   }
 
   async getEpisodesInfo() {
@@ -620,8 +1098,8 @@ export class Details {
     }
     if (this._episodesInfo) return this._episodesInfo;
 
-    const output_data: any[] = [];
     const seriesInfo = await this.getSeriesInfo();
+    const seasonsMap = new Map<number, any>();
 
     for (const [translator_id, translator_info] of Object.entries(seriesInfo)) {
       const tInfo = translator_info as any;
@@ -630,43 +1108,45 @@ export class Details {
 
       for (const [season, season_text] of Object.entries(tInfo.seasons)) {
         const seasonNum = parseInt(season);
-        let season_obj = output_data.find((s) => s.season === seasonNum);
 
-        if (!season_obj) {
-          season_obj = {
+        if (!seasonsMap.has(seasonNum)) {
+          seasonsMap.set(seasonNum, {
             season: seasonNum,
-            season_text: season_text,
-            episodes: [],
-          };
-          output_data.push(season_obj);
+            season_text,
+            episodes: new Map(),
+          });
         }
 
+        const seasonObj = seasonsMap.get(seasonNum)!;
         const eps = tInfo.episodes[season] || {};
+
         for (const [episode, episode_text] of Object.entries(eps)) {
           const epNum = parseInt(episode);
-          let episode_obj = season_obj.episodes.find(
-            (e: any) => e.episode === epNum,
-          );
 
-          if (!episode_obj) {
-            episode_obj = {
+          if (!seasonObj.episodes.has(epNum)) {
+            seasonObj.episodes.set(epNum, {
               episode: epNum,
-              episode_text: episode_text,
+              episode_text,
               translations: [],
-            };
-            season_obj.episodes.push(episode_obj);
+            });
           }
 
-          episode_obj.translations.push({
+          seasonObj.episodes.get(epNum)!.translations.push({
             translator_id: parseInt(translator_id),
-            translator_name: translator_name,
-            premium: premium,
+            translator_name,
+            premium,
           });
         }
       }
     }
-    this._episodesInfo = output_data;
-    return output_data;
+
+    // Convert Maps back to arrays
+    this._episodesInfo = Array.from(seasonsMap.values()).map((season) => ({
+      ...season,
+      episodes: Array.from(season.episodes.values()),
+    }));
+
+    return this._episodesInfo;
   }
 
   async getStream({
@@ -688,17 +1168,17 @@ export class Details {
         `${this.origin}/ajax/get_cdn_series/`,
         params,
         {
+          ...this.getAxiosConfig(),
           headers: {
             ...this.customHeaders,
             "Content-Type": "application/x-www-form-urlencoded",
           },
-          ...this.getAxiosConfig(),
         },
       );
       const json = r.data;
 
       if (json.success && json.url) {
-        const arr = Details.clearTrash(json.url).split(",");
+        const arr = StreamingAPI.clearTrash(json.url).split(",");
         const stream = new Stream(
           season || null,
           episode || null,
@@ -726,7 +1206,7 @@ export class Details {
       translation_id: number,
     ) => {
       return makeRequest({
-        id: this._id, // Assumes ID is loaded
+        id: this._id,
         translator_id: translation_id,
         season,
         episode,
@@ -766,17 +1246,16 @@ export class Details {
           throw new Error(`Translation "${translation}" is not defined`);
         }
       } else {
-        // Sorting logic needed here, simplified to first available
-        // To implement fully, port sort_translators logic specifically for this structure
         return translators[0]?.translator_id;
       }
     };
 
-    // Ensure essential data is loaded
     await this.getId();
     const type = await this.getType();
+    const isTVSeries = type instanceof TVSeries;
+    const isMovie = type instanceof Movie;
 
-    if (type instanceof TVSeries) {
+    if (isTVSeries) {
       if (!season || !episode)
         throw new TypeError(
           "getStream() missing required arguments (season and episode) for Series",
@@ -796,7 +1275,7 @@ export class Details {
 
       const tr_id = get_translator_id(episodeObj.translations);
       return getStreamSeries(season, episode, tr_id);
-    } else if (type instanceof Movie) {
+    } else if (isMovie) {
       const translatorsMap = await this.getTranslators();
       const translatorsList = Object.entries(translatorsMap).map(
         ([id, details]) => ({
