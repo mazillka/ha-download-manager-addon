@@ -2,7 +2,7 @@ import { app } from "./app";
 import { DownloadService, ConfigService, DatabaseService } from "./services";
 import { Server } from "http";
 
-const port = process.env.PORT || 5172;
+const port = process.env.PORT || 3000;
 
 let server: Server;
 

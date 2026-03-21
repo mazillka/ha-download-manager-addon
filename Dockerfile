@@ -3,21 +3,35 @@
 # =========================
 FROM node:20-bookworm-slim AS builder
 
-# Install build dependencies for native modules (sqlite3)
+# Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     make \
     g++ \
+    wget \
+    ca-certificates \
+    fonts-liberation \
+    libnss3 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    libgbm1 \
+    libpango-1.0-0 \
+    libgtk-3-0 \
+    libasound2 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /src
 
-# ======== Install deps (cached layer) =======
-# Copy only package files first for better layer caching
+# Copy package.json and install dependencies
 COPY src/package.json src/package-lock.json ./
-RUN npm ci --prefer-offline --no-audit
+RUN npm ci --no-audit --prefer-offline --build-from-source
 
-# ======== Copy source and build =======
+# Copy source code
 COPY src/common ./common/
 COPY src/backend ./backend/
 COPY src/frontend ./frontend/
@@ -25,50 +39,58 @@ COPY src/frontend ./frontend/
 # Build backend + frontend
 RUN npm run build:prod
 
+# Remove dev dependencies
+RUN npm prune --omit=dev
+
 # =========================
 # 2️⃣ Runtime stage
 # =========================
 FROM node:20-bookworm-slim
 
-# ========= Metadata =========
-LABEL maintainer="HA Download Manager"
-LABEL description="Home Assistant Download Manager Add-on"
-
-# ========= Environment =========
+# Environment variables
 ENV NODE_ENV=production \
-    TZ=UTC \
-    NPM_CONFIG_LOGLEVEL=warn \
-    NODE_OPTIONS="--max-old-space-size=512"
+    NODE_OPTIONS="--max-old-space-size=256" \
+    TZ=UTC
 
-# ========= Install runtime dependencies =========
-# Only install what's needed for sqlite3 at runtime
+WORKDIR /app
+
+# Install only runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
+    tini \
+    fonts-liberation \
+    libnss3 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    libgbm1 \
+    libpango-1.0-0 \
+    libgtk-3-0 \
+    libasound2 \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /src/dist
+# Install Playwright browsers
+RUN npx playwright install --with-deps
 
-# ======= Install prod deps (cached layer) =======
-COPY src/package.json src/package-lock.json ./
-RUN npm ci --omit=dev --prefer-offline --no-audit \
-    && npm cache clean --force
-
-# ======= Copy build output =======
+# Copy node_modules and build
+COPY --from=builder /src/node_modules ./node_modules
 COPY --from=builder /src/dist/backend ./backend/
 COPY --from=builder /src/dist/frontend ./frontend/
 
-# ======= Copy and prepare run script =======
+# HA ingress
+EXPOSE 3000
+
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=2s --start-period=10s \
+    CMD wget -qO- http://localhost:3000/health || exit 1
+
+# Run script
 COPY run.sh /run.sh
-RUN chmod +x /run.sh
+RUN sed -i 's/\r$//' /run.sh && chmod +x /run.sh
 
-# Home Assistant ingress
-EXPOSE 5172
-
-# Graceful shutdown
-STOPSIGNAL SIGTERM
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:5172/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
-
+ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["/run.sh"]

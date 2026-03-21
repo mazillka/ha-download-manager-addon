@@ -1,6 +1,6 @@
 name: "HA Download Manager"
 slug: ha-download-manager
-version: "1.0.46"
+version: "1.0.47"
 description: "Home Assistant Download Manager"
 
 arch:
@@ -8,7 +8,7 @@ arch:
   - aarch64
 
 ingress: true
-ingress_port: 5172
+ingress_port: 3000
 
 startup: services
 boot: auto

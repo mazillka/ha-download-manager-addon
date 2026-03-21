@@ -65,13 +65,13 @@ export default defineConfig(({ mode }) => ({
   },
 
   server: {
-    port: 5173,
+    port: 3001,
     host: "0.0.0.0",
     strictPort: true,
     open: true,
     proxy: {
-      "/api/": "http://localhost:5172",
-      "/health/": "http://localhost:5172",
+      "/api/": "http://localhost:3000",
+      "/health/": "http://localhost:3000",
     },
   },
 
