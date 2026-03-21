@@ -92,5 +92,5 @@ HEALTHCHECK --interval=30s --timeout=2s --start-period=10s \
 COPY run.sh /run.sh
 RUN sed -i 's/\r$//' /run.sh && chmod +x /run.sh
 
-ENTRYPOINT ["/usr/bin/tini", "--"]
+ENTRYPOINT ["/usr/bin/tini", "-s", "--"]
 CMD ["/run.sh"]
