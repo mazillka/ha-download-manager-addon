@@ -1,12 +1,16 @@
 #!/bin/sh
 set -e
 
-echo "[INFO] Starting Download Manager"
+log() {
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+}
+
+log "Starting Download Manager"
 
 if command -v with-contenv >/dev/null 2>&1; then
-  echo "[INFO] Home Assistant environment detected"
+  log "Home Assistant environment detected"
   exec with-contenv node backend/server.js
 else
-  echo "[INFO] Standard Docker environment"
+  log "Standard Docker environment"
   exec node backend/server.js
 fi
