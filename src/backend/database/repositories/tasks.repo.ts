@@ -1,73 +1,41 @@
 import { db } from "../connection";
 import type { Task } from "../../../common/interfaces";
 
-export const saveTask = (task: Task): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    const {
-      id,
-      filename,
-      url,
-      status,
-      progress,
-      loaded,
-      total,
-      startTime,
-      error,
-    } = task;
-    db.run(
-      `INSERT OR REPLACE INTO tasks (id, filename, url, status, progress, loaded, total, startTime, error)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, filename, url, status, progress, loaded, total, startTime, error],
-      (err) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      },
-    );
-  });
+export const saveTask = async (task: Task): Promise<void> => {
+  const {
+    id,
+    filename,
+    url,
+    status,
+    progress,
+    loaded,
+    total,
+    startTime,
+    error,
+  } = task;
+  
+  const stmt = db.prepare(
+    `INSERT OR REPLACE INTO tasks (id, filename, url, status, progress, loaded, total, startTime, error)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  );
+  
+  stmt.run(id, filename, url, status, progress, loaded, total, startTime, error);
 };
 
-export const deleteTask = (id: string): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    db.run("DELETE FROM tasks WHERE id = ?", [id], (err) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve();
-      }
-    });
-  });
+export const deleteTask = async (id: string): Promise<void> => {
+  const stmt = db.prepare("DELETE FROM tasks WHERE id = ?");
+  stmt.run(id);
 };
 
-export const getAllTasks = (
+export const getAllTasks = async (
   limit: number = 20,
   offset: number = 0,
 ): Promise<Task[]> => {
-  return new Promise((resolve, reject) => {
-    db.all(
-      "SELECT * FROM tasks LIMIT ? OFFSET ?",
-      [limit, offset],
-      (err, rows: Task[]) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(rows);
-        }
-      },
-    );
-  });
+  const stmt = db.prepare("SELECT * FROM tasks LIMIT ? OFFSET ?");
+  return stmt.all(limit, offset) as Task[];
 };
 
-export const getTask = (id: string): Promise<Task | undefined> => {
-  return new Promise((resolve, reject) => {
-    db.get("SELECT * FROM tasks WHERE id = ?", [id], (err, row: Task) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(row);
-      }
-    });
-  });
+export const getTask = async (id: string): Promise<Task | undefined> => {
+  const stmt = db.prepare("SELECT * FROM tasks WHERE id = ?");
+  return stmt.get(id) as Task | undefined;
 };

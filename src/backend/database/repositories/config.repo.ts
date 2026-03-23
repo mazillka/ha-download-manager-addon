@@ -2,44 +2,23 @@ import { db } from "../connection";
 import type { Config } from "../../../common/interfaces";
 import { ConfigKey } from "../../../common/enums";
 
-export const getAllConfigs = (): Promise<Config[]> => {
-  return new Promise((resolve, reject) => {
-    db.all("SELECT * FROM config", (err, rows: Config[]) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(rows);
-      }
-    });
-  });
+export const getAllConfigs = async (): Promise<Config[]> => {
+  const stmt = db.prepare("SELECT * FROM config");
+  return stmt.all() as Config[];
 };
 
-export const addOrUpdateConfigs = (configs: Config[]): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    configs.forEach((config) => {
-      db.run(
-        "INSERT OR REPLACE INTO config (key, value, description) VALUES (?, ?, ?)",
-        [config.key, config.value, config.description],
-        (err) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve();
-          }
-        }
-      );
-    });
+export const addOrUpdateConfigs = async (configs: Config[]): Promise<void> => {
+  const stmt = db.prepare("INSERT OR REPLACE INTO config (key, value, description) VALUES (?, ?, ?)");
+  const insertMany = db.transaction((configsList: Config[]) => {
+    for (const config of configsList) {
+      stmt.run(config.key, config.value, config.description);
+    }
   });
+  insertMany(configs);
 };
 
-export const getConfig = (key: ConfigKey): Promise<string | null> => {
-  return new Promise((resolve, reject) => {
-    db.get("SELECT value FROM config WHERE key = ?", [key], (err, row: any) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(row ? row.value : null);
-      }
-    });
-  });
+export const getConfig = async (key: ConfigKey): Promise<string | null> => {
+  const stmt = db.prepare("SELECT value FROM config WHERE key = ?");
+  const row = stmt.get(key) as any;
+  return row ? row.value : null;
 };

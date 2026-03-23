@@ -3,37 +3,35 @@ import { ConfigKey } from "../../common/enums";
 import type { Config } from "../../common/interfaces";
 
 export const initDB = (): void => {
-  db.serialize(() => {
-    // create history table
-    db.run(
-      "CREATE TABLE IF NOT EXISTS history (id INTEGER PRIMARY KEY AUTOINCREMENT, filename TEXT, size INTEGER, completed_at DATETIME DEFAULT CURRENT_TIMESTAMP)",
-    );
+  // create history table
+  db.exec(
+    "CREATE TABLE IF NOT EXISTS history (id INTEGER PRIMARY KEY AUTOINCREMENT, filename TEXT, size INTEGER, completed_at DATETIME DEFAULT CURRENT_TIMESTAMP)",
+  );
 
-    // create tasks table
-    db.run(`CREATE TABLE IF NOT EXISTS tasks (
-            id TEXT PRIMARY KEY,
-            filename TEXT,
-            url TEXT,
-            status TEXT,
-            progress INTEGER,
-            loaded INTEGER,
-            total INTEGER,
-            startTime INTEGER,
-            error TEXT
-        )`);
+  // create tasks table
+  db.exec(`CREATE TABLE IF NOT EXISTS tasks (
+          id TEXT PRIMARY KEY,
+          filename TEXT,
+          url TEXT,
+          status TEXT,
+          progress INTEGER,
+          loaded INTEGER,
+          total INTEGER,
+          startTime INTEGER,
+          error TEXT
+      )`);
 
-    // create config table
-    db.run(
-      "CREATE TABLE IF NOT EXISTS config (key TEXT PRIMARY KEY, value TEXT, description TEXT)",
-    );
+  // create config table
+  db.exec(
+    "CREATE TABLE IF NOT EXISTS config (key TEXT PRIMARY KEY, value TEXT, description TEXT)",
+  );
 
-    // create watch_later table
-    db.run(
-      "CREATE TABLE IF NOT EXISTS watch_later (url TEXT PRIMARY KEY, name TEXT, year TEXT, image TEXT, category TEXT)",
-    );
+  // create watch_later table
+  db.exec(
+    "CREATE TABLE IF NOT EXISTS watch_later (url TEXT PRIMARY KEY, name TEXT, year TEXT, image TEXT, category TEXT)",
+  );
 
-    insertDefaultConfig();
-  });
+  insertDefaultConfig();
 };
 
 const defaultConfigs: Config[] = [
@@ -49,9 +47,12 @@ const insertDefaultConfig = (): void => {
     `INSERT OR IGNORE INTO config (key, value, description) VALUES (?, ?, ?)`,
   );
 
-  defaultConfigs.forEach((c) => {
-    stmt.run([c.key, c.value, c.description]);
+  // Run in a transaction for better performance
+  const insertMany = db.transaction((configs: Config[]) => {
+    for (const c of configs) {
+      stmt.run(c.key, c.value, c.description);
+    }
   });
 
-  stmt.finalize();
+  insertMany(defaultConfigs);
 };
