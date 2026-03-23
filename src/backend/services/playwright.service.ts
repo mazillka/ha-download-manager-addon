@@ -1,5 +1,5 @@
-import { chromium } from "playwright";
-import type { Browser, BrowserContext, Page } from "playwright";
+import { chromium } from "playwright-core";
+import type { Browser, BrowserContext, Page } from "playwright-core";
 import type { ParseOptions } from "../../common/interfaces";
 
 const showConsoleMessages = false;
