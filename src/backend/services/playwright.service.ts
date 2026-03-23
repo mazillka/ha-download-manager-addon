@@ -156,6 +156,9 @@ export async function acquirePage(): Promise<Page> {
 }
 
 export function releasePage(p: Page): void {
+  // Purge the site DOM entirely to prevent idle CPU/RAM leaks
+  p.goto("about:blank").catch(() => {});
+
   if (pendingAcquires.length) {
     const r = pendingAcquires.shift();
     if (r) {
