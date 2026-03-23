@@ -54,30 +54,17 @@ ENV NODE_ENV=production \
 
 WORKDIR /app
 
-# Install only runtime dependencies
+# Copy node_modules first so npx is available
+COPY --from=builder /src/node_modules ./node_modules
+
+# Install runtime dependencies and Chromium only in a single layer to reduce cache bloat
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     tini \
-    fonts-liberation \
-    libnss3 \
-    libatk1.0-0 \
-    libatk-bridge2.0-0 \
-    libcups2 \
-    libxkbcommon0 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxrandr2 \
-    libgbm1 \
-    libpango-1.0-0 \
-    libgtk-3-0 \
-    libasound2 \
+    && npx playwright install chromium --with-deps \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Playwright browsers
-RUN npx playwright install --with-deps
-
-# Copy node_modules and build
-COPY --from=builder /src/node_modules ./node_modules
+# Copy built backend and frontend
 COPY --from=builder /src/dist/backend ./backend/
 COPY --from=builder /src/dist/frontend ./frontend/
 
