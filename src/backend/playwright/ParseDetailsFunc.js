@@ -243,13 +243,12 @@ export default async function ParseDetailsFunc(evalArg) {
     originalName,
     description,
     image,
+    category: evalArg.category,
     otherParts: otherParts,
     translations: translators,
 
     seasons: seasons,
     episodes: episodes,
-
-    category: evalArg.category,
 
     streams: streams.map((s) => ({
       quality: s.quality,

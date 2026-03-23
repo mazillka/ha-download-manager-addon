@@ -2,7 +2,6 @@ import axios, { AxiosResponse } from "axios";
 import * as cheerio from "cheerio";
 import type { Element } from "domhandler";
 import { URL, URLSearchParams } from "url";
-import fetch from "node-fetch";
 
 // --- Default Configuration ---
 

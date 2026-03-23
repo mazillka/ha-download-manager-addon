@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import fetch from "node-fetch";
+import { Readable } from "stream";
 import type { Task } from "../../common/interfaces";
 import { SanitizeFileName } from "../../common/utils";
 import {
@@ -100,7 +100,8 @@ export const Start = async (id: string): Promise<void> => {
     let lastTime = Date.now();
 
     if (response.body) {
-      response.body.on("data", async (chunk: Buffer) => {
+      const nodeBody = Readable.fromWeb(response.body as any);
+      nodeBody.on("data", async (chunk: Buffer) => {
         task.loaded += chunk.length;
         if (task.total) {
           task.progress = Math.round((task.loaded / task.total) * 100);
@@ -115,7 +116,7 @@ export const Start = async (id: string): Promise<void> => {
         }
       });
 
-      response.body.on("error", async (error: Error) => {
+      nodeBody.on("error", async (error: Error) => {
         if (error.name === "AbortError") {
           return;
         }
@@ -143,7 +144,7 @@ export const Start = async (id: string): Promise<void> => {
         }
       });
 
-      response.body.pipe(fileStream);
+      nodeBody.pipe(fileStream);
     }
   } catch (error: any) {
     if (error.name === "AbortError") {

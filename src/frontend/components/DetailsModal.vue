@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed, onMounted } from "vue";
+import { ref, watch, computed } from "vue";
 import { SanitizeFileName } from "../../common/utils";
 import { api } from "../api";
 import type { DetailsResult } from "../../common/interfaces";
@@ -36,16 +36,6 @@ const download = ref({
 
 let tooltipVisible = ref(false);
 
-onMounted(async () => {
-  const activeTranslator = props.details?.translations?.find((s) => s.active)?.translator;
-  const activeSeason = props.details?.seasons?.find((s) => s.active)?.season;
-  const activeEpisode = props.details?.episodes?.find((s) => s.active)?.episode;
-
-  globalStore.setTranslator(activeTranslator || "");
-  globalStore.setSeason(activeSeason || "");
-  globalStore.setEpisode(activeEpisode || "");
-});
-
 watch(
   () => props.details,
   (details) => {
@@ -53,6 +43,15 @@ watch(
 
     videoUrl.value = null;
     dialog.value = true;
+
+    const activeTranslator = details.translations?.find((s: any) => s.active)?.translator;
+    const activeSeason = details.seasons?.find((s: any) => s.active)?.season;
+    const activeEpisode = details.episodes?.find((s: any) => s.active)?.episode;
+
+    globalStore.setCategory(details.category || "");
+    globalStore.setTranslator(activeTranslator || "");
+    globalStore.setSeason(activeSeason || "");
+    globalStore.setEpisode(activeEpisode || "");
   },
   { immediate: true }
 );
@@ -169,22 +168,24 @@ async function downloadToServer(url: string, filename: string | undefined | null
   await showSuccess({ title: "Download started on Server" });
 }
 
-async function getDetails({ url, translator, season, episode }: { url: string; translator?: string; season?: string; episode?: string }) {
+async function getDetails({ url, category, translator, season, episode }: { url: string; category?: string; translator?: string; season?: string; episode?: string }) {
 
   console.error("BEGIN - getDetails - ");
 
   console.log("url: ", url);
+  console.log("category: ", category);
   console.log("translator: ", translator);
   console.log("season: ", season);
   console.log("episode: ", episode);
 
   console.error("END - getDetails - ");
 
+  if (category) globalStore.setCategory(category);
   if (translator) globalStore.setTranslator(translator);
   if (season) globalStore.setSeason(season);
   if (episode) globalStore.setEpisode(episode);
 
-  await appStore.getDetails({ url, translator, season, episode });
+  await appStore.getDetails({ url, category, translator, season, episode });
 }
 
 </script>
@@ -254,13 +255,13 @@ async function getDetails({ url, translator, season, episode }: { url: string; t
             </v-expansion-panels>
 
             <section-with-buttons title="Translations" :items="props.details.translations"
-              @get-details="getDetails($event)" season="1" episode="1" />
+              @get-details="getDetails($event)" season="1" episode="1" :category="globalStore.category" />
 
             <section-with-buttons title="Seasons" :items="props.details.seasons" @get-details="getDetails($event)"
-              :translator="globalStore.translator" episode="1" />
+              :translator="globalStore.translator" episode="1" :category="globalStore.category" />
 
             <section-with-buttons title="Episodes" :items="props.details.episodes" @get-details="getDetails($event)"
-              :translator="globalStore.translator" :season="globalStore.season" />
+              :translator="globalStore.translator" :season="globalStore.season" :category="globalStore.category" />
           </v-col>
         </v-row>
 

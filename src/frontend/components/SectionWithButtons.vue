@@ -16,9 +16,10 @@ const props = defineProps<{
   translator?: string;
   season?: string;
   episode?: string;
+  category?: string;
 }>();
 const emit = defineEmits<{
-  (e: "get-details", item: { url: string; translator?: string; season?: string; episode?: string }): void;
+  (e: "get-details", item: { url: string; category?: string; translator?: string; season?: string; episode?: string }): void;
 }>();
 </script>
 
@@ -32,6 +33,7 @@ const emit = defineEmits<{
         variant="outlined" color="primary" :disabled="item.active" @click="  emit('get-details',
           {
             url: item.url,
+            category: props.category,
             translator: item.translator || props.translator,
             season: item.season || props.season,
             episode: item.episode || props.episode
