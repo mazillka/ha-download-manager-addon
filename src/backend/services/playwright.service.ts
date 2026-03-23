@@ -33,7 +33,20 @@ function shouldBlockRequest(url: string, resourceType: string): boolean {
   } catch (e) {
     // ignore
   }
-  if (["image", "font", "media"].includes(resourceType)) {
+  if (
+    [
+      "image",
+      "font",
+      "media",
+      "stylesheet",
+      "imageset",
+      "object",
+      "beacon",
+      "csp_report",
+      "texttrack",
+      "websocket",
+    ].includes(resourceType)
+  ) {
     return true;
   }
   return false;
@@ -54,6 +67,7 @@ export async function getBrowser(): Promise<Browser> {
         "--disable-breakpad",
         "--disable-component-update",
         "--disable-gpu",
+        "--disable-ipc-flooding-protection",
       ],
     };
 
@@ -106,7 +120,7 @@ export async function getContext(): Promise<BrowserContext> {
 async function createPage(): Promise<Page> {
   const ctx = await getContext();
   const p = await ctx.newPage();
-  const timeout = parseInt(process.env.BROWSER_NAV_TIMEOUT || "60000", 10);
+  const timeout = parseInt(process.env.BROWSER_NAV_TIMEOUT || "120000", 10);
   p.setDefaultTimeout(timeout);
   p.setDefaultNavigationTimeout(timeout);
   totalPages += 1;
@@ -219,22 +233,12 @@ export async function Parse<T>(
     }
 
     const page = await tmpContext.newPage();
-    const timeout = parseInt(process.env.BROWSER_NAV_TIMEOUT || "60000", 10);
+    const timeout = parseInt(process.env.BROWSER_NAV_TIMEOUT || "120000", 10);
     page.setDefaultTimeout(options.timeout || timeout);
     page.setDefaultNavigationTimeout(options.timeout || timeout);
 
     try {
-      try {
-        await page.goto("about:blank", {
-          waitUntil: "domcontentloaded",
-          timeout: 5000,
-        });
-      } catch (e) {}
-
-      const strategies = options.strategies || [
-        options.waitUntil || "networkidle",
-        "domcontentloaded",
-      ];
+      const strategies = options.strategies || ["domcontentloaded"];
       let lastErr: any = null;
       for (const strat of strategies) {
         try {
@@ -246,7 +250,7 @@ export async function Parse<T>(
 
           if (options.waitForSelector) {
             await page.waitForSelector(options.waitForSelector, {
-              timeout: options.selectorTimeout || 5000,
+              timeout: options.selectorTimeout || 15000,
             });
           }
 
@@ -279,20 +283,9 @@ export async function Parse<T>(
 
   // shared pooled page path
   const page = await acquirePage();
-  const timeout = parseInt(process.env.BROWSER_NAV_TIMEOUT || "60000", 10);
+  const timeout = parseInt(process.env.BROWSER_NAV_TIMEOUT || "120000", 10);
   try {
-    // best-effort reset page to reduce leftover state
-    try {
-      await page.goto("about:blank", {
-        waitUntil: "domcontentloaded",
-        timeout: 5000,
-      });
-    } catch (e) {}
-
-    const strategies = options.strategies || [
-      options.waitUntil || "networkidle",
-      "domcontentloaded",
-    ];
+    const strategies = options.strategies || ["domcontentloaded"];
     let lastErr: any = null;
     for (const strat of strategies) {
       try {
@@ -304,7 +297,7 @@ export async function Parse<T>(
 
         if (options.waitForSelector) {
           await page.waitForSelector(options.waitForSelector, {
-            timeout: options.selectorTimeout || 5000,
+            timeout: options.selectorTimeout || 15000,
           });
         }
 

@@ -15,10 +15,7 @@ export const Search = async (query: string): Promise<SearchResult[]> => {
       return func();
     },
     {
-      timeout: 120000,
-      strategies: ["domcontentloaded", "networkidle"],
       waitForSelector: ".b-content__htitle",
-      selectorTimeout: 15000,
       evalArg: {
         funcString: ParseSearchFunc.toString(),
       },
@@ -37,10 +34,7 @@ export const Filter = async (filter: string): Promise<SearchResult[]> => {
       return func();
     },
     {
-      timeout: 120000,
-      strategies: ["domcontentloaded", "networkidle"],
       waitForSelector: ".b-content__htitle",
-      selectorTimeout: 15000,
       evalArg: {
         funcString: ParseSearchFunc.toString(),
       },
@@ -62,10 +56,7 @@ export const GetDetails = async (
       return func(evalArg);
     },
     {
-      timeout: 120000,
-      strategies: ["domcontentloaded", "networkidle"],
       waitForSelector: ".b-post__title",
-      selectorTimeout: 15000,
       evalArg: {
         category: category,
         translator: translator,
