@@ -24,10 +24,11 @@ export const Search = asyncHandler(
 export const GetDetails = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     // TODO: specify proper TYPE for return
-    const { url, translator, season, episode } = req.body;
+    const { url, category, translator, season, episode } = req.body;
 
     const details = await ParseService.GetDetails(
       url,
+      category,
       translator,
       season,
       episode,

@@ -249,7 +249,7 @@ export default async function ParseDetailsFunc(evalArg) {
     seasons: seasons,
     episodes: episodes,
 
-    category: "N/A", // TODO: implement
+    category: evalArg.category,
 
     streams: streams.map((s) => ({
       quality: s.quality,

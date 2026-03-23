@@ -53,11 +53,13 @@ export const useAppStore = defineStore("app", () => {
 
   async function getDetails({
     url,
+    category,
     translator,
     season,
     episode,
   }: {
     url: string;
+    category?: string;
     translator?: string;
     season?: string;
     episode?: string;
@@ -65,6 +67,7 @@ export const useAppStore = defineStore("app", () => {
     parseResult.value = null;
     const { details } = await api.getDetails({
       url,
+      category,
       translator,
       season,
       episode,

@@ -50,6 +50,7 @@ export const Filter = async (filter: string): Promise<SearchResult[]> => {
 
 export const GetDetails = async (
   url: string,
+  category?: string,
   translator?: string,
   season?: string,
   episode?: string,
@@ -66,6 +67,7 @@ export const GetDetails = async (
       waitForSelector: ".b-post__title",
       selectorTimeout: 15000,
       evalArg: {
+        category: category,
         translator: translator,
         season: season,
         episode: episode,

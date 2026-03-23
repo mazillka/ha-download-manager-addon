@@ -13,7 +13,7 @@ const props = withDefaults(defineProps<{
 });
 
 const emit = defineEmits<{
-    (e: "get-details", item: { url: string }): void;
+    (e: "get-details", item: { url: string, category?: string }): void;
 }>();
 </script>
 
