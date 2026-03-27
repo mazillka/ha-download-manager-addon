@@ -23,7 +23,10 @@ RUN npm run build:prod
 # Remove dev dependencies, scrub the npm cache, and entirely delete C++ build object files
 RUN npm prune --omit=dev && \
     npm cache clean --force && \
-    rm -rf node_modules/better-sqlite3/build/Release/obj.target
+    rm -rf node_modules/better-sqlite3/build/Release/obj.target && \
+    rm -rf node_modules/better-sqlite3/deps && \
+    rm -rf node_modules/better-sqlite3/src && \
+    rm -rf node_modules/playwright-core/types
 
 # =========================
 # 2️⃣ Runtime stage
