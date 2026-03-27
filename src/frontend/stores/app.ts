@@ -47,6 +47,7 @@ export const useAppStore = defineStore("app", () => {
   }
 
   async function getTabSearchResults(filter: string) {
+    tabSearchResults.value = [];
     const { list } = await api.getSearchResults({ query: undefined, filter });
     tabSearchResults.value = list;
   }
