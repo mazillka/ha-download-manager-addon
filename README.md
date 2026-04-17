@@ -1,9 +1,5 @@
 # 📥 HA Download Manager
 
-[![Home Assistant Add-on](https://my.home-assistant.io/badge/addon_repository.svg?repository_url=https%3A%2F%2Fgithub.com%2Fmazillka%2Fha-download-manager-addon)](https://my.home-assistant.io/redirect/addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fmazillka%2Fha-download-manager-addon)
-[![Release](https://img.shields.io/github/v/release/mazillka/ha-download-manager-addon?style=flat-square)](https://github.com/mazillka/ha-download-manager-addon/releases)
-[![License](https://img.shields.io/github/license/mazillka/ha-download-manager-addon?style=flat-square)](LICENSE)
-
 A powerful, lightweight Download Manager for **Home Assistant**, built on top of Node.js and Playwright. It allows you to search, track, and download media content directly to your Home Assistant storage.
 
 ## ✨ Features
