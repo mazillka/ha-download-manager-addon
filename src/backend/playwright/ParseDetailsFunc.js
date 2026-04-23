@@ -41,11 +41,42 @@ export default async function ParseDetailsFunc(evalArg) {
     return url;
   };
 
-  const getStreams = () => {
-    const input =
-      typeof CDNPlayerInfo !== "undefined" ? CDNPlayerInfo.streams : "";
-
+  const getStreams = async ({
+    activeTranslator,
+    activeSeason,
+    activeEpisode,
+  } = {}) => {
+    let input = "";
     const streams = [];
+
+    const id = document.querySelector("#post_id")?.value;
+
+    if (id && activeTranslator) {
+      const params = new URLSearchParams();
+      params.append("id", id);
+      params.append("translator_id", activeTranslator.translator);
+
+      if (activeSeason && activeEpisode) {
+        params.append("season", activeSeason.season);
+        params.append("episode", activeEpisode.episode);
+        params.append("action", "get_stream");
+      } else {
+        params.append("action", "get_movie");
+      }
+
+      try {
+        const res = await fetch("/ajax/get_cdn_series/", {
+          method: "POST",
+          body: params,
+        });
+        const data = await res.json();
+        if (data && data.url) {
+          input = data.url;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
 
     const parts = input.split(/,\s*\[/);
 
@@ -60,6 +91,13 @@ export default async function ParseDetailsFunc(evalArg) {
       if (!qualityMatch) return;
 
       const quality = qualityMatch[1];
+
+      if (
+        quality &&
+        (quality.toLowerCase().includes("premium") ||
+          quality.includes("pjs-prem-quality"))
+      )
+        return;
 
       const urlMatch = chunk.match(/https?:\/\/[^,\s]+?\.mp4(?!:hls)/);
 
@@ -193,7 +231,11 @@ export default async function ParseDetailsFunc(evalArg) {
   );
   const activeEpisode = episodes.find((episode) => episode.active) || null;
 
-  const streams = getStreams();
+  const streams = await getStreams({
+    activeTranslator,
+    activeSeason,
+    activeEpisode,
+  });
 
   const otherParts = getOtherParts();
 
