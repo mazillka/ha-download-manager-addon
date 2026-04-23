@@ -1,12 +1,10 @@
 export default function ParseSearchFunc() {
   function parseYearString(str) {
+    if (!str) return "N/A";
     const yearPart = str.split(",")[0].trim();
 
-    const openRange = yearPart.match(/(\d{4})\s*[–-]\s*(\.\.\.)/);
-    if (openRange) return `${openRange[1]} – ...`;
-
-    const closedRange = yearPart.match(/(\d{4})\s*[–-]\s*(\d{4})/);
-    if (closedRange) return `${closedRange[1]} – ${closedRange[2]}`;
+    const range = yearPart.match(/(\d{4})\s*[–-]\s*(\.\.\.|\d{4})/);
+    if (range) return `${range[1]} – ${range[2]}`;
 
     const singleYear = yearPart.match(/\d{4}/);
     if (singleYear) return singleYear[0];
@@ -15,16 +13,14 @@ export default function ParseSearchFunc() {
   }
 
   function parseCategory(catEl) {
-    return catEl
-      ?.getAttribute("class")
-      ?.split(" ")
-      .filter((c) => c !== "cat")
-      .map((cat) => {
-        return cat
+    if (!catEl) return null;
+    const cat = [...catEl.classList].find((c) => c !== "cat");
+    return cat
+      ? cat
           .replace("films", "film")
           .replace("cartoons", "cartoon")
-          .replace("animation", "anime");
-      })[0];
+          .replace("animation", "anime")
+      : null;
   }
 
   return [...document.querySelectorAll(".b-content__inline_item")].map((el) => {
@@ -34,9 +30,9 @@ export default function ParseSearchFunc() {
     const catEl = el.querySelector(".cat");
 
     return {
-      name: linkEl?.textContent?.trim(),
-      url: linkEl?.getAttribute("href"),
-      image: cover?.getAttribute("src"),
+      name: linkEl?.textContent?.trim() || null,
+      url: linkEl?.href || null,
+      image: cover?.src || null,
       category: parseCategory(catEl),
       year: parseYearString(textDiv?.textContent?.trim()),
     };
