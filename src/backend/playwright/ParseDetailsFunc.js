@@ -200,9 +200,7 @@ export default async function ParseDetailsFunc(evalArg) {
     return otherParts || [];
   };
 
-  const isTVSeries = document.querySelector("#simple-seasons-tabs")
-    ? true
-    : false;
+  const isTVSeries = !!document.querySelector("#simple-seasons-tabs");
 
   const name = document.querySelector(".b-post__title")?.textContent?.trim();
   const originalName = document
@@ -218,18 +216,21 @@ export default async function ParseDetailsFunc(evalArg) {
     .querySelector(".b-post__description_text")
     ?.textContent?.trim();
 
-  const translators = getTranslators().filter(
-    (translator) => !translator.premium,
-  );
-  const activeTranslator = translators.find((translator) => translator.active);
+  const translators = getTranslators().filter((t) => !t.premium);
+  const activeTranslator =
+    translators.find((t) => t.active) || translators[0] || null;
 
-  const seasons = getSeasons(activeTranslator.translator);
-  const activeSeason = seasons.find((season) => season.active) || null;
+  const seasons = activeTranslator
+    ? getSeasons(activeTranslator.translator)
+    : [];
+  const activeSeason = seasons.find((s) => s.active) || null;
 
-  const episodes = getEpisodes(activeTranslator.translator).filter(
-    (episode) => episode.season == activeSeason.season,
-  );
-  const activeEpisode = episodes.find((episode) => episode.active) || null;
+  const episodes = activeTranslator
+    ? getEpisodes(activeTranslator.translator).filter(
+        (e) => activeSeason && e.season == activeSeason.season,
+      )
+    : [];
+  const activeEpisode = episodes.find((e) => e.active) || null;
 
   const streams = await getStreams({
     activeTranslator,
@@ -239,14 +240,12 @@ export default async function ParseDetailsFunc(evalArg) {
 
   const otherParts = getOtherParts();
 
-  const urlExist = document.querySelector("#translators-list a")?.href
-    ? true
-    : false;
+  const urlExist = !!document.querySelector("#translators-list a")?.href;
 
   const url = urlExist
     ? getUrl()
     : getUrl({
-        translator: activeTranslator.translator,
+        translator: activeTranslator?.translator,
         season: activeEpisode?.season,
         episode: activeEpisode?.episode,
       });
@@ -298,8 +297,8 @@ export default async function ParseDetailsFunc(evalArg) {
       ///
       name,
       originalName,
-      translator: activeTranslator.translator,
-      translatorName: activeTranslator.name,
+      translator: activeTranslator?.translator,
+      translatorName: activeTranslator?.name,
       episode: activeEpisode?.episode,
       season: activeEpisode?.season,
     })),
