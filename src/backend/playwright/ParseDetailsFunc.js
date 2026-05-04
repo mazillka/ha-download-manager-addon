@@ -6,7 +6,7 @@ export default async function ParseDetailsFunc(evalArg) {
     if (el && !el.classList.contains("active")) {
       el.click();
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
   }
 
@@ -15,7 +15,7 @@ export default async function ParseDetailsFunc(evalArg) {
     if (el && !el.classList.contains("active")) {
       el.click();
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
   }
 
@@ -27,7 +27,7 @@ export default async function ParseDetailsFunc(evalArg) {
     if (el && !el.classList.contains("active")) {
       el.click();
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
   }
 

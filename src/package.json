@@ -1,6 +1,6 @@
 {
   "name": "ha-download-manager",
-  "version": "2026.04.23",
+  "version": "2026.05.03",
   "type": "module",
   "description": "Home Assistant Download Manager Add-on",
   "main": "backend/server.ts",
@@ -16,29 +16,29 @@
     "preview": "vite preview --config ./frontend/vite.config.ts"
   },
   "dependencies": {
-    "better-sqlite3": "^12.8.0",
+    "better-sqlite3": "^12.9.0",
     "compression": "^1.8.1",
     "express": "^5.2.1",
-    "playwright-core": "^1.58.2"
+    "playwright-core": "^1.59.1"
   },
   "devDependencies": {
     "@mdi/font": "^7.4.47",
     "@types/better-sqlite3": "^7.6.13",
     "@types/compression": "^1.8.1",
     "@types/express": "^5.0.6",
-    "@types/node": "^25.5.0",
-    "@vitejs/plugin-vue": "^6.0.5",
+    "@types/node": "^25.6.0",
+    "@vitejs/plugin-vue": "^6.0.6",
     "concurrently": "^9.2.1",
-    "esbuild": "^0.27.4",
+    "esbuild": "^0.28.0",
     "pinia": "^3.0.4",
     "sweetalert2": "^11.26.24",
     "tsx": "^4.21.0",
-    "typescript": "^6.0.2",
+    "typescript": "^6.0.3",
     "video.js": "^8.23.7",
-    "vite": "^8.0.3",
+    "vite": "^8.0.10",
     "vite-plugin-compression": "^0.5.1",
-    "vue": "^3.5.31",
-    "vuetify": "^4.0.4"
+    "vue": "^3.5.33",
+    "vuetify": "^4.0.6"
   },
   "engines": {
     "node": ">=20.0.0"
