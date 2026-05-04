@@ -9,25 +9,43 @@ let context: BrowserContext | null = null;
 let totalPages = 0;
 const availablePages: Page[] = [];
 const pendingAcquires: ((page: Page) => void)[] = [];
+const pageUseCounts = new WeakMap<Page, number>();
+const MAX_PAGE_USES = 20;
 
 function shouldBlockRequest(url: string, resourceType: string): boolean {
   if (!url) {
     return false;
   }
-  const blockedHosts = [
-    "googlesyndication",
-    "google-analytics",
+  const blockedHosts = new Set([
+    "googlesyndication.com",
+    "google-analytics.com",
     "doubleclick.net",
     "facebook.net",
-    "adsystem",
-    "ads.",
-    "yandex",
-    "vk",
-  ];
+    "adsystem.com",
+    "ads.link",
+    "yandex.ru",
+    "vk.com",
+    "sentry.io",
+    "hotjar.com",
+    "intercom.io",
+    "crashlytics.com",
+    "amplitude.com",
+    "onesignal.com",
+  ]);
+
   try {
     const u = new URL(url);
     const host = u.hostname;
-    if (blockedHosts.some((h) => host.includes(h))) {
+    if (blockedHosts.has(host)) {
+      return true;
+    }
+    // Partial matches
+    if (
+      host.includes("analytics") ||
+      host.includes("telemetry") ||
+      host.includes("tracking") ||
+      host.includes("advert")
+    ) {
       return true;
     }
   } catch (e) {
@@ -36,9 +54,7 @@ function shouldBlockRequest(url: string, resourceType: string): boolean {
   if (
     [
       "image",
-      "font",
       "media",
-      "stylesheet",
       "imageset",
       "object",
       "beacon",
@@ -58,6 +74,7 @@ export async function getBrowser(): Promise<Browser> {
       headless: true,
       args: [
         "--no-sandbox",
+        "--disable-setuid-sandbox",
         "--disable-dev-shm-usage",
         "--disable-extensions",
         "--disable-background-networking",
@@ -68,6 +85,14 @@ export async function getBrowser(): Promise<Browser> {
         "--disable-component-update",
         "--disable-gpu",
         "--disable-ipc-flooding-protection",
+        "--no-zygote",
+        "--disable-renderer-backgrounding",
+        "--disable-background-timer-throttling",
+        "--disable-backgrounding-occluded-windows",
+        "--font-render-hinting=none",
+        "--js-flags=--max-old-space-size=256",
+        "--disable-features=Translate,OptimizationHints,MediaRouter,DialMediaRouteProvider,InterestFeedContentSuggestions",
+        "--process-per-site",
       ],
     };
 
@@ -129,7 +154,18 @@ async function createPage(): Promise<Page> {
 
 function acquireFromPool(): Page | null {
   if (availablePages.length) {
-    return availablePages.pop() || null;
+    const p = availablePages.pop() || null;
+    if (p) {
+      const uses = (pageUseCounts.get(p) || 0) + 1;
+      if (uses > MAX_PAGE_USES) {
+        console.info("[Playwright] Recycling page after reaching max uses.");
+        p.close().catch(() => {});
+        totalPages = Math.max(0, totalPages - 1);
+        return null; // signal to create a fresh one
+      }
+      pageUseCounts.set(p, uses);
+      return p;
+    }
   }
   const poolSize = parseInt(process.env.BROWSER_POOL_SIZE || "4", 10);
   if (totalPages < poolSize) {
@@ -156,8 +192,21 @@ export async function acquirePage(): Promise<Page> {
 }
 
 export function releasePage(p: Page): void {
+  if (p.isClosed()) {
+    totalPages = Math.max(0, totalPages - 1);
+    return;
+  }
+
   // Purge the site DOM entirely to prevent idle CPU/RAM leaks
-  p.goto("about:blank").catch(() => {});
+  p.goto("about:blank").catch(() => {
+    // If goto fails, it's likely a crashed page, don't return to pool
+    p.close().catch(() => {});
+    totalPages = Math.max(0, totalPages - 1);
+  });
+
+  // If the page is crashed or detached, don't put it back in pool
+  // Note: p.goto("about:blank") is async, but we check if it's already failed
+  // A better way is to check for specific error in the catch above
 
   if (pendingAcquires.length) {
     const r = pendingAcquires.shift();
@@ -277,6 +326,13 @@ export async function Parse<T>(
       }
 
       throw lastErr;
+    } catch (err: any) {
+      if (err?.message?.includes("Page crashed")) {
+        console.error(
+          `[Playwright] Page crashed during navigation (isolated) to ${url}.`,
+        );
+      }
+      throw err;
     } finally {
       try {
         await tmpContext.close();
@@ -324,8 +380,19 @@ export async function Parse<T>(
     }
 
     throw lastErr;
+  } catch (err: any) {
+    if (err?.message?.includes("Page crashed")) {
+      console.error(`[Playwright] Page crashed during navigation to ${url}. Discarding page.`);
+      if (page) {
+        page.close().catch(() => {});
+        totalPages = Math.max(0, totalPages - 1);
+      }
+    }
+    throw err;
   } finally {
-    releasePage(page);
+    if (page && !page.isClosed()) {
+      releasePage(page);
+    }
   }
 }
 
