@@ -61,6 +61,11 @@ function androidUrl(url: string) {
   return `intent:${url}#Intent;action=android.intent.action.VIEW;type=video/mp4;end`;
 };
 
+function androidDownloadUrl(url: string, filename: string) {
+  const sanitized = SanitizeFileName(filename);
+  return `intent:${url}#Intent;action=android.intent.action.VIEW;type=video/mp4;S.title=${sanitized};end`;
+};
+
 function fileName(stream: any) {
   const isTVSeries = props.details?.isTVSeries;
 
@@ -273,6 +278,8 @@ async function getDetails({ url, category, translator, season, episode }: { url:
             <stream-dropdown label="Watch" :streams="props.details.streams" @select="showPlayer($event.url)" />
             <stream-dropdown v-if="isAndroid" label="Watch External" :streams="props.details.streams"
               @select="openStream(androidUrl($event.url))" />
+            <stream-dropdown v-if="isAndroid" label="Download External" :streams="props.details.streams"
+              @select="openStream(androidDownloadUrl($event.url, fileName($event)))" />
 
             <div class="d-none">
               <stream-dropdown label="Open in Tab" :streams="props.details.streams" @select="openStream($event.url)" />
