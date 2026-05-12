@@ -10,7 +10,7 @@ WORKDIR /src
 
 # Copy package.json and install dependencies
 COPY src/package.json src/package-lock.json ./
-RUN npm ci --no-audit --prefer-offline --build-from-source
+RUN npm ci --no-audit --prefer-offline
 
 # Copy source code
 COPY src/common ./common/

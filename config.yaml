@@ -1,8 +1,8 @@
-name: "HA Download Manager"
-slug: ha-download-manager
+name: "Download Manager"
 version: "2026.05.10"
-image: "mazillka/ha-download-manager-{arch}"
-description: "Home Assistant Download Manager"
+image: "mazillka/ha-download-manager-addon"
+description: "Download Manager"
+slug: "ha-download-manager-addon"
 
 arch:
   - amd64
