@@ -1,6 +1,7 @@
 name: "HA Download Manager"
 slug: ha-download-manager
 version: "2026.05.10"
+image: "mazillka/ha-download-manager-{arch}"
 description: "Home Assistant Download Manager"
 
 arch:
